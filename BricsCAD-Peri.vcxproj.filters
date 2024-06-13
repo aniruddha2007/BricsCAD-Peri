@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
+    <ClCompile Include="SourceFiles\acrxEntryPoint.cpp" />
+    <ClCompile Include="SourceFiles\BrxApp.cpp" />
+    <ClCompile Include="SourceFiles\StdAfx.cpp" />
+    <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
+    <ClCompile Include="Blocks\BlockLoader.cpp" />
+    <ClCompile Include="WallPanelConnector.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
+    <ClInclude Include="SourceFiles\Resource.h" />
+    <ClInclude Include="SourceFiles\StdAfx.h" />
+    <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
+    <ClInclude Include="Blocks\BlockLoader.h" />
+    <ClInclude Include="WallPanelConnector.h" />
+    <ClInclude Include="SharedDefinations.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SourceFiles\BrxApp.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Menu\CustomMenu.cui" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Menu\wall.png" />
+  </ItemGroup>
+</Project>
