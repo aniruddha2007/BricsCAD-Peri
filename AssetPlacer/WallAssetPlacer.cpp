@@ -114,8 +114,11 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
         return;
     }
 
+    
+    //TODO
+    // Use the biggest block size to calculate the number of panels and empty space should be iterated  over using smaller block size
 	double distance = start.distanceTo(end);
-	int numPanels = static_cast<int>(distance / 90);  // Each panel is 0.1 units long
+	int numPanels = static_cast<int>(distance / 90);  // Calculate the number of panels
     AcGeVector3d direction = (end - start).normal();
 	AcGePoint3d currentPoint = start + direction * 25;
 

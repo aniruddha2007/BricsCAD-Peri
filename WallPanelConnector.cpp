@@ -73,7 +73,7 @@ std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> WallPanelConnector::ca
     std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> connectorPositions;
 
     double panelHeight = 135.0;
-    double offsets[] = { 37.5, 82.5, 112.5 };
+    double offsets[] = { 37.5, 82.5, 112.5 }; // change to 22.5, 52.5, 97.5 for 3 connectors
 
     for (size_t i = 0; i < panelPositions.size() - 1; ++i) {
         AcGePoint3d pos = panelPositions[i];
