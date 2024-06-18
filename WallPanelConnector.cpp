@@ -1,16 +1,25 @@
 #include "StdAfx.h"
 #include "WallPanelConnector.h"
-#include "SharedDefinations.h"  // For M_PI constants
+#include "SharedDefinations.h"  // For M_PI constants and asset definitions
 #include <vector>
 #include <tuple>
+#include <array>
 #include "dbapserv.h"        // For acdbHostApplicationServices() and related services
 #include "dbents.h"          // For AcDbBlockReference
 #include "dbsymtb.h"         // For block table record definitions
 #include "AcDb.h"            // General database definitions
 
+// Array of wall panel asset names
+const std::array<const std::wstring, 14> wallPanelAssets = {
+    ASSET_128280, ASSET_128285, ASSET_128286, ASSET_128281,
+    ASSET_128283, ASSET_128284, ASSET_129837, ASSET_129838,
+    ASSET_129839, ASSET_129840, ASSET_129841, ASSET_129842,
+    ASSET_129864, ASSET_128282
+};
+
 // DETECT WALL PANEL POSITIONS
-std::vector<AcGePoint3d> WallPanelConnector::detectWallPanelPositions() {
-    std::vector<AcGePoint3d> positions;
+std::vector<std::tuple<AcGePoint3d, std::wstring>> WallPanelConnector::detectWallPanelPositions() {
+    std::vector<std::tuple<AcGePoint3d, std::wstring>> positions;
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -50,8 +59,11 @@ std::vector<AcGePoint3d> WallPanelConnector::detectWallPanelPositions() {
                     if (acdbOpenObject(pBlockDef, blockId, AcDb::kForRead) == Acad::eOk) {
                         const wchar_t* blockName;
                         pBlockDef->getName(blockName);
-                        if (wcscmp(blockName, L"128280X") == 0 || wcscmp(blockName, L"128286X") == 0 || wcscmp(blockName, L"128285X") == 0) {
-                            positions.push_back(pBlockRef->position());
+                        for (const auto& asset : wallPanelAssets) {
+                            if (wcscmp(blockName, asset.c_str()) == 0) {
+                                positions.push_back(std::make_tuple(pBlockRef->position(), asset));
+                                break;
+                            }
                         }
                         pBlockDef->close();
                     }
@@ -69,42 +81,39 @@ std::vector<AcGePoint3d> WallPanelConnector::detectWallPanelPositions() {
 }
 
 // CALCULATE CONNECTOR POSITIONS
-std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<AcGePoint3d>& panelPositions) {
+std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> connectorPositions;
 
-    double panelHeight = 135.0;
-    double offsets[] = { 37.5, 82.5, 112.5 }; // change to 22.5, 52.5, 97.5 for 3 connectors
+    double offsets[] = { 22.5, 52.5, 97.5 };
 
     for (size_t i = 0; i < panelPositions.size() - 1; ++i) {
-        AcGePoint3d pos = panelPositions[i];
-        AcGePoint3d nextPos = panelPositions[i + 1];
+        AcGePoint3d pos = std::get<0>(panelPositions[i]);
+        AcGePoint3d nextPos = std::get<0>(panelPositions[i + 1]);
+
+        if (pos.distanceTo(nextPos) > 140.0) { // Panels are not adjacent
+            continue;
+        }
+
         AcGeVector3d direction = (nextPos - pos).normal();
         double rotation = atan2(direction.y, direction.x);
-        double angle = rotation;
 
-        // Ensure connectors are only placed between adjacent panels
-        if (pos.distanceTo(nextPos) < 140.0) { // Adjust this value if needed
-            for (double offset : offsets) {
-                AcGePoint3d connectorPos = pos;
-                AcGePoint3d connectorPosEnd = nextPos;
-                if (std::abs(angle) < 1e-3 || std::abs(angle - M_PI) < 1e-3) {
-                    connectorPos.z = pos.z + offset;
-                    connectorPos.x = pos.x;
-                    connectorPos.y = pos.y - 4.53;
-                    connectorPosEnd.z = nextPos.z + offset;
-                    connectorPosEnd.x = nextPos.x;
-                    connectorPosEnd.y = nextPos.y - 4.53;
-                }
-                else {
-                    connectorPos.z = pos.z + offset;
-                    connectorPos.x = pos.x - 4.53;
-                    connectorPos.y = pos.y;
-                    connectorPosEnd.z = nextPos.z + offset;
-                    connectorPosEnd.x = nextPos.x - 4.53;
-                    connectorPosEnd.y = nextPos.y;
-                }
-                connectorPositions.emplace_back(std::make_tuple(connectorPos, connectorPosEnd, rotation));
+        for (double offset : offsets) {
+            AcGePoint3d connectorPos = pos;
+            AcGePoint3d connectorPosEnd = nextPos;
+            connectorPos.z = pos.z + offset;
+            connectorPosEnd.z = nextPos.z + offset;
+
+            // Apply y-axis or x-axis offset based on rotation
+            if (std::abs(rotation) < 1e-3 || std::abs(rotation - M_PI) < 1e-3) {
+                connectorPos.y -= 5;
+                connectorPosEnd.y -= 5;
             }
+            else {
+                connectorPos.x -= 5;
+                connectorPosEnd.x -= 5;
+            }
+
+            connectorPositions.emplace_back(connectorPos, connectorPosEnd, rotation);
         }
     }
 
@@ -141,9 +150,9 @@ AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
 // PLACE CONNECTORS
 void WallPanelConnector::placeConnectors() {
     acutPrintf(_T("\nPlacing connectors..."));
-    std::vector<AcGePoint3d> panelPositions = detectWallPanelPositions();
+    std::vector<std::tuple<AcGePoint3d, std::wstring>> panelPositions = detectWallPanelPositions();
     std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> connectorPositions = calculateConnectorPositions(panelPositions);
-    AcDbObjectId assetId = loadConnectorAsset(L"128247X");  // Replace with the actual block name
+    AcDbObjectId assetId = loadConnectorAsset(ASSET_128247.c_str());  // Use the actual block name
 
     if (assetId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load asset."));
