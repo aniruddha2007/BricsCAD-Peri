@@ -121,8 +121,7 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
     
     //TODO
     // Use the biggest block size to calculate the number of panels and empty space should be iterated  over using smaller block size
-    //end -= AcGeVector3d::end * 25;
-	double distance = start.distanceTo(end);
+	double distance = start.distanceTo(end)-50;
     AcGeVector3d direction = (end - start).normal();
     AcGePoint3d currentPoint = start + direction * 25;
 
@@ -170,10 +169,12 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                 pBlockRef->close();  // Decrement reference count
 
                 currentPoint += direction * panel.length;  // Move to the next panel
-
+                distance -= panel.length;
+                /*
                 if (currentPoint.distanceTo(end) < panel.length) {
                     break;  // Stop if the remaining distance is less than a panel length
                 }
+                */
             }
         }
     }
@@ -224,8 +225,8 @@ void WallPlacer::placeWalls() {
         return;
     }
 
-    for (size_t i = 0; i < vertices.size() - 1; ++i) {
-        placeWallSegment(vertices[i], vertices[i + 1]);
+    for (size_t i = 0; i < corners.size() - 1; ++i) {
+        placeWallSegment(corners[i], corners[i + 1]);
     }
 
     /*
