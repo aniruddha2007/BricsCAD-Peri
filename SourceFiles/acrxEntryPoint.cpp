@@ -20,6 +20,7 @@
 #include "BrxSpecific/ribbon/AcRibbonButton.h" // Include the header for the AcRibbonButton class
 #include "Blocks/BlockLoader.h"       // Include the header for the BlockLoader class
 #include "WallPanelConnector.h" 	 // Include the header for the WallPanelConnector class
+#include "DefineHeight.h" 		  // Include the header for the DefineHeight class
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -43,12 +44,14 @@ public:
         acutPrintf(_T("\n PlaceCorners: Identify Corners and Start placing them."));
         acutPrintf(_T("\n PlaceConnectors: Place connectors on wall panels."));
         acutPrintf(_T("\n LoadBlocks: Load current active database BRX."));
+        acutPrintf(_T("\n DefineHeight: Place Wall Panels."));
         acutPrintf(_T("\n DoAll: Run All Cmds In Order."));
 
         // Register the commands
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceCorners);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceWalls);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceConnectors);
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineHeight);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, &CBrxApp::BrxAppLoadBlocks);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDoApp);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("MySandboxCommand"), _T("MySandboxCommand"), ACRX_CMD_TRANSPARENT, &CBrxApp::BrxAppMySandboxCommand);
@@ -118,6 +121,13 @@ public:
 	{
 		acutPrintf(_T("\nRunning LoadBlocks."));
 		BlockLoader::loadBlocksFromDatabase();
+	}
+
+    // DefineHeight command
+    static void BrxAppDefineHeight(void)
+	{
+		acutPrintf(_T("\nRunning DefineHeight."));
+        DefineHeight::defineHeight();
 	}
 
     // DoAll command

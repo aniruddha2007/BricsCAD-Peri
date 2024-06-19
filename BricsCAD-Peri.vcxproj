@@ -14,6 +14,7 @@
     <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
+    <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="SourceFiles\acrxEntryPoint.cpp" />
     <ClCompile Include="SourceFiles\BrxApp.cpp" />
     <ClCompile Include="SourceFiles\StdAfx.cpp">
@@ -27,6 +28,7 @@
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
+    <ClInclude Include="DefineHeight.h" />
     <ClInclude Include="SharedDefinations.h" />
     <ClInclude Include="SourceFiles\Resource.h" />
     <ClInclude Include="SourceFiles\StdAfx.h" />

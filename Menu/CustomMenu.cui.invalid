@@ -59,8 +59,8 @@
           <CLICommand UID="XLS_241_A5EC6" xlate="true">Load Blocks</CLICommand>
         </Macro>
       </MenuMacro>
-      <MenuMacro UID="MMU_241_BAC04">
-        <Macro type="Any">
+      <MenuMacro>
+        <Macro UID ="MMU_241_BAC04">
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
           <Name UID="XLS_241_27477" xlate="true">Define Height</Name>
@@ -157,7 +157,7 @@
           <ButtonItem BlankLine="true" UID="BIU_241_3A3A4"/>
           <ButtonItem BlankLine="true" UID="BIU_241_3A3A4"/>
           <ButtonItem BlankLine="true" UID="BIU_241_3A3A4"/>
-        </ButtonGroup>
+          </ButtonGroup>
       </MouseButtonRoot>
       <OverrideRoot/>
       <PanelSetRoot>
@@ -205,8 +205,8 @@
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" KeyTip="" MenuMacroID="MMU_241_BAC04" Text="" UID="RBNU_241_5BB78">
                 <TooltipTitle UID="XLS_241_77EE5" xlate="true">Define Height</TooltipTitle>
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
-              </RibbonCommandButton>
-              <RibbonSeparator Id="AcRibbonSeparator" SeparatorStyle="Line" UID="RBNU_241_0E656">
+                </RibbonCommandButton>
+              <RibbonSeparator>
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
               </RibbonSeparator>
             </RibbonRow>
@@ -381,10 +381,7 @@
           </TabletMenuItem>
           <TabletMenuItem BlankLine="true" UID="TMIU_241_3A3A4">
             <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
-          </TabletMenuItem>
-          <TabletMenuItem BlankLine="true" UID="TMIU_241_3A3A4">
-            <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
-          </TabletMenuItem>
+          </TabletMenuItem
         </TabletMenu>
       </TabletMenuRoot>
       <ToolPanelRoot/>

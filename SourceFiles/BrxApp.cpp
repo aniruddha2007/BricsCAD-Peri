@@ -10,6 +10,7 @@
 #include "AssetPlacer/WallAssetPlacer.h"
 #include "WallPanelConnector.h"
 #include "Blocks/BlockLoader.h"
+#include "DefineHeight.h"
 
 AC_IMPLEMENT_EXTENSION_MODULE(MyBrxApp)
 
@@ -41,6 +42,7 @@ void initApp() {
 	acedRegCmds->addCommand(L"MY_PLUGIN_GROUP", L"PlaceWalls", L"PlaceWalls", ACRX_CMD_MODAL, &WallPlacer::placeWalls);
     acedRegCmds->addCommand(L"MY_PLUGIN_GROUP", L"PlaceConnectors", L"PlaceConnectors", ACRX_CMD_MODAL, &WallPanelConnector::placeConnectors);
     acedRegCmds->addCommand(L"MY_PLUGIN_GROUP", L"LoadBlocks", L"LoadBlocks", ACRX_CMD_MODAL, &BlockLoader::loadBlocksFromDatabase);
+    acedRegCmds->addCommand(L"MY_PLUGIN_GROUP", L"DefineHeight", L"DefineHeight", ACRX_CMD_MODAL, &DefineHeight::defineHeight);
 }
 
 void unloadApp() {
