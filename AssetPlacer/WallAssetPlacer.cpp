@@ -15,7 +15,14 @@
 #include "acdocman.h"
 #include "rxregsvc.h"
 #include "geassign.h"
+#include <string>
+#include "SharedDefinations.h"
 
+// Structure to hold panel information
+struct Panel {
+    int length;
+    std::wstring id;
+};
 
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
@@ -94,7 +101,7 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end, AcDbObjectId assetId) {
+void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -117,34 +124,61 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
     
     //TODO
     // Use the biggest block size to calculate the number of panels and empty space should be iterated  over using smaller block size
+    //end -= AcGeVector3d::end * 25;
 	double distance = start.distanceTo(end);
-	int numPanels = static_cast<int>(distance / 90);  // Calculate the number of panels
     AcGeVector3d direction = (end - start).normal();
 	AcGePoint3d currentPoint = start + direction * 25;
 
-    for (int i = 0; i < numPanels; i++) {
-        double rotation = atan2(direction.y, direction.x);
+    // List of available panels
+    std::vector<Panel> panelSizes = {
+        {90, L"128280X"},
+        {75, L"128281X"},
+        {60, L"128282X"},
+        {45, L"128283X"},
+        {30, L"128284X"},
+        {15, L"128285X"}
+    };
 
-        // Place the wall segment without scaling
-        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-        pBlockRef->setPosition(currentPoint);
-        pBlockRef->setBlockTableRecord(assetId);
-        pBlockRef->setRotation(rotation);  // Apply rotation
-        pBlockRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+    //Iterate through every panel type
+    for (const auto& panel : panelSizes) {
+        acutPrintf(_T("\npanelSizes test length: %d"), panel.length);
+        acutPrintf(_T("\npanelSizes test id: %s"), panel.id);
 
-        if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-            acutPrintf(_T("\nWall segment placed successfully."));
+        AcDbObjectId assetId = loadAsset(panel.id.c_str());
+
+        if (assetId == AcDbObjectId::kNull) {
+            acutPrintf(_T("\nFailed to load asset."));
         }
-        else {
-            acutPrintf(_T("\nFailed to place wall segment."));
+        else
+        {
+            //Place walls
+            int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels
+
+            for (int i = 0; i < numPanels; i++) {
+                double rotation = atan2(direction.y, direction.x);
+
+                // Place the wall segment without scaling
+                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                pBlockRef->setPosition(currentPoint);
+                pBlockRef->setBlockTableRecord(assetId);
+                pBlockRef->setRotation(rotation);  // Apply rotation
+                pBlockRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+
+                if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
+                    acutPrintf(_T("\nWall segment placed successfully."));
+                }
+                else {
+                    acutPrintf(_T("\nFailed to place wall segment."));
+                }
+                pBlockRef->close();  // Decrement reference count
+
+                currentPoint += direction * panel.length;  // Move to the next panel
+
+                if (currentPoint.distanceTo(end) < panel.length) {
+                    break;  // Stop if the remaining distance is less than a panel length
+                }
+            }
         }
-        pBlockRef->close();  // Decrement reference count
-
-		currentPoint += direction * 90;  // Move to the next panel
-
-		if (currentPoint.distanceTo(end) < 90) {
-			break;  // Stop if the remaining distance is less than a panel length
-		}
     }
 
     pModelSpace->close();  // Decrement reference count
@@ -193,6 +227,11 @@ void WallPlacer::placeWalls() {
         return;
     }
 
+    for (size_t i = 0; i < vertices.size() - 1; ++i) {
+        placeWallSegment(vertices[i], vertices[i + 1]);
+    }
+
+    /*
     AcDbObjectId assetId = loadAsset(L"128280X");
 
     if (assetId == AcDbObjectId::kNull) {
@@ -203,6 +242,7 @@ void WallPlacer::placeWalls() {
     for (size_t i = 0; i < vertices.size() - 1; ++i) {
         placeWallSegment(vertices[i], vertices[i + 1], assetId);
     }
+    */
 
     acutPrintf(_T("\nCompleted placing walls."));
 }
