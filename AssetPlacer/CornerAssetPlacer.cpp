@@ -1,8 +1,7 @@
-﻿// Updated CornerAssetPlacer.cpp
-
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
+#include "GeometryUtils.h"
 #include <vector>
 #include <map>
 #include <set>
@@ -20,26 +19,26 @@ std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dCompar
 // DETECT POLYLINES FROM DRAWING
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
-    std::vector<AcGePoint3d> vertices;
+    std::vector<AcGePoint3d> corners;
     wallMap.clear();  // Clear previous data
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get model space."));
         pBlockTable->close();
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTableRecordIterator* pIter;
@@ -47,7 +46,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
         acutPrintf(_T("\nFailed to create iterator."));
         pModelSpace->close();
         pBlockTable->close();
-        return vertices;
+        return corners;
     }
 
     for (pIter->start(); !pIter->done(); pIter->step()) {
@@ -57,12 +56,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    int numVerts = pPolyline->numVerts();
-                    for (int i = 0; i < numVerts; i++) {
-                        AcGePoint3d pt;
-                        pPolyline->getPointAt(i, pt);
-                        vertices.push_back(pt);
-                    }
+                    processPolyline(pPolyline, corners);
                 }
             }
             pEnt->close();
@@ -73,8 +67,8 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nDetected %d vertices from polylines."), vertices.size());
-    return vertices;
+    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    return corners;
 }
 
 // ADD TEXT ANNOTATION TO DRAWING
@@ -176,7 +170,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             }
         }
         return closestPoint;
-    };
+        };
 
     // Determine the actual corner points
     AcGePoint3d topLeftCorner = findClosestPoint(topLeftCandidates, AcGePoint3d(minX, maxY, 0));
@@ -220,7 +214,6 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-// PLACE CORNER POST AND PANELS
 // PLACE CORNER POST AND PANELS
 void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();

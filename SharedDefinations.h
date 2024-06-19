@@ -4,16 +4,16 @@
 
 //Pi values for calculating the pre defined angles
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.141592653589793238462643383279
 #endif
 #ifndef M_PI_2
-#define M_PI_2 1.57079632679489661923
+#define M_PI_2 1.5707963267948966192313216916395
 #endif
 #ifndef M_PI_4
-#define M_PI_4 0.78539816339744830962
+#define M_PI_4 0.78539816339744830961566084581975
 #endif
 #ifndef M_3PI_2
-#define M_3PI_2 4.71238898038468985769
+#define M_3PI_2 4.7123889803846898576939650749185
 #endif
 // Undefine the conflicting macros
 #ifdef max

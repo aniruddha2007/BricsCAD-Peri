@@ -3,6 +3,8 @@
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
+#include "SharedDefinations.h"
+#include "GeometryUtils.h"
 #include <vector>
 #include <limits>
 #include "dbapserv.h"
@@ -16,28 +18,80 @@
 #include "rxregsvc.h"
 #include "geassign.h"
 
+//// Calculate the angle between two vectors
+//double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2) {
+//    double dotProduct = v1.dotProduct(v2);
+//    double lengthsProduct = v1.length() * v2.length();
+//    return acos(dotProduct / lengthsProduct) * (180.0 / M_PI);
+//}
+//
+//// Determine if an angle represents a corner
+//bool isCorner(double angle, double threshold = 45.0) {
+//    return angle > threshold;
+//}
+//
+//// Extract vertices from a polyline
+//void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& vertices) {
+//    int numVerts = pPolyline->numVerts();
+//    for (int i = 0; i < numVerts; ++i) {
+//        AcGePoint3d point;
+//        pPolyline->getPointAt(i, point);
+//        vertices.push_back(point);
+//    }
+//}
+//
+//// Process polyline to detect corners
+//void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& corners, double angleThreshold = 45.0) {
+//    std::vector<AcGePoint3d> vertices;
+//    detectVertices(pPolyline, vertices);
+//
+//    size_t numVerts = vertices.size();
+//    for (size_t i = 0; i < numVerts; ++i) {
+//        AcGeVector3d currentDirection, nextDirection;
+//        if (i < numVerts - 1) {
+//            currentDirection = vertices[i + 1] - vertices[i];
+//        }
+//        else {
+//            currentDirection = vertices[0] - vertices[i];
+//        }
+//        currentDirection.normalize();
+//
+//        if (i > 0) {
+//            nextDirection = vertices[i] - vertices[i - 1];
+//        }
+//        else {
+//            nextDirection = vertices[i] - vertices[numVerts - 1];
+//        }
+//        nextDirection.normalize();
+//
+//        double angle = calculateAngle(currentDirection, nextDirection);
+//        if (isCorner(angle, angleThreshold)) {
+//            corners.push_back(vertices[i]);
+//        }
+//    }
+//}
 
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
-    std::vector<AcGePoint3d> vertices;
+    std::vector<AcGePoint3d> corners;
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get model space."));
         pBlockTable->close();
-        return vertices;
+        return corners;
     }
 
     AcDbBlockTableRecordIterator* pIter;
@@ -45,7 +99,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
         acutPrintf(_T("\nFailed to create iterator."));
         pModelSpace->close();
         pBlockTable->close();
-        return vertices;
+        return corners;
     }
 
     for (pIter->start(); !pIter->done(); pIter->step()) {
@@ -55,12 +109,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    int numVerts = pPolyline->numVerts();
-                    for (int i = 0; i < numVerts; i++) {
-                        AcGePoint3d pt;
-                        pPolyline->getPointAt(i, pt);
-                        vertices.push_back(pt);
-                    }
+                    processPolyline(pPolyline, corners);
                 }
             }
             pEnt->close();
@@ -71,8 +120,8 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nDetected %d vertices from polylines."), vertices.size());
-    return vertices;
+    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    return corners;
 }
 
 AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
@@ -114,13 +163,11 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
         return;
     }
 
-    
-    //TODO
-    // Use the biggest block size to calculate the number of panels and empty space should be iterated  over using smaller block size
-	double distance = start.distanceTo(end);
-	int numPanels = static_cast<int>(distance / 90);  // Calculate the number of panels
+    // Use the biggest block size to calculate the number of panels and empty space should be iterated over using smaller block size
+    double distance = start.distanceTo(end);
+    int numPanels = static_cast<int>(distance / 60);  // Calculate the number of panels
     AcGeVector3d direction = (end - start).normal();
-	AcGePoint3d currentPoint = start + direction * 25;
+    AcGePoint3d currentPoint = start + direction * 25;
 
     for (int i = 0; i < numPanels; i++) {
         double rotation = atan2(direction.y, direction.x);
@@ -140,11 +187,11 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
         }
         pBlockRef->close();  // Decrement reference count
 
-		currentPoint += direction * 90;  // Move to the next panel
+        currentPoint += direction * 60;  // Move to the next panel
 
-		if (currentPoint.distanceTo(end) < 90) {
-			break;  // Stop if the remaining distance is less than a panel length
-		}
+        if (currentPoint.distanceTo(end) < 60) {
+            break;  // Stop if the remaining distance is less than a panel length
+        }
     }
 
     pModelSpace->close();  // Decrement reference count
@@ -186,24 +233,23 @@ void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* t
 
 void WallPlacer::placeWalls() {
     acutPrintf(_T("\nPlacing walls..."));
-    std::vector<AcGePoint3d> vertices = detectPolylines();
+    std::vector<AcGePoint3d> corners = detectPolylines();
 
-    if (vertices.empty()) {
+    if (corners.empty()) {
         acutPrintf(_T("\nNo polylines detected."));
         return;
     }
 
-    AcDbObjectId assetId = loadAsset(L"128280X");
+    AcDbObjectId assetId = loadAsset(L"128282X");
 
     if (assetId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load asset."));
         return;
     }
 
-    for (size_t i = 0; i < vertices.size() - 1; ++i) {
-        placeWallSegment(vertices[i], vertices[i + 1], assetId);
+    for (size_t i = 0; i < corners.size() - 1; ++i) {
+        placeWallSegment(corners[i], corners[i + 1], assetId);
     }
 
     acutPrintf(_T("\nCompleted placing walls."));
 }
-// Path: WallAssetPlacer.h

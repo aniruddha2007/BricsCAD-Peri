@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
     <ClCompile Include="SourceFiles\acrxEntryPoint.cpp" />
@@ -23,6 +24,7 @@
     <ClCompile Include="WallPanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AssetPlacer\GeometryUtils.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
     <ClInclude Include="SharedDefinations.h" />

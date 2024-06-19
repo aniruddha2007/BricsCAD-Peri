@@ -1,21 +1,15 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "WallPanelConnector.h"
-#include "SharedDefinations.h"  // For M_PI constants and asset definitions
+#include "SharedDefinations.h"  // For M_PI constants
 #include <vector>
 #include <tuple>
-#include <array>
+#include <cmath>
 #include "dbapserv.h"        // For acdbHostApplicationServices() and related services
 #include "dbents.h"          // For AcDbBlockReference
 #include "dbsymtb.h"         // For block table record definitions
 #include "AcDb.h"            // General database definitions
 
-// Array of wall panel asset names
-const std::array<const std::wstring, 14> wallPanelAssets = {
-    ASSET_128280, ASSET_128285, ASSET_128286, ASSET_128281,
-    ASSET_128283, ASSET_128284, ASSET_129837, ASSET_129838,
-    ASSET_129839, ASSET_129840, ASSET_129841, ASSET_129842,
-    ASSET_129864, ASSET_128282
-};
+const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
 
 // DETECT WALL PANEL POSITIONS
 std::vector<std::tuple<AcGePoint3d, std::wstring>> WallPanelConnector::detectWallPanelPositions() {
@@ -59,11 +53,17 @@ std::vector<std::tuple<AcGePoint3d, std::wstring>> WallPanelConnector::detectWal
                     if (acdbOpenObject(pBlockDef, blockId, AcDb::kForRead) == Acad::eOk) {
                         const wchar_t* blockName;
                         pBlockDef->getName(blockName);
-                        for (const auto& asset : wallPanelAssets) {
-                            if (wcscmp(blockName, asset.c_str()) == 0) {
-                                positions.push_back(std::make_tuple(pBlockRef->position(), asset));
-                                break;
-                            }
+
+                        // Compare with assets list
+                        std::wstring blockNameStr(blockName);
+                        if (blockNameStr == ASSET_128280 || blockNameStr == ASSET_128285 ||
+                            blockNameStr == ASSET_128286 || blockNameStr == ASSET_128281 ||
+                            blockNameStr == ASSET_128283 || blockNameStr == ASSET_128284 ||
+                            blockNameStr == ASSET_129837 || blockNameStr == ASSET_129838 ||
+                            blockNameStr == ASSET_129839 || blockNameStr == ASSET_129840 ||
+                            blockNameStr == ASSET_129841 || blockNameStr == ASSET_129842 ||
+                            blockNameStr == ASSET_129864 || blockNameStr == ASSET_128282) {
+                            positions.emplace_back(pBlockRef->position(), blockNameStr);
                         }
                         pBlockDef->close();
                     }
@@ -84,36 +84,59 @@ std::vector<std::tuple<AcGePoint3d, std::wstring>> WallPanelConnector::detectWal
 std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> connectorPositions;
 
-    double offsets[] = { 22.5, 52.5, 97.5 };
+    double offsets[] = { 22.5, 52.5, 97.5 }; // Predefined Z-axis positions for connectors
 
     for (size_t i = 0; i < panelPositions.size() - 1; ++i) {
         AcGePoint3d pos = std::get<0>(panelPositions[i]);
         AcGePoint3d nextPos = std::get<0>(panelPositions[i + 1]);
-
-        if (pos.distanceTo(nextPos) > 140.0) { // Panels are not adjacent
-            continue;
-        }
-
         AcGeVector3d direction = (nextPos - pos).normal();
         double rotation = atan2(direction.y, direction.x);
 
+        // Normalize the angle to be between 0 and 2π
+        if (rotation < 0) {
+            rotation += 2 * M_PI;
+        }
+
+        // Determine the rotation based on the angle within the tolerance
+        if (fabs(rotation - 0) < TOLERANCE || fabs(rotation - 2 * M_PI) < TOLERANCE) {
+            rotation = 0.0;  // Horizontal right
+        }
+        else if (fabs(rotation - M_PI_2) < TOLERANCE) {
+            rotation = M_PI_2;  // Vertical up
+        }
+        else if (fabs(rotation - M_PI) < TOLERANCE) {
+            rotation = M_PI;  // Horizontal left
+        }
+        else if (fabs(rotation - 3 * M_PI_2) < TOLERANCE) {
+            rotation = 3 * M_PI_2;  // Vertical down
+        }
+
+        // Calculate connector positions with the updated rotation logic
         for (double offset : offsets) {
             AcGePoint3d connectorPos = pos;
             AcGePoint3d connectorPosEnd = nextPos;
-            connectorPos.z = pos.z + offset;
-            connectorPosEnd.z = nextPos.z + offset;
 
-            // Apply y-axis or x-axis offset based on rotation
-            if (std::abs(rotation) < 1e-3 || std::abs(rotation - M_PI) < 1e-3) {
-                connectorPos.y -= 5;
-                connectorPosEnd.y -= 5;
+            // Adjust positions based on the rotation and apply the Y-axis offset
+            if (rotation == 0.0 || rotation == M_PI) {
+                connectorPos.z = pos.z + offset;
+                connectorPos.y = pos.y - 5.0;
+                connectorPosEnd.z = nextPos.z + offset;
+                connectorPosEnd.y = nextPos.y - 5.0;
             }
-            else {
-                connectorPos.x -= 5;
-                connectorPosEnd.x -= 5;
+            else if (rotation == M_PI_2 || rotation == 3 * M_PI_2) {
+                connectorPos.z = pos.z + offset;
+                connectorPos.x = pos.x - 5.0;
+                connectorPosEnd.z = nextPos.z + offset;
+                connectorPosEnd.x = nextPos.x - 5.0;
             }
 
-            connectorPositions.emplace_back(connectorPos, connectorPosEnd, rotation);
+            // Print debug information
+            acutPrintf(_T("\nConnector calculated:\n"));
+            acutPrintf(_T("Start Position: (%f, %f, %f)\n"), connectorPos.x, connectorPos.y, connectorPos.z);
+            acutPrintf(_T("End Position: (%f, %f, %f)\n"), connectorPosEnd.x, connectorPosEnd.y, connectorPosEnd.z);
+            acutPrintf(_T("Rotation: %f radians\n"), rotation);
+
+            connectorPositions.emplace_back(std::make_tuple(connectorPos, connectorPosEnd, rotation));
         }
     }
 
@@ -152,7 +175,7 @@ void WallPanelConnector::placeConnectors() {
     acutPrintf(_T("\nPlacing connectors..."));
     std::vector<std::tuple<AcGePoint3d, std::wstring>> panelPositions = detectWallPanelPositions();
     std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> connectorPositions = calculateConnectorPositions(panelPositions);
-    AcDbObjectId assetId = loadConnectorAsset(ASSET_128247.c_str());  // Use the actual block name
+    AcDbObjectId assetId = loadConnectorAsset(ASSET_128247.c_str());  // Replace with the actual block name
 
     if (assetId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load asset."));
