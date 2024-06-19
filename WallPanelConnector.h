@@ -1,14 +1,16 @@
 #pragma once
 #include <vector>
+#include <tuple>
+#include <string>
 #include "gept3dar.h"  // For AcGePoint3d
-#include "dbidmap.h"   // For AcDbObjectId
+#include "dbid.h"   // For AcDbObjectId
 
 class WallPanelConnector {
 public:
     static void placeConnectors();
 private:
-    static std::vector<AcGePoint3d> detectWallPanelPositions();
-    static std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> calculateConnectorPositions(const std::vector<AcGePoint3d>& panelPositions);
+    static std::vector<std::tuple<AcGePoint3d, std::wstring>> detectWallPanelPositions();
+    static std::vector<std::tuple<AcGePoint3d, AcGePoint3d, double>> calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring>>& panelPositions);
     static AcDbObjectId loadConnectorAsset(const wchar_t* blockName);
     static void placeConnectorAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId);
 
