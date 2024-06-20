@@ -19,6 +19,7 @@
 #include "geassign.h"
 #include <string>
 #include "SharedDefinations.h"
+#include "DefineHeight.h"
 
 // Structure to hold panel information
 struct Panel {
@@ -124,8 +125,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
     AcGeVector3d direction = (end - start).normal();
     AcGePoint3d currentPoint = start + direction * 25;
 
-    //Fetch this variable from bricscad ribbon
-    int wallHeight = 600;
+    //Fetch this variable from DefineHeight
+    int wallHeight = globalVarHeight;
 
     int currentHeight = 0;
     int panelHeights[] = { 135, 60 };
