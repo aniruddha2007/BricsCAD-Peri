@@ -57,7 +57,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    processPolyline(pPolyline, corners);
+                    processPolyline(pPolyline, corners, 90.0);  // Assuming 90.0 degrees as the threshold for corners
                 }
             }
             pEnt->close();
@@ -120,77 +120,42 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         return;
     }
 
-    // Define tolerance value for identifying potential corners
-    const double tol = 1.0;
+    // Iterate through all detected corners and place assets accordingly
+    for (size_t i = 0; i < corners.size(); ++i) {
+        double rotation = 0.0;
+        if (i < corners.size() - 1) {
+            AcGeVector3d direction = corners[i + 1] - corners[i];
+            rotation = atan2(direction.y, direction.x);
+        }
+        else {
+            AcGeVector3d direction = corners[0] - corners[i];
+            rotation = atan2(direction.y, direction.x);
+        }
 
-    // Calculate the bounding box
-    double minX = std::numeric_limits<double>::max();
-    double maxX = std::numeric_limits<double>::lowest();
-    double minY = std::numeric_limits<double>::max();
-    double maxY = std::numeric_limits<double>::lowest();
+        // Determine if the corner is inside or outside
+        bool isInside = false;
+        if (i < corners.size() - 1) {
+            AcGeVector3d prevDirection = corners[i] - corners[i - 1];
+            AcGeVector3d nextDirection = corners[i + 1] - corners[i];
+            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+            isInside = crossProductZ < 0; // Change this logic based on your coordinate system
+        }
+        else {
+            AcGeVector3d prevDirection = corners[i] - corners[i - 1];
+            AcGeVector3d nextDirection = corners[0] - corners[i];
+            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+            isInside = crossProductZ < 0; // Change this logic based on your coordinate system
+        }
 
-    for (const auto& pt : corners) {
-        if (pt.x < minX) minX = pt.x;
-        if (pt.x > maxX) maxX = pt.x;
-        if (pt.y < minY) minY = pt.y;
-        if (pt.y > maxY) maxY = pt.y;
+        if (isInside) {
+            placeCornerPostAndPanels(corners[i], rotation, cornerPostId, panelId);
+            addTextAnnotation(corners[i], L"Inside Corner");
+        }
+        else {
+            placeCornerPostAndPanels(corners[i], rotation, cornerPostId, panelId);
+            addTextAnnotation(corners[i], L"Outside Corner");
+        }
     }
-
-    // Initialize candidate sets
-    std::vector<AcGePoint3d> topLeftCandidates;
-    std::vector<AcGePoint3d> bottomLeftCandidates;
-    std::vector<AcGePoint3d> bottomRightCandidates;
-    std::vector<AcGePoint3d> topRightCandidates;
-
-    // Classify points into quadrants
-    for (const auto& pt : corners) {
-        if (fabs(pt.x - minX) < tol && fabs(pt.y - maxY) < tol) {
-            topLeftCandidates.push_back(pt);
-        }
-        if (fabs(pt.x - minX) < tol && fabs(pt.y - minY) < tol) {
-            bottomLeftCandidates.push_back(pt);
-        }
-        if (fabs(pt.x - maxX) < tol && fabs(pt.y - minY) < tol) {
-            bottomRightCandidates.push_back(pt);
-        }
-        if (fabs(pt.x - maxX) < tol && fabs(pt.y - maxY) < tol) {
-            topRightCandidates.push_back(pt);
-        }
-    }
-
-    // Function to find the closest point to the specified corner
-    auto findClosestPoint = [](const std::vector<AcGePoint3d>& candidates, const AcGePoint3d& corner) -> AcGePoint3d {
-        AcGePoint3d closestPoint;
-        double minDist = std::numeric_limits<double>::max();
-
-        for (const auto& pt : candidates) {
-            double dist = pt.distanceTo(corner);
-            if (dist < minDist) {
-                minDist = dist;
-                closestPoint = pt;
-            }
-        }
-        return closestPoint;
-        };
-
-    // Determine the actual corner points
-    AcGePoint3d topLeftCorner = findClosestPoint(topLeftCandidates, AcGePoint3d(minX, maxY, 0));
-    AcGePoint3d bottomLeftCorner = findClosestPoint(bottomLeftCandidates, AcGePoint3d(minX, minY, 0));
-    AcGePoint3d bottomRightCorner = findClosestPoint(bottomRightCandidates, AcGePoint3d(maxX, minY, 0));
-    AcGePoint3d topRightCorner = findClosestPoint(topRightCandidates, AcGePoint3d(maxX, maxY, 0));
-
-    // Place corner post and panels at identified corners
-    placeCornerPostAndPanels(topLeftCorner, 0.0, cornerPostId, panelId);
-    addTextAnnotation(topLeftCorner, L"Top-Left Corner");
-
-    placeCornerPostAndPanels(bottomLeftCorner, M_PI_2, cornerPostId, panelId);
-    addTextAnnotation(bottomLeftCorner, L"Bottom-Left Corner");
-
-    placeCornerPostAndPanels(bottomRightCorner, M_PI, cornerPostId, panelId);
-    addTextAnnotation(bottomRightCorner, L"Bottom-Right Corner");
-
-    placeCornerPostAndPanels(topRightCorner, M_3PI_2, cornerPostId, panelId);
-    addTextAnnotation(topRightCorner, L"Top-Right Corner");
 
     acutPrintf(_T("\nCompleted placing assets."));
 }
@@ -270,24 +235,24 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
             }
             pCornerPostRef->close();  // Decrement reference count
 
-            // Determine panel placement positions based on the rotation
-            AcGeVector3d panelAOffset, panelBOffset;
-            if (rotation == 0.0) {
-                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
-            }
-            else if (rotation == M_PI_2) {
-                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
-            }
-            else if (rotation == M_PI) {
-                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
-            }
-            else if (rotation == M_3PI_2) {
-                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
-            }
+    // Determine panel placement positions based on the rotation
+    AcGeVector3d panelAOffset, panelBOffset;
+    if (rotation == 0.0) {
+        panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
+        panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+    }
+    else if (rotation == M_PI_2) {
+        panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
+        panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+    }
+    else if (rotation == M_PI) {
+        panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
+        panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+    }
+    else if (rotation == M_3PI_2) {
+        panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
+        panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+    }
 
             AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
             AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
