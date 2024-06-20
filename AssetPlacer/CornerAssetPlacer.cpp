@@ -12,6 +12,7 @@
 #include "dbsymtb.h"
 #include "AcDb.h"
 #include "gepnt3d.h"
+#include "DefineHeight.h"
 
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
@@ -235,72 +236,94 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
         return;
     }
 
-    // Place the corner post at the detected corner
-    AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
-    pCornerPostRef->setPosition(corner);
-    pCornerPostRef->setBlockTableRecord(cornerPostId);
-    pCornerPostRef->setRotation(rotation);
-    pCornerPostRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+    //Fetch this variable from DefineHeight
+    int wallHeight = globalVarHeight;
 
-    if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-        acutPrintf(_T("\nCorner post placed successfully."));
-    }
-    else {
-        acutPrintf(_T("\nFailed to place corner post."));
-    }
-    pCornerPostRef->close();  // Decrement reference count
+    int currentHeight = 0;
+    int panelHeights[] = { 135, 60 };
 
-    // Determine panel placement positions based on the rotation
-    AcGeVector3d panelAOffset, panelBOffset;
-    if (rotation == 0.0) {
-        panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
-        panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
-    }
-    else if (rotation == M_PI_2) {
-        panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
-        panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
-    }
-    else if (rotation == M_PI) {
-        panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
-        panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
-    }
-    else if (rotation == M_3PI_2) {
-        panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
-        panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
-    }
+    //Iterate through 135 and 60 height
+    for (int panelNum = 0; panelNum < 2; panelNum++) {
 
-    AcGePoint3d panelPositionA = corner + panelAOffset;
-    AcGePoint3d panelPositionB = corner + panelBOffset;
+        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
 
-    // Place Panel A
-    AcDbBlockReference* pPanelARef = new AcDbBlockReference();
-    pPanelARef->setPosition(panelPositionA);
-    pPanelARef->setBlockTableRecord(panelId);
-    pPanelARef->setRotation(rotation);
-    pPanelARef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+        if (panelNum == 1) {
+            cornerPostId = loadAsset(L"129864X");
+            panelId = loadAsset(L"129842X");
+        }
 
-    if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-        acutPrintf(_T("\nPanel A placed successfully."));
-    }
-    else {
-        acutPrintf(_T("\nFailed to place Panel A."));
-    }
-    pPanelARef->close();  // Decrement reference count
+        for (int x = 0; x < numPanelsHeight; x++) {
+            // Place the corner post at the detected corner
+            AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
+            AcGePoint3d cornerWithHeight = corner;
+            cornerWithHeight.z += currentHeight;
+            pCornerPostRef->setPosition(cornerWithHeight);
+            pCornerPostRef->setBlockTableRecord(cornerPostId);
+            pCornerPostRef->setRotation(rotation);
+            pCornerPostRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
 
-    // Place Panel B
-    AcDbBlockReference* pPanelBRef = new AcDbBlockReference();
-    pPanelBRef->setPosition(panelPositionB);
-    pPanelBRef->setBlockTableRecord(panelId);
-    pPanelBRef->setRotation(rotation + M_PI_2);  // Panel B is perpendicular to the corner post
-    pPanelBRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+            if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
+                acutPrintf(_T("\nCorner post placed successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place corner post."));
+            }
+            pCornerPostRef->close();  // Decrement reference count
 
-    if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-        acutPrintf(_T("\nPanel B placed successfully."));
+            // Determine panel placement positions based on the rotation
+            AcGeVector3d panelAOffset, panelBOffset;
+            if (rotation == 0.0) {
+                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+            }
+            else if (rotation == M_PI_2) {
+                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+            }
+            else if (rotation == M_PI) {
+                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+            }
+            else if (rotation == M_3PI_2) {
+                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+            }
+
+            AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
+            AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
+
+            // Place Panel A
+            AcDbBlockReference* pPanelARef = new AcDbBlockReference();
+            pPanelARef->setPosition(panelPositionA);
+            pPanelARef->setBlockTableRecord(panelId);
+            pPanelARef->setRotation(rotation);
+            pPanelARef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+
+            if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
+                acutPrintf(_T("\nPanel A placed successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel A."));
+            }
+            pPanelARef->close();  // Decrement reference count
+
+            // Place Panel B
+            AcDbBlockReference* pPanelBRef = new AcDbBlockReference();
+            pPanelBRef->setPosition(panelPositionB);
+            pPanelBRef->setBlockTableRecord(panelId);
+            pPanelBRef->setRotation(rotation + M_PI_2);  // Panel B is perpendicular to the corner post
+            pPanelBRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+
+            if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
+                acutPrintf(_T("\nPanel B placed successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel B."));
+            }
+            pPanelBRef->close();  // Decrement reference count
+            currentHeight += panelHeights[panelNum];
+        }
     }
-    else {
-        acutPrintf(_T("\nFailed to place Panel B."));
-    }
-    pPanelBRef->close();  // Decrement reference count
 
     pModelSpace->close();  // Decrement reference count
     pBlockTable->close();  // Decrement reference count
