@@ -201,13 +201,18 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
         return;
     }
 
-    //Fetch this variable from DefineHeight
+    // Fetch this variable from DefineHeight
     int wallHeight = globalVarHeight;
 
     int currentHeight = 0;
     int panelHeights[] = { 135, 60 };
 
-    //Iterate through 135 and 60 height
+    // Normalize rotation angle to be within 0 to 2π
+    if (rotation < 0) {
+        rotation += 2 * M_PI;
+    }
+
+    // Iterate through 135 and 60 height
     for (int panelNum = 0; panelNum < 2; panelNum++) {
 
         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
@@ -235,24 +240,32 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
             }
             pCornerPostRef->close();  // Decrement reference count
 
-    // Determine panel placement positions based on the rotation
-    AcGeVector3d panelAOffset, panelBOffset;
-    if (rotation == 0.0) {
-        panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
-        panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
-    }
-    else if (rotation == M_PI_2) {
-        panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
-        panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
-    }
-    else if (rotation == M_PI) {
-        panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
-        panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
-    }
-    else if (rotation == M_3PI_2) {
-        panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
-        panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
-    }
+            // Determine panel placement positions based on the rotation
+            AcGeVector3d panelAOffset, panelBOffset;
+
+            acutPrintf(_T("\nRotation angle: %f radians"), rotation);  // Debug rotation angle
+
+            switch (static_cast<int>(rotation * 180 / M_PI)) {
+            case 0:
+                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+                break;
+            case 90:
+                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+                break;
+            case 180:
+                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+                break;
+            case 270:
+                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+                break;
+            default:
+                acutPrintf(_T("\nInvalid rotation angle detected."));
+                continue;
+            }
 
             AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
             AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
@@ -293,3 +306,5 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
     pModelSpace->close();  // Decrement reference count
     pBlockTable->close();  // Decrement reference count
 }
+
+
