@@ -41,11 +41,11 @@
         <Macro type="Any">
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_241_27475" xlate="true">Connectors</Name>
-          <Command>^C^Cplaceconnectors</Command>
-          <SmallImage Name="connectors.png"/>
-          <LargeImage Name="connectors.png"/>
-          <CLICommand UID="XLS_241_A5EC5" xlate="true">Connectors</CLICommand>
+          <Name UID="XLS_241_27475" xlate="true">Start Automation</Name>
+          <Command>^C^CDoAll</Command>
+          <SmallImage Name="Start.png"/>
+          <LargeImage Name="Start.png"/>
+          <CLICommand UID="XLS_241_A5EC5" xlate="true">Start Automation</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_241_BAC03">
@@ -59,18 +59,19 @@
           <CLICommand UID="XLS_241_A5EC6" xlate="true">Load Blocks</CLICommand>
         </Macro>
       </MenuMacro>
-      <MenuMacro UID="MMU_241_BAC04">
+      <MenuMacro UID="MMU_241_Settings">
         <Macro type="Any">
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_241_27477" xlate="true">Define Height</Name>
-          <Command>^C^Cdefineheight</Command>
-          <SmallImage Name="Height.png"/>
-          <LargeImage Name="Height.png"/>
-          <CLICommand UID="XLS_241_A5EC7" xlate="true">Define Height</CLICommand>
+          <Name UID="RBNU_241_Settings" xlate="true">Settings</Name>
+          <Command>^C^Cperisettings</Command>
+          <SmallImage Name="Settings.png"/>
+          <LargeImage Name="Settings.png"/>
+          <CLICommand UID="RBNU_241_Settings" xlate="true">Settings</CLICommand>
         </Macro>
       </MenuMacro>
     </MacroGroup>
+
     <MenuRoot>
       <AcceleratorRoot/>
       <DigitizerButtonRoot>
@@ -189,7 +190,7 @@
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
               </RibbonSeparator>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" KeyTip="" MenuMacroID="MMU_241_BAC02" Text="" UID="RBNU_241_5BB76">
-                <TooltipTitle UID="XLS_241_77EE3" xlate="true">Connectors</TooltipTitle>
+                <TooltipTitle UID="XLS_241_77EE3" xlate="true">Start Automation</TooltipTitle>
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" SeparatorStyle="Line" UID="RBNU_241_925EB">
@@ -199,16 +200,13 @@
                 <TooltipTitle UID="XLS_241_77EE4" xlate="true">Load Blocks</TooltipTitle>
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
               </RibbonCommandButton>
-              <RibbonSeparator Id="AcRibbonSeparator" SeparatorStyle="Line" UID="RBNU_241_0E655">
-                <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
-              </RibbonSeparator>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" KeyTip="" MenuMacroID="MMU_241_BAC04" Text="" UID="RBNU_241_5BB78">
-                <TooltipTitle UID="XLS_241_77EE5" xlate="true">Define Height</TooltipTitle>
-                <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
-              </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" SeparatorStyle="Line" UID="RBNU_241_0E656">
                 <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
               </RibbonSeparator>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" KeyTip="" MenuMacroID="MMU_241_Settings" Text="" UID="RBNU_241_Settings">
+                <TooltipTitle UID="XLS_241_Settings" xlate="true">Settings</TooltipTitle>
+                <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>
+              </RibbonCommandButton>
             </RibbonRow>
             <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_241_1261E">
               <ModifiedRev MajorVersion="24" MinorVersion="1" UserVersion="1"/>

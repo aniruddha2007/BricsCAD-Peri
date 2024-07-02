@@ -9,6 +9,9 @@
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="WallPanelConnector.cpp" />
     <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
+    <ClCompile Include="DefineHeight.cpp" />
+    <ClCompile Include="DefineScale.cpp" />
+    <ClCompile Include="SettingsCommands.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -19,6 +22,9 @@
     <ClInclude Include="WallPanelConnector.h" />
     <ClInclude Include="SharedDefinations.h" />
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
+    <ClInclude Include="DefineHeight.h" />
+    <ClInclude Include="DefineScale.h" />
+    <ClInclude Include="SettingsCommands.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

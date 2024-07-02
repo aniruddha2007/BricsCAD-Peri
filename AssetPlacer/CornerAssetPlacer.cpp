@@ -13,6 +13,7 @@
 #include "AcDb.h"
 #include "gepnt3d.h"
 #include "DefineHeight.h"
+#include "DefineScale.h" 
 
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
@@ -230,7 +231,7 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
             pCornerPostRef->setPosition(cornerWithHeight);
             pCornerPostRef->setBlockTableRecord(cornerPostId);
             pCornerPostRef->setRotation(rotation);
-            pCornerPostRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+            pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
                 acutPrintf(_T("\nCorner post placed successfully."));
@@ -275,7 +276,7 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
             pPanelARef->setPosition(panelPositionA);
             pPanelARef->setBlockTableRecord(panelId);
             pPanelARef->setRotation(rotation);
-            pPanelARef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+            pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
                 acutPrintf(_T("\nPanel A placed successfully."));
@@ -290,7 +291,7 @@ void CornerAssetPlacer::placeCornerPostAndPanels(const AcGePoint3d& corner, doub
             pPanelBRef->setPosition(panelPositionB);
             pPanelBRef->setBlockTableRecord(panelId);
             pPanelBRef->setRotation(rotation + M_PI_2);  // Panel B is perpendicular to the corner post
-            pPanelBRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+            pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
                 acutPrintf(_T("\nPanel B placed successfully."));

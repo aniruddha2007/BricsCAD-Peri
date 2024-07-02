@@ -21,6 +21,8 @@
 #include "Blocks/BlockLoader.h"       // Include the header for the BlockLoader class
 #include "WallPanelConnector.h" 	 // Include the header for the WallPanelConnector class
 #include "DefineHeight.h" 		  // Include the header for the DefineHeight class
+#include "DefineScale.h" 		  // Include the header for the DefineScale class
+#include "SettingsCommands.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -52,9 +54,11 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceWalls);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceConnectors);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineHeight);
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineScale);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, &CBrxApp::BrxAppLoadBlocks);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDoApp);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("MySandboxCommand"), _T("MySandboxCommand"), ACRX_CMD_TRANSPARENT, &CBrxApp::BrxAppMySandboxCommand);
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, &CBrxApp::BrxAppSettings);
 
         loadCustomMenu();   // Load the custom menu
         BlockLoader::loadBlocksFromDatabase(); // Load blocks from the database
@@ -65,6 +69,7 @@ public:
     virtual AcRx::AppRetCode On_kUnloadAppMsg(void* pAppData)
     {
         acedRegCmds->removeGroup(_T("BRXAPP")); // Clean up registered commands
+        SettingsCommands::unloadApp(); // Clean up registered settings commands
         return AcRxArxApp::On_kUnloadAppMsg(pAppData);
     }
 
@@ -107,9 +112,11 @@ public:
     static void BrxAppSettings(void)
     {
         acutPrintf(_T("\nRunning BrxAppSettings."));
+        SettingsCommands::openSettings();
         // Add settings dialog here
     }
 
+    // PlaceConnectors command
     static void BrxAppPlaceConnectors(void)
     {
         acutPrintf(_T("\nRunning PlaceConnectors."));
@@ -130,6 +137,13 @@ public:
         DefineHeight::defineHeight();
 	}
 
+    // DefineScale command
+    static void BrxAppDefineScale(void)
+    {
+        acutPrintf(_T("\nRunning DefineScale."));
+         DefineScale::defineScale();
+    }
+
     // DoAll command
     static void BrxAppDoApp(void)
 	{
@@ -138,63 +152,6 @@ public:
 		WallPlacer::placeWalls();
 		WallPanelConnector::placeConnectors();
 	}
-
-    // Custom menu creation
-    void createCustomMenu()
-    {
-        // Create a ribbon tab
-        AcRibbonTab* pRibbonTab = new AcRibbonTab();
-        pRibbonTab->setName(L"CustomTools");
-        pRibbonTab->setTitle(L"Custom Tools");
-
-        // Create a ribbon panel
-        AcRibbonPanel* pRibbonPanel = new AcRibbonPanel();
-        AcRibbonPanelSource* pRibbonPanelSource = new AcRibbonPanelSource();
-        pRibbonPanelSource->setName(L"ScaffoldingTools");
-
-        // Add a button for PlaceCorners
-        AcRibbonButton* pPlaceCornersButton = new AcRibbonButton();
-        pPlaceCornersButton->setName(L"PlaceCorners");
-        pPlaceCornersButton->setText(L"Place Corners");
-        pPlaceCornersButton->setToolTip(L"Place corner assets");
-        pPlaceCornersButton->setMacroId(L"PlaceCorners");
-
-        // Add a button for PlaceWalls
-        AcRibbonButton* pPlaceWallsButton = new AcRibbonButton();
-        pPlaceWallsButton->setName(L"PlaceWalls");
-        pPlaceWallsButton->setText(L"Place Walls");
-        pPlaceWallsButton->setToolTip(L"Place wall panels");
-        pPlaceWallsButton->setMacroId(L"PlaceWalls");
-
-        // Add a combo box
-        AcRibbonCombo* pComboBox = new AcRibbonCombo();
-        pComboBox->setName(L"SelectOption");
-        pComboBox->setToolTip(L"Select an option from the list");
-
-        // Add items to the combo box
-        AcRibbonItem* option1 = new AcRibbonItem();
-        option1->setName(L"Option 1");
-        pComboBox->addItem(option1);
-
-        AcRibbonItem* option2 = new AcRibbonItem();
-        option2->setName(L"Option 2");
-        pComboBox->addItem(option2);
-
-        AcRibbonItem* option3 = new AcRibbonItem();
-        option3->setName(L"Option 3");
-        pComboBox->addItem(option3);
-
-        // Add buttons and combo box to the ribbon panel source
-        pRibbonPanelSource->addItem(pPlaceCornersButton);
-        pRibbonPanelSource->addItem(pPlaceWallsButton);
-        pRibbonPanelSource->addItem(pComboBox);
-
-        // Set the panel source to the ribbon panel
-        pRibbonPanel->setSource(pRibbonPanelSource);
-
-        // Add the panel to the ribbon tab
-        pRibbonTab->addPanel(pRibbonPanel);
-    }
 
     // Load the custom menu from a CUI file
     void loadCustomMenu()

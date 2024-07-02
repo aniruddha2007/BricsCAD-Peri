@@ -20,6 +20,7 @@
 #include <string>
 #include "SharedDefinations.h"
 #include "DefineHeight.h"
+#include "DefineScale.h"
 
 // Structure to hold panel information
 struct Panel {
@@ -182,7 +183,7 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                         pBlockRef->setPosition(currentPointWithHeight);
                         pBlockRef->setBlockTableRecord(assetId);
                         pBlockRef->setRotation(rotation);  // Apply rotation
-                        pBlockRef->setScaleFactors(AcGeScale3d(0.1, 0.1, 0.1));  // Ensure no scaling
+                        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
                         if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
                             //acutPrintf(_T("\nWall segment placed successfully."));
