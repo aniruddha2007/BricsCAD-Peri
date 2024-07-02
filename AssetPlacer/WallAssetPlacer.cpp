@@ -1,4 +1,6 @@
 // Created by:Ani  (2024-05-31)
+// Modified by:Ani (2024-06-01)
+// TODO: Missing side for rectangle
 // WallAssetPlacer.cpp
 
 #include "StdAfx.h"

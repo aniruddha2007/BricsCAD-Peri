@@ -1,4 +1,9 @@
-﻿#include "StdAfx.h"
+﻿// Created by:Ani  (2024-05-31)
+// Modified by:Ani (2024-07-01)
+// TODO: Remove extra connector for 60* panels and add two connectors for vertical panels
+// WallPanelConnector.cpp
+
+#include "StdAfx.h"
 #include "WallPanelConnector.h"
 #include "SharedDefinations.h"  // For M_PI constants
 #include "DefineScale.h"       // For globalVarScale
@@ -12,6 +17,7 @@
 
 const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
 
+// List of panels with two connectors
 const std::vector<std::wstring> panelsWithTwoConnectors = {
     L"129864", L"129840", L"129838", L"129842", L"129841",
     L"129839", L"129837", L"129879", L"129884"
@@ -61,6 +67,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
                         pBlockDef->getName(blockName);
 
                         // Compare with assets list
+                        //TODO separate 135 and 60 panels as they have different connector positions
                         std::wstring blockNameStr(blockName);
                         if (blockNameStr == ASSET_128280 || blockNameStr == ASSET_128285 ||
                             blockNameStr == ASSET_128286 || blockNameStr == ASSET_128281 ||
