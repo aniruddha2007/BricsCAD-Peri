@@ -1,13 +1,18 @@
 Peri Automation Tool
 
-Current Stage: POC -> ALPHA
+Current Stage: ALPHA -> BETA-1
 
-TODO LIST
-fix Connector tilting 
-fix corner connector missing
-fix offset
+# TODO LIST
+Missing side for rectangle
+Fix extra connector for 60 panel
+Add 2 connectors for vertical height
+Wingnut counterplate
+Duo Corner connectors
+Duo Corner Ties
+Base Plate
+Tie
+
 
 # Peri Automation Tool
-fixed Missing side for rectangle
-added Define Height
+Added Define Height and Define Scale.
 
