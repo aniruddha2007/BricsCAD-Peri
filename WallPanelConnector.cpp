@@ -1,5 +1,5 @@
-﻿// Created by:Ani  (2024-05-31)
-// Modified by:Ani (2024-07-01)
+﻿// Created by: Ani (2024-05-31)
+// Modified by: Ani (2024-07-01)
 // TODO: Remove extra connector for 60* panels and add two connectors for vertical panels
 // WallPanelConnector.cpp
 
@@ -10,6 +10,7 @@
 #include <vector>
 #include <tuple>
 #include <cmath>
+#include <algorithm>            // For std::transform
 #include "dbapserv.h"        // For acdbHostApplicationServices() and related services
 #include "dbents.h"          // For AcDbBlockReference
 #include "dbsymtb.h"         // For block table record definitions
@@ -19,9 +20,16 @@ const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
 
 // List of panels with two connectors
 const std::vector<std::wstring> panelsWithTwoConnectors = {
-    L"129864", L"129840", L"129838", L"129842", L"129841",
-    L"129839", L"129837", L"129879", L"129884"
+    ASSET_129864, ASSET_129840, ASSET_129838, ASSET_129842, ASSET_129841,
+    ASSET_129839, ASSET_129837
 };
+
+// Helper function to convert a string to uppercase
+std::wstring toUpperCase(const std::wstring& str) {
+    std::wstring upperStr = str;
+    std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::towupper);
+    return upperStr;
+}
 
 // GET WALL PANEL POSITIONS
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::getWallPanelPositions() {
@@ -54,9 +62,12 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
         return positions;
     }
 
+    int entityCount = 0;
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
+        entityCount++;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
+            acutPrintf(_T("\nEntity %d type: %s"), entityCount, pEnt->isA()->name());
             if (pEnt->isKindOf(AcDbBlockReference::desc())) {
                 AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEnt);
                 if (pBlockRef) {
@@ -65,10 +76,11 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
                     if (acdbOpenObject(pBlockDef, blockId, AcDb::kForRead) == Acad::eOk) {
                         const wchar_t* blockName;
                         pBlockDef->getName(blockName);
+                        std::wstring blockNameStr(blockName);
+                        blockNameStr = toUpperCase(blockNameStr);
+                        acutPrintf(_T("\nDetected block name: %s"), blockNameStr.c_str());
 
                         // Compare with assets list
-                        //TODO separate 135 and 60 panels as they have different connector positions
-                        std::wstring blockNameStr(blockName);
                         if (blockNameStr == ASSET_128280 || blockNameStr == ASSET_128285 ||
                             blockNameStr == ASSET_128286 || blockNameStr == ASSET_128281 ||
                             blockNameStr == ASSET_128283 || blockNameStr == ASSET_128284 ||
@@ -90,6 +102,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
     pModelSpace->close();
     pBlockTable->close();
 
+    acutPrintf(_T("\nTotal entities checked: %d"), entityCount);
     return positions;
 }
 
@@ -175,6 +188,11 @@ AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
 void WallPanelConnector::placeConnectors() {
     acutPrintf(_T("\nPlacing connectors..."));
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
+    if (panelPositions.empty()) {
+        acutPrintf(_T("\nNo wall panels detected."));
+        return;
+    }
+
     std::vector<std::tuple<AcGePoint3d, double>> connectorPositions = calculateConnectorPositions(panelPositions);
     AcDbObjectId assetId = loadConnectorAsset(ASSET_128247.c_str());  // Replace with the actual block name
 
@@ -215,7 +233,7 @@ void WallPanelConnector::placeConnectorAtPosition(const AcGePoint3d& position, d
     pBlockRef->setPosition(position);
     pBlockRef->setBlockTableRecord(assetId);
     pBlockRef->setRotation(rotation);
-    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure scaling
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
         acutPrintf(_T("\nConnector placed successfully."));

@@ -1,7 +1,9 @@
 // Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-06-01)
 // TODO: Missing side for rectangle
+// Added 5 panel width
 // WallAssetPlacer.cpp
+// /////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
@@ -141,7 +143,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
         {60, {L"128282X", L"129839X"}},
         {45, {L"128283X", L"129840X"}},
         {30, {L"128284X", L"129841X"}},
-        {15, {L"128285X", L"129842X"}}
+        {15, {L"128285X", L"129842X"}},
+        {5, {L"128287X", L"129879X"}} // *5 Compensator
     };
 
     //Iterate through every panel type
