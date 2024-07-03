@@ -3,7 +3,7 @@
 // TODO: Missing side for rectangle
 // Added 5 panel width
 // WallAssetPlacer.cpp
-// /////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
@@ -164,10 +164,10 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
             }
             else
             {
-                acutPrintf(_T("\nwallHeight: %d,"), wallHeight);
-                acutPrintf(_T(" currentHeight: %d,"), currentHeight);
-                acutPrintf(_T(" panelHeight num: %d,"), panelNum);
-                acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]);
+                acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
+                acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
+                acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
+                acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
 
                 int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
 
@@ -191,7 +191,6 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                         pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
                         if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-                            //acutPrintf(_T("\nWall segment placed successfully."));
                             numOfWallSegmentsPlaced += 1;
                         }
                         else {

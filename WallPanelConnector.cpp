@@ -2,6 +2,7 @@
 // Modified by: Ani (2024-07-01)
 // TODO: Remove extra connector for 60* panels and add two connectors for vertical panels
 // WallPanelConnector.cpp
+/////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
 #include "WallPanelConnector.h"

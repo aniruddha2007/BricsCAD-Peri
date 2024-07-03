@@ -19,8 +19,10 @@ private:
     static AcDbObjectId loadAsset(const wchar_t* blockName);
     // Method to place an asset at a specific corner with a given rotation
     static void placeAssetAtCorner(const AcGePoint3d& corner, double rotation, AcDbObjectId assetId);
-    // Method to place corner post and panels
-    static void placeCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId);
+    // Method to place corner post and panels (Inside corner)
+    static void placeInsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId);
+    // Method to place corner post and panels (Outside corner)
+    static void placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId);
     // Method to add text annotation at a specific position
     static void addTextAnnotation(const AcGePoint3d& position, const wchar_t* text);
 

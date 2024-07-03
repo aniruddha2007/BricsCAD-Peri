@@ -51,9 +51,6 @@
     <None Include="Menu\CustomMenu.cui" />
     <None Include="README.md" />
   </ItemGroup>
-  <ItemGroup>
-    <Image Include="Menu\wall.png" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1FB87889-FE0E-44BB-879F-1509EA785744}</ProjectGuid>
     <RootNamespace>BricsCAD_Peri</RootNamespace>

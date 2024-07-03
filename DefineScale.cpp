@@ -4,7 +4,7 @@
 #include "aced.h"
 
 // Default to (1, 1, 1)
-AcGeScale3d globalVarScale(1.0, 1.0, 1.0);
+AcGeScale3d globalVarScale(0.1, 0.1, 0.1);
 
 void DefineScale::defineScale() {
     ads_real scale;

@@ -40,14 +40,8 @@ public:
         acrxUnlockApplication(pAppData);   // allows to unload the module during session
 
         // Place your initialization code and base info here
-        acutPrintf(_T("\nWelcome to BricsCAD PERI plugin development by Ani"));
-        acutPrintf(_T("\nAvailable commands:"));
-        acutPrintf(_T("\n MySandboxCommand : sample test command"));
-        acutPrintf(_T("\n PlaceCorners: Identify Corners and Start placing them."));
-        acutPrintf(_T("\n PlaceConnectors: Place connectors on wall panels."));
-        acutPrintf(_T("\n LoadBlocks: Load current active database BRX."));
-        acutPrintf(_T("\n DefineHeight: Place Wall Panels."));
-        acutPrintf(_T("\n DoAll: Run All Cmds In Order."));
+        acutPrintf(_T("\nWelcome to PERICAD plugin developed for BRICSCAD V24 by Ani."));
+        acutPrintf(_T("\nType 'ListCmds' to see the available commands."));
 
         // Register the commands
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceCorners);
@@ -57,7 +51,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineScale);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, &CBrxApp::BrxAppLoadBlocks);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDoApp);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("MySandboxCommand"), _T("MySandboxCommand"), ACRX_CMD_TRANSPARENT, &CBrxApp::BrxAppMySandboxCommand);
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, &CBrxApp::BrxListCMDS);
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, &CBrxApp::BrxAppSettings);
 
         loadCustomMenu();   // Load the custom menu
@@ -151,6 +145,21 @@ public:
 		CornerAssetPlacer::placeAssetsAtCorners();
 		WallPlacer::placeWalls();
 		WallPanelConnector::placeConnectors();
+	}
+    
+    // ListCMDS command
+    static void BrxListCMDS(void)
+	{
+		acutPrintf(_T("\nAvailable commands:"));
+		acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
+		acutPrintf(_T("\nPlaceWalls: To only place Walls."));
+		acutPrintf(_T("\nPlaceConnectors: To only place Connectors"));
+		acutPrintf(_T("\nDefineHeight: Define Height, specifiy height in cm."));
+		acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
+		acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
+		acutPrintf(_T("\nDoAll: only for testing purposes"));
+		acutPrintf(_T("\nListCMDS: Prints this Menu"));
+		acutPrintf(_T("\nPeriSettings: Settings"));
 	}
 
     // Load the custom menu from a CUI file
