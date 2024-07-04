@@ -1,4 +1,11 @@
-﻿#include "StdAfx.h"
+﻿// Created by:Ani  (2024-05-31)
+// Modified by:Ani (2024-07-04)
+// TODO: fix extra corner post at last vertice
+// Added 5 panel width
+// CornerAssetPlacer.cpp
+/////////////////////////////////////////////////////////////////////////
+
+#include "StdAfx.h"
 #include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"

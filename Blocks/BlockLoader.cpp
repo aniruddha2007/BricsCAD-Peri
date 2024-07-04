@@ -1,61 +1,72 @@
 #include "StdAfx.h"
 #include "BlockLoader.h"
 #include <acadstrc.h>
-#include <dbsymtb.h>
-#include <dbents.h>
 #include <adscodes.h>
 #include <acutads.h>
-#include <string>
-#include "C:\Program Files\Bricsys\BRXSDK\BRX24.2.03.0\inc\AcDb\AcDbHostApplicationServices.h"
+#include <dbapserv.h>
+#include <dbents.h>
 #include <afxdlgs.h>  // For CFileDialog
+#include <nlohmann/json.hpp>
+#include <fstream>
+#include <string>
+#include <atlstr.h>   // For CString to std::string conversion
 
-void BlockLoader::loadBlocksFromDatabase() {
-    // Prompt user to select the database file
-    CFileDialog fileDlg(TRUE, _T("db"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, _T("SQLite Database Files (*.db)|*.db|All Files (*.*)|*.*||"));
+using json = nlohmann::json;
+
+void BlockLoader::loadBlocksFromJson() {
+    // Prompt user to select the JSON file
+    CFileDialog fileDlg(TRUE, _T("json"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, _T("JSON Files (*.json)|*.json|All Files (*.*)|*.*||"));
     if (fileDlg.DoModal() != IDOK) {
-        acutPrintf(L"Database selection cancelled.\n");
+        acutPrintf(L"JSON file selection cancelled.\n");
         return;
     }
 
     CString filePath = fileDlg.GetPathName();
-    CT2CA pszConvertedAnsiString(filePath);
-    std::string dbPath(pszConvertedAnsiString);
+    acutPrintf(L"Selected JSON file: %s\n", (LPCTSTR)filePath);
 
-    // Open the database
-    sqlite3* db;
-    int rc = sqlite3_open(dbPath.c_str(), &db);
+    // Convert CString to std::string
+    CW2A pszConvertedAnsiString(filePath);
+    std::string jsonPath(pszConvertedAnsiString);
+    acutPrintf(L"Converted JSON path: %s\n", jsonPath.c_str());
 
-    if (rc) {
-        acutPrintf(L"Can't open database: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
+    // Read and parse the JSON file
+    std::ifstream jsonFile(jsonPath);
+    if (!jsonFile.is_open()) {
+        acutPrintf(L"Can't open JSON file: %s\n", jsonPath.c_str());
         return;
     }
 
-    // Prepare the SQL statement
-    sqlite3_stmt* stmt;
-    const char* sql = "SELECT name, path FROM files";
-    rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+    json j;
+    jsonFile >> j;
+    jsonFile.close();
 
-    if (rc != SQLITE_OK) {
-        acutPrintf(L"Failed to prepare statement: %s\n", sqlite3_errmsg(db));
-        sqlite3_close(db);
-        return;
-    }
+    // Loop through the JSON data and print the file paths
+    for (const auto& item : j) {
+        if (item.contains("file_path")) {
+            std::string filePath = item["file_path"];
+            acutPrintf(L"File path: %s\n", filePath.c_str());
 
-    // Loop through the results and load the blocks
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char* name = sqlite3_column_text(stmt, 0);
-        const unsigned char* path = sqlite3_column_text(stmt, 1);
-
-        if (name && path) {
-            acutPrintf(L"Loading block: %s from path: %s\n", name, path);
-            loadBlockIntoBricsCAD(reinterpret_cast<const char*>(name), reinterpret_cast<const char*>(path));
+            // Load block into BricsCAD
+            std::string blockName = extractFileNameFromPath(filePath);
+            loadBlockIntoBricsCAD(blockName.c_str(), filePath.c_str());
+        }
+        else {
+            acutPrintf(L"Error: file_path not found in JSON.\n");
         }
     }
 
-    // Finalize the statement and close the database
-    sqlite3_finalize(stmt);
-    sqlite3_close(db);
+    acutPrintf(L"JSON file processed successfully.\n");
+}
+
+std::string BlockLoader::extractFileNameFromPath(const std::string& path) {
+    size_t pos = path.find_last_of("\\/");
+    std::string fileName = (std::string::npos == pos) ? path : path.substr(pos + 1);
+    // Remove file extension
+    size_t dotPos = fileName.find_last_of(".");
+    if (dotPos != std::string::npos) {
+        fileName = fileName.substr(0, dotPos);
+    }
+    return fileName;
 }
 
 void BlockLoader::loadBlockIntoBricsCAD(const char* blockName, const char* blockPath) {

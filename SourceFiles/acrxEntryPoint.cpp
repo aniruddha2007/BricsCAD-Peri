@@ -13,15 +13,15 @@
 #include <string>
 #include "AssetPlacer/CornerAssetPlacer.h" // Include the header for the CornerAssetPlacer class
 #include "AssetPlacer/WallAssetPlacer.h"   // Include the header for the WallPlacer class
-#include "Resource.h"          // Include the header for the resource file
+#include "Resource.h"                      // Include the header for the resource file
 #include "BrxSpecific/ribbon/AcRibbonCombo.h"  // Include the header for the AcRibbonCombo class
 #include "BrxSpecific/ribbon/AcRibbonTab.h"    // Include the header for the AcRibbonTab class
 #include "BrxSpecific/ribbon/AcRibbonPanel.h"  // Include the header for the AcRibbonPanel class
 #include "BrxSpecific/ribbon/AcRibbonButton.h" // Include the header for the AcRibbonButton class
-#include "Blocks/BlockLoader.h"       // Include the header for the BlockLoader class
-#include "WallPanelConnector.h" 	 // Include the header for the WallPanelConnector class
-#include "DefineHeight.h" 		  // Include the header for the DefineHeight class
-#include "DefineScale.h" 		  // Include the header for the DefineScale class
+#include "Blocks/BlockLoader.h"                // Include the header for the BlockLoader class
+#include "WallPanelConnector.h"               // Include the header for the WallPanelConnector class
+#include "DefineHeight.h"                     // Include the header for the DefineHeight class
+#include "DefineScale.h"                      // Include the header for the DefineScale class
 #include "SettingsCommands.h"
 
 #pragma comment(lib, "Shlwapi.lib")
@@ -44,18 +44,18 @@ public:
         acutPrintf(_T("\nType 'ListCmds' to see the available commands."));
 
         // Register the commands
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceCorners);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceWalls);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, &CBrxApp::BrxAppPlaceConnectors);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineHeight);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDefineScale);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, &CBrxApp::BrxAppLoadBlocks);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, &CBrxApp::BrxAppDoApp);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, &CBrxApp::BrxListCMDS);
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, &CBrxApp::BrxAppSettings);
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
 
         loadCustomMenu();   // Load the custom menu
-        BlockLoader::loadBlocksFromDatabase(); // Load blocks from the database
+        BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
         return result;
     }
@@ -119,48 +119,48 @@ public:
 
     // LoadBlocks command
     static void BrxAppLoadBlocks(void)
-	{
-		acutPrintf(_T("\nRunning LoadBlocks."));
-		BlockLoader::loadBlocksFromDatabase();
-	}
+    {
+        acutPrintf(_T("\nRunning LoadBlocks."));
+        BlockLoader::loadBlocksFromJson();
+    }
 
     // DefineHeight command
     static void BrxAppDefineHeight(void)
-	{
-		acutPrintf(_T("\nRunning DefineHeight."));
+    {
+        acutPrintf(_T("\nRunning DefineHeight."));
         DefineHeight::defineHeight();
-	}
+    }
 
     // DefineScale command
     static void BrxAppDefineScale(void)
     {
         acutPrintf(_T("\nRunning DefineScale."));
-         DefineScale::defineScale();
+        DefineScale::defineScale();
     }
 
     // DoAll command
     static void BrxAppDoApp(void)
-	{
-		acutPrintf(_T("\nRunning DoAll."));
-		CornerAssetPlacer::placeAssetsAtCorners();
-		WallPlacer::placeWalls();
-		WallPanelConnector::placeConnectors();
-	}
-    
+    {
+        acutPrintf(_T("\nRunning DoAll."));
+        CornerAssetPlacer::placeAssetsAtCorners();
+        WallPlacer::placeWalls();
+        WallPanelConnector::placeConnectors();
+    }
+
     // ListCMDS command
     static void BrxListCMDS(void)
-	{
-		acutPrintf(_T("\nAvailable commands:"));
-		acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
-		acutPrintf(_T("\nPlaceWalls: To only place Walls."));
-		acutPrintf(_T("\nPlaceConnectors: To only place Connectors"));
-		acutPrintf(_T("\nDefineHeight: Define Height, specifiy height in cm."));
-		acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
-		acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
-		acutPrintf(_T("\nDoAll: only for testing purposes"));
-		acutPrintf(_T("\nListCMDS: Prints this Menu"));
-		acutPrintf(_T("\nPeriSettings: Settings"));
-	}
+    {
+        acutPrintf(_T("\nAvailable commands:"));
+        acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
+        acutPrintf(_T("\nPlaceWalls: To only place Walls."));
+        acutPrintf(_T("\nPlaceConnectors: To only place Connectors"));
+        acutPrintf(_T("\nDefineHeight: Define Height, specify height in cm."));
+        acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
+        acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
+        acutPrintf(_T("\nDoAll: only for testing purposes"));
+        acutPrintf(_T("\nListCMDS: Prints this Menu"));
+        acutPrintf(_T("\nPeriSettings: Settings"));
+    }
 
     // Load the custom menu from a CUI file
     void loadCustomMenu()

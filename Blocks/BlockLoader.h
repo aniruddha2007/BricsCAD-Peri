@@ -1,14 +1,11 @@
 #pragma once
 
-#include <sqlite3.h>
-#include "dbsymtb.h"
+#include <string>
 
 class BlockLoader {
 public:
-    static void loadBlocksFromDatabase();
+    static void loadBlocksFromJson();
+    static std::string extractFileNameFromPath(const std::string& path);
     static void loadBlockIntoBricsCAD(const char* blockName, const char* blockPath);
-private:
     static ACHAR* charToACHAR(const char* str);
 };
-
-//#include "C:\Program Files\Bricsys\BRXSDK\BRX24.2.03.0\inc\AcDb\AcDbHostApplicationServices.h"
