@@ -181,7 +181,7 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-// PLACE CORNER POST AND PANELS
+// PLACE INSIDE CORNER POST AND PANELS
 void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -308,7 +308,6 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
     pBlockTable->close();  // Decrement reference count
 }
 
-// PLACE OUTSIDE CORNER POST AND PANELS
 void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -340,10 +339,42 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         rotation += 2 * M_PI;
     }
 
+    AcGePoint3d cornerWithHeight = corner;
+    cornerWithHeight.z += currentHeight;
+
+    // Apply the correct offset based on rotation
+    int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
+    switch (rotationDegrees) {
+    case 0:
+        cornerWithHeight.x -= 10.0;
+        cornerWithHeight.y -= 10.0;
+        break;
+    case 90:
+        cornerWithHeight.x += 10.0;
+        cornerWithHeight.y -= 10.0;
+        break;
+    case 180:
+        cornerWithHeight.x += 10.0;
+        cornerWithHeight.y += 10.0;
+        break;
+    case 270:
+        cornerWithHeight.x -= 10.0;
+        cornerWithHeight.y += 10.0;
+        break;
+    default:
+        acutPrintf(_T("\nInvalid rotation angle detected."));
+        return;
+    }
+
+    // Add 90 degrees to the rotation
+    rotation += M_PI_2;
+    if (rotation >= 2 * M_PI) {
+        rotation -= 2 * M_PI;
+    }
+
     // Iterate through 135 and 60 height
     for (int panelNum = 0; panelNum < 2; panelNum++) {
-
-        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
+        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
 
         if (panelNum == 1) {
             cornerPostId = loadAsset(L"129864X");
@@ -353,17 +384,12 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         for (int x = 0; x < numPanelsHeight; x++) {
             // Place the corner post at the detected corner
             AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
-            AcGePoint3d cornerWithHeight = corner;
-            cornerWithHeight.z += currentHeight;
-
-            // Offset the corner post by (10, 10) on x and y axis for outside corners
-            cornerWithHeight.x += 10;
-            cornerWithHeight.y += 10;
-
-            pCornerPostRef->setPosition(cornerWithHeight);
+            AcGePoint3d currentCornerWithHeight = cornerWithHeight;
+            currentCornerWithHeight.z += currentHeight;
+            pCornerPostRef->setPosition(currentCornerWithHeight);
             pCornerPostRef->setBlockTableRecord(cornerPostId);
             pCornerPostRef->setRotation(rotation);
-            pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+            pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
                 acutPrintf(_T("\nCorner post placed successfully."));
@@ -371,44 +397,43 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
             }
-            pCornerPostRef->close();  // Decrement reference count
+            pCornerPostRef->close();
 
             // Determine panel placement positions based on the rotation
             AcGeVector3d panelAOffset, panelBOffset;
 
-            acutPrintf(_T("\nRotation angle: %f radians"), rotation);  // Debug rotation angle
 
             switch (static_cast<int>(rotation * 180 / M_PI)) {
             case 0:
-                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+                panelAOffset = AcGeVector3d(25.0, -10.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);  // Panel B along the Y-axis
                 break;
             case 90:
-                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+                panelAOffset = AcGeVector3d(10.0, 25.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);  // Panel B along the X-axis
                 break;
             case 180:
-                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+                panelAOffset = AcGeVector3d(-25.0, 10.0, 0.0);  // Panel A along the X-axis
+                panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);  // Panel B along the Y-axis
                 break;
             case 270:
-                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+                panelAOffset = AcGeVector3d(-10.0, -25.0, 0.0);  // Panel A along the Y-axis
+                panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);  // Panel B along the X-axis
                 break;
             default:
                 acutPrintf(_T("\nInvalid rotation angle detected."));
                 continue;
             }
 
-            AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
-            AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
+            AcGePoint3d panelPositionA = currentCornerWithHeight + panelAOffset;
+            AcGePoint3d panelPositionB = currentCornerWithHeight + panelBOffset;
 
             // Place Panel A
             AcDbBlockReference* pPanelARef = new AcDbBlockReference();
             pPanelARef->setPosition(panelPositionA);
             pPanelARef->setBlockTableRecord(panelId);
-            pPanelARef->setRotation(rotation);
-            pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+            pPanelARef->setRotation(rotation + M_PI);
+            pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
                 acutPrintf(_T("\nPanel A placed successfully."));
@@ -416,14 +441,14 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
             }
-            pPanelARef->close();  // Decrement reference count
+            pPanelARef->close();
 
             // Place Panel B
             AcDbBlockReference* pPanelBRef = new AcDbBlockReference();
             pPanelBRef->setPosition(panelPositionB);
             pPanelBRef->setBlockTableRecord(panelId);
-            pPanelBRef->setRotation(rotation + M_PI_2);  // Panel B is perpendicular to the corner post
-            pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+            pPanelBRef->setRotation(rotation + M_PI_2 + M_PI);  // Panel B is perpendicular to the corner post
+            pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
                 acutPrintf(_T("\nPanel B placed successfully."));
@@ -431,11 +456,11 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
             }
-            pPanelBRef->close();  // Decrement reference count
+            pPanelBRef->close();
             currentHeight += panelHeights[panelNum];
         }
     }
 
-    pModelSpace->close();  // Decrement reference count
-    pBlockTable->close();  // Decrement reference count
+    pModelSpace->close();
+    pBlockTable->close();
 }
