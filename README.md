@@ -6,8 +6,6 @@ Current Stage: ALPHA -> BETA-1
 
 Missing side for rectangle
 
-Fix extra connector for 60 panel
-
 Add 2 connectors for vertical height
 
 Wingnut counterplate
@@ -23,4 +21,4 @@ Tie
 
 # Peri Automation Tool
 Added Define Height and Define Scale.
-
+Fixed extra connector for 60 panel
