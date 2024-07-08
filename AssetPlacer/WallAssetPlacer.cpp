@@ -1,6 +1,7 @@
 // Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-06-01)
-// TODO: Missing side for rectangle
+// TODO:
+// Height 135 is fucked up
 // Added 5 panel width
 // WallAssetPlacer.cpp
 /////////////////////////////////////////////////////////////////////////
@@ -138,13 +139,14 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
 
     // List of available panels
     std::vector<Panel> panelSizes = {
-        {90, {L"128280X", L"129837X"}},
+       /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
         {75, {L"128281X", L"129838X"}},
         {60, {L"128282X", L"129839X"}},
         {45, {L"128283X", L"129840X"}},
         {30, {L"128284X", L"129841X"}},
         {15, {L"128285X", L"129842X"}},
-        {5, {L"128287X", L"129879X"}} // *5 Compensator
+        {10, {L"128292X", L"129884X"}}, // *10 Compensator  move to middle TODO:
+        {5, {L"128287X", L"129879X"}} // *5 Compensator add a break 
     };
 
     //Iterate through every panel type

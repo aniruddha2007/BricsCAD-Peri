@@ -158,6 +158,55 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
     return connectorPositions;
 }
 
+// CALCULATE VERTICAL CONNECTOR POSITIONS
+std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateVerticalConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
+    std::vector<std::tuple<AcGePoint3d, double>> verticalConnectorPositions;
+
+    double zOffsets[] = { 150.0, 300.0 }; // Example vertical Z-axis positions for connectors
+    double xOffset = 5.0;
+
+    for (const auto& panelPosition : panelPositions) {
+        AcGePoint3d pos = std::get<0>(panelPosition);
+        std::wstring panelName = std::get<1>(panelPosition);
+        double panelRotation = std::get<2>(panelPosition);
+
+        for (int i = 0; i < 2; ++i) {  // Two vertical connectors
+            AcGePoint3d connectorPos = pos;
+            connectorPos.z += zOffsets[i];
+
+            // Adjust positions based on the rotation and apply the X-axis offset for vertical connectors
+            switch (static_cast<int>(round(panelRotation / M_PI_2))) {
+            case 0: // 0 degrees
+                connectorPos.x -= xOffset;
+                break;
+            case 1: // 90 degrees
+                connectorPos.y += xOffset;
+                break;
+            case 2: // 180 degrees
+                connectorPos.x += xOffset;
+                break;
+            case 3: // 270 degrees
+            case -1: // Normalize -90 degrees to 270 degrees
+                connectorPos.y -= xOffset;
+                break;
+            default:
+                acutPrintf(_T("\nInvalid rotation angle detected."));
+                continue;
+            }
+
+            // Print debug information
+            acutPrintf(_T("\nVertical Connector calculated:\n"));
+            acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos.x, connectorPos.y, connectorPos.z);
+            acutPrintf(_T("Panel: %s\n"), panelName.c_str());
+            acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
+
+            verticalConnectorPositions.emplace_back(std::make_tuple(connectorPos, panelRotation));
+        }
+    }
+
+    return verticalConnectorPositions;
+}
+
 // LOAD CONNECTOR ASSET
 AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
     acutPrintf(_T("\nLoading asset: %s"), blockName);
@@ -207,6 +256,25 @@ void WallPanelConnector::placeConnectors() {
     }
 
     acutPrintf(_T("\nCompleted placing connectors."));
+}
+
+// PLACE VERTICAL CONNECTORS
+void WallPanelConnector::placeVerticalConnectors(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
+    acutPrintf(_T("\nPlacing vertical connectors..."));
+
+    std::vector<std::tuple<AcGePoint3d, double>> verticalConnectorPositions = calculateVerticalConnectorPositions(panelPositions);
+    AcDbObjectId assetId = loadConnectorAsset(ASSET_128247.c_str());  // Replace with the actual block name
+
+    if (assetId == AcDbObjectId::kNull) {
+        acutPrintf(_T("\nFailed to load asset."));
+        return;
+    }
+
+    for (const auto& connector : verticalConnectorPositions) {
+        placeConnectorAtPosition(std::get<0>(connector), std::get<1>(connector), assetId);
+    }
+
+    acutPrintf(_T("\nCompleted placing vertical connectors."));
 }
 
 // PLACE CONNECTOR AT POSITION

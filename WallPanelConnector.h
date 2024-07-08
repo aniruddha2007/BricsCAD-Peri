@@ -8,9 +8,11 @@
 class WallPanelConnector {
 public:
     static void placeConnectors();
+    static void placeVerticalConnectors(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions);
 private:
     static std::vector<std::tuple<AcGePoint3d, std::wstring, double>> getWallPanelPositions();
     static std::vector<std::tuple<AcGePoint3d, double>> calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions);
+    static std::vector<std::tuple<AcGePoint3d, double>> calculateVerticalConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions);
     static AcDbObjectId loadConnectorAsset(const wchar_t* blockName);
     static void placeConnectorAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId);
 

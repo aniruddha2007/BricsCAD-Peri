@@ -114,7 +114,7 @@ void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wch
     pBlockTable->close();  // Decrement reference count
 }
 
-// PLACE ASSETS AT DETECTED CORNERS
+// PLACE ASSETS AT DETECTED CORNERS EDIT TO USE GLOBAL VARIABLES FROM __ FUNCTION
 void CornerAssetPlacer::placeAssetsAtCorners() {
     acutPrintf(_T("\nPlacing assets at corners..."));
     std::vector<AcGePoint3d> corners = detectPolylines();
@@ -315,6 +315,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
     pBlockTable->close();  // Decrement reference count
 }
 
+// PLACE OUTSIDE CORNER POST AND PANELS
 void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
