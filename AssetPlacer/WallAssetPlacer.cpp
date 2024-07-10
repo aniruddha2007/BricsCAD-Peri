@@ -27,6 +27,8 @@
 #include "DefineHeight.h"
 #include "DefineScale.h"
 
+const double TOLERANCE = 0.1;
+
 // Structure to hold panel information
 struct Panel {
     int length;
@@ -71,7 +73,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    processPolyline(pPolyline, corners);
+                    processPolyline(pPolyline, corners, 90, TOLERANCE);
                 }
             }
             pEnt->close();

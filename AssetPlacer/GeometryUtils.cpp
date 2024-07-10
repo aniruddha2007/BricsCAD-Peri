@@ -1,20 +1,33 @@
-//TODO: Missing side for rectangle
-
-#include "stdafx.h"
+#include "StdAfx.h"
 #include "GeometryUtils.h"
 #include "SharedDefinations.h"
 #include <cmath>
+#include <algorithm>
+#include <AcDb.h>
+#include <AcDb/AcDbBlockTable.h>
+#include <AcDb/AcDbBlockTableRecord.h>
+#include <AcDb/AcDbPolyline.h>
 
+const double TOLERANCE = 0.1; // Tolerance for comparing angles
+
+// Calculate angle between two vectors
 double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2) {
     double dotProduct = v1.dotProduct(v2);
     double lengthsProduct = v1.length() * v2.length();
     return acos(dotProduct / lengthsProduct) * (180.0 / M_PI);
 }
 
+// Determine if an angle is a corner based on a threshold
 bool isCorner(double angle, double threshold) {
-    return angle > threshold;
+    return fabs(angle - threshold) <= TOLERANCE;
 }
 
+// Determine if two angles are equal within a tolerance
+bool areAnglesEqual(double angle1, double angle2, double tolerance) {
+    return std::abs(angle1 - angle2) < tolerance;
+}
+
+// Detect vertices of the polyline
 void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& vertices) {
     int numVerts = pPolyline->numVerts();
     for (int i = 0; i < numVerts; ++i) {
@@ -24,7 +37,8 @@ void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& ver
     }
 }
 
-void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& corners, double angleThreshold) {
+// Process the polyline to detect corners
+void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& corners, double angleThreshold, double tolerance) {
     std::vector<AcGePoint3d> vertices;
     detectVertices(pPolyline, vertices);
 
@@ -53,7 +67,7 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
         nextDirection.normalize();
 
         double angle = calculateAngle(currentDirection, nextDirection);
-        if (isCorner(angle, angleThreshold)) {
+        if (areAnglesEqual(angle, angleThreshold, tolerance)) {
             corners.push_back(vertices[i]);
         }
         else {
@@ -68,3 +82,64 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
     }
 }
 
+
+// Function to classify polyline entities
+void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detectedCorners, double angleThreshold) {
+    AcDbBlockTable* pBlockTable;
+    AcDbBlockTableRecord* pBlockTableRecord;
+
+    acutPrintf(_T("\nAttempting to get block table.\n"));
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+        return;
+    }
+
+    acutPrintf(_T("\nAttempting to get model space.\n"));
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+        pBlockTable->close();
+        return;
+    }
+
+    acutPrintf(_T("\nSuccessfully accessed model space.\n"));
+
+    AcDbBlockTableRecordIterator* pIterator;
+    es = pBlockTableRecord->newIterator(pIterator);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to create block table record iterator. Error status: %d\n"), es);
+        pBlockTableRecord->close();
+        pBlockTable->close();
+        return;
+    }
+
+    acutPrintf(_T("\nIterating through entities.\n"));
+    for (; !pIterator->done(); pIterator->step()) {
+        AcDbEntity* pEntity;
+        es = pIterator->getEntity(pEntity, AcDb::kForRead);
+        if (es != Acad::eOk) {
+            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
+            continue;
+        }
+
+        if (pEntity->isKindOf(AcDbPolyline::desc())) {
+            AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
+            acutPrintf(_T("\nPolyline detected.\n"));
+            if (pPolyline->isClosed()) {
+                acutPrintf(_T("\nClosed polyline detected. Processing...\n"));
+                processPolyline(pPolyline, detectedCorners, angleThreshold, TOLERANCE);
+            }
+            else {
+                acutPrintf(_T("\nDetected open polyline. Skipping...\n"));
+            }
+        }
+        pEntity->close();
+    }
+
+    delete pIterator;
+    pBlockTableRecord->close();
+    pBlockTable->close();
+
+    acutPrintf(_T("\nDetected %d corners from lines.\n"), detectedCorners.size());
+}

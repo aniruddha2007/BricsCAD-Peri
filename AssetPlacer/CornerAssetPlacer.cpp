@@ -14,16 +14,80 @@
 #include <set>
 #include <cmath>
 #include <limits>
+#include <chrono>
+#include <thread>
 #include "dbapserv.h"
 #include "dbents.h"
 #include "dbsymtb.h"
 #include "AcDb.h"
+#include <AcDb/AcDbBlockTable.h>
+#include <AcDb/AcDbBlockTableRecord.h>
+#include <AcDb/AcDbPolyline.h>
 #include "gepnt3d.h"
 #include "DefineHeight.h"
 #include "DefineScale.h" 
 
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
+
+const int BATCH_SIZE = 10; // Process 10 entities at a time
+
+const double TOLERANCE = 0.1; // Tolerance for angle comparison
+
+double normalizeAngle(double angle) {
+    while (angle < 0) {
+        angle += 2 * M_PI;
+    }
+    while (angle >= 2 * M_PI) {
+        angle -= 2 * M_PI;
+    }
+    return angle;
+}
+
+//bool areAnglesEqual(double angle1, double angle2, double tolerance) {
+//    return std::abs(angle1 - angle2) < tolerance;
+//}
+
+// Function to recreate the model space
+bool recreateModelSpace(AcDbDatabase* pDb) {
+    AcDbBlockTable* pBlockTable;
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForWrite);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table for write access. Error status: %d\n"), es);
+        return false;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space for write access. Error status: %d\n"), es);
+        pBlockTable->close();
+        return false;
+    }
+
+    es = pModelSpace->erase();
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to erase model space. Error status: %d\n"), es);
+        pModelSpace->close();
+        pBlockTable->close();
+        return false;
+    }
+    pModelSpace->close();
+
+    AcDbBlockTableRecord* pNewModelSpace = new AcDbBlockTableRecord();
+    pNewModelSpace->setName(ACDB_MODEL_SPACE);
+    es = pBlockTable->add(pNewModelSpace);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to add new model space. Error status: %d\n"), es);
+        pNewModelSpace->close();
+        pBlockTable->close();
+        return false;
+    }
+    pNewModelSpace->close();
+    pBlockTable->close();
+
+    return true;
+}
 
 // DETECT POLYLINES FROM DRAWING
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
@@ -38,41 +102,92 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     }
 
     AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
         return corners;
     }
 
     AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
-        return corners;
-    }
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
 
-    AcDbBlockTableRecordIterator* pIter;
-    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to create iterator."));
-        pModelSpace->close();
-        pBlockTable->close();
-        return corners;
-    }
+        // Additional checks for better diagnostics
+        acutPrintf(_T("\nChecking if model space exists in block table.\n"));
+        if (pBlockTable->has(ACDB_MODEL_SPACE)) {
+            acutPrintf(_T("\nModel space exists.\n"));
+        }
+        else {
+            acutPrintf(_T("\nModel space does not exist.\n"));
+        }
 
-    for (pIter->start(); !pIter->done(); pIter->step()) {
-        AcDbEntity* pEnt;
-        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
-            acutPrintf(_T("\nEntity type: %s"), pEnt->isA()->name());
-            if (pEnt->isKindOf(AcDbPolyline::desc())) {
-                AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
-                if (pPolyline) {
-                    processPolyline(pPolyline, corners, 90.0);  // Assuming 90.0 degrees as the threshold for corners
-                }
-            }
-            pEnt->close();
+        acutPrintf(_T("\nAttempting to recreate model space.\n"));
+        if (!recreateModelSpace(pDb)) {
+            acutPrintf(_T("\nFailed to recreate model space.\n"));
+            pBlockTable->close();
+            return corners;
+        }
+
+        // Retry accessing the newly created model space
+        es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+        if (es != Acad::eOk) {
+            acutPrintf(_T("\nFailed to get new model space. Error status: %d\n"), es);
+            pBlockTable->close();
+            return corners;
         }
     }
 
-    delete pIter;
+    int entityCount = 0;
+    while (true) {
+        AcDbBlockTableRecordIterator* pIter;
+        es = pModelSpace->newIterator(pIter);
+        if (es != Acad::eOk) {
+            acutPrintf(_T("\nFailed to create iterator. Error status: %d\n"), es);
+            pModelSpace->close();
+            pBlockTable->close();
+            return corners;
+        }
+
+        for (pIter->start(); !pIter->done(); pIter->step()) {
+            AcDbEntity* pEnt;
+            es = pIter->getEntity(pEnt, AcDb::kForRead);
+            if (es == Acad::eOk) {
+                acutPrintf(_T("\nEntity type: %s"), pEnt->isA()->name());
+                if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                    AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
+                    if (pPolyline) {
+                        processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
+                    }
+                }
+                pEnt->close();
+                entityCount++;
+                if (entityCount % BATCH_SIZE == 0) {
+                    acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                    pIter->start();  // Reset the iterator
+                    delete pIter;
+                    pModelSpace->close();
+                    std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+                    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+                    if (es != Acad::eOk) {
+                        acutPrintf(_T("\nFailed to reaccess model space after pause. Error status: %d\n"), es);
+                        pBlockTable->close();
+                        return corners;
+                    }
+                    break;
+                }
+            }
+            else {
+                acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
+            }
+        }
+
+        if (entityCount % BATCH_SIZE != 0) {
+            delete pIter;
+            break;
+        }
+    }
+
     pModelSpace->close();
     pBlockTable->close();
 
@@ -89,24 +204,27 @@ void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wch
     }
 
     AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
         return;
     }
 
     AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
         pBlockTable->close();
         return;
     }
 
     AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
-    if (pModelSpace->appendAcDbEntity(pText) == Acad::eOk) {
+    es = pModelSpace->appendAcDbEntity(pText);
+    if (es == Acad::eOk) {
         acutPrintf(_T("\nAdded text annotation: %s"), text);
     }
     else {
-        acutPrintf(_T("\nFailed to add text annotation."));
+        acutPrintf(_T("\nFailed to add text annotation. Error status: %d\n"), es);
     }
     pText->close();  // Decrement reference count
 
@@ -215,10 +333,6 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
     int currentHeight = 0;
     int panelHeights[] = { 135, 60 };
 
-    // Normalize rotation angle to be within 0 to 2π
-    if (rotation < 0) {
-        rotation += 2 * M_PI;
-    }
 
     // Iterate through 135 and 60 height
     for (int panelNum = 0; panelNum < 2; panelNum++) {
@@ -253,25 +367,35 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 
             acutPrintf(_T("\nRotation angle: %f radians"), rotation);  // Debug rotation angle
 
+            rotation = normalizeAngle(rotation);  // Normalize the rotation angle
+
             switch (static_cast<int>(rotation * 180 / M_PI)) {
             case 0:
-                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+                if (areAnglesEqual(rotation, 0, TOLERANCE)) {
+					panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);  // Panel A along the X-axis
+					panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);  // Panel B along the Y-axis
+				}
                 break;
             case 90:
-                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+                if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
+                    panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);  // Panel A along the Y-axis
+                    panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);  // Panel B along the X-axis
+                }
                 break;
             case 180:
-                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+                if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
+					panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);  // Panel A along the X-axis
+					panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);  // Panel B along the Y-axis
+				}
                 break;
             case 270:
-                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+                if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
+					panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);  // Panel A along the Y-axis
+					panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);  // Panel B along the X-axis
+				}
                 break;
             default:
-                acutPrintf(_T("\nInvalid rotation angle detected."));
+                acutPrintf(_T("\nInvalid rotation angle detected: %f "), rotation);
                 continue;
             }
 
@@ -342,11 +466,6 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
     int currentHeight = 0;
     int panelHeights[] = { 135, 60 };
 
-    // Normalize rotation angle to be within 0 to 2π
-    if (rotation < 0) {
-        rotation += 2 * M_PI;
-    }
-
     AcGePoint3d cornerWithHeight = corner;
     cornerWithHeight.z += currentHeight;
 
@@ -410,23 +529,32 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             // Determine panel placement positions based on the rotation
             AcGeVector3d panelAOffset, panelBOffset;
 
+            rotation = normalizeAngle(rotation);  // Normalize the rotation angle
 
             switch (static_cast<int>(rotation * 180 / M_PI)) {
             case 0:
-                panelAOffset = AcGeVector3d(25.0, -10.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);  // Panel B along the Y-axis
+                if (areAnglesEqual(rotation, 0, TOLERANCE)) {
+                    panelAOffset = AcGeVector3d(25.0, -10.0, 0.0);  // Panel A along the X-axis
+                    panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);  // Panel B along the Y-axis
+                }
                 break;
             case 90:
-                panelAOffset = AcGeVector3d(10.0, 25.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);  // Panel B along the X-axis
+                if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
+					panelAOffset = AcGeVector3d(10.0, 25.0, 0.0);  // Panel A along the Y-axis
+					panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);  // Panel B along the X-axis
+				}
                 break;
             case 180:
-                panelAOffset = AcGeVector3d(-25.0, 10.0, 0.0);  // Panel A along the X-axis
-                panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);  // Panel B along the Y-axis
+                if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
+					panelAOffset = AcGeVector3d(-25.0, 10.0, 0.0);  // Panel A along the X-axis
+					panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);  // Panel B along the Y-axis
+				}
                 break;
             case 270:
-                panelAOffset = AcGeVector3d(-10.0, -25.0, 0.0);  // Panel A along the Y-axis
-                panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);  // Panel B along the X-axis
+                if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
+                    panelAOffset = AcGeVector3d(-10.0, -25.0, 0.0);  // Panel A along the Y-axis
+                    panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);  // Panel B along the X-axis
+                }
                 break;
             default:
                 acutPrintf(_T("\nInvalid rotation angle detected."));
