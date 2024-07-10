@@ -159,9 +159,10 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
 
         //Iterate through 135 and 60 height
         for (int panelNum = 0; panelNum < 2; panelNum++) {
-            currentPoint = backupCurrentPoint;
-            distance = backupDistance;
+            //currentPoint = backupCurrentPoint;
+            //distance = backupDistance;
             AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
+            acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
 
             if (assetId == AcDbObjectId::kNull) {
                 acutPrintf(_T("\nFailed to load asset."));
@@ -174,6 +175,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                 acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
 
                 int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
+
+                acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
 
                 for (int x = 0; x < numPanelsHeight; x++) {
                     currentPoint = backupCurrentPoint;
