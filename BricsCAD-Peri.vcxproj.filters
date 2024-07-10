@@ -32,8 +32,6 @@
   <ItemGroup>
     <None Include="Menu\CustomMenu.cui" />
     <None Include="README.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="Menu\wall.png" />
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

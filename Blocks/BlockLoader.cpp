@@ -76,28 +76,24 @@ void BlockLoader::loadBlockIntoBricsCAD(const char* blockName, const char* block
         return;
     }
 
-    AcDbBlockTable* pBlockTable;
-    pDb->getBlockTable(pBlockTable, AcDb::kForWrite);
+    AcDbDatabase* pSourceDb = new AcDbDatabase(Adesk::kFalse); // Create a new source database
+    Acad::ErrorStatus es = pSourceDb->readDwgFile(charToACHAR(blockPath)); // Read the source DWG file
+    if (es != Acad::eOk) {
+        acutPrintf(L"Failed to read DWG file: %s\n", acadErrorStatusText(es));
+        delete pSourceDb;
+        return;
+    }
 
-    AcDbBlockTableRecord* pBlockTableRecord = new AcDbBlockTableRecord();
-    pBlockTableRecord->setName(charToACHAR(blockName));
-
-    AcDbBlockTableRecord* pExistingBlockTableRecord;
-    if (pBlockTable->getAt(charToACHAR(blockName), pExistingBlockTableRecord, AcDb::kForWrite) == Acad::eOk) {
-        acutPrintf(L"Block %s already exists.\n", blockName);
-        pExistingBlockTableRecord->close();
+    AcDbObjectId outBlockId;
+    es = pDb->insert(outBlockId, charToACHAR(blockName), pSourceDb, true); // Insert the block
+    if (es != Acad::eOk) {
+        acutPrintf(L"Failed to insert block: %s. Error: %s\n", blockName, acadErrorStatusText(es));
     }
     else {
-        if (pBlockTable->add(pBlockTableRecord) == Acad::eOk) {
-            acutPrintf(L"Block %s added successfully.\n", blockName);
-        }
-        else {
-            acutPrintf(L"Failed to add block %s.\n", blockName);
-        }
-        pBlockTableRecord->close();
+        acutPrintf(L"Block %s inserted successfully.\n", blockName);
     }
 
-    pBlockTable->close();
+    delete pSourceDb; // Clean up
 }
 
 ACHAR* BlockLoader::charToACHAR(const char* str) {

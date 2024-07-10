@@ -1,3 +1,5 @@
+//TODO: Missing side for rectangle
+
 #include "stdafx.h"
 #include "GeometryUtils.h"
 #include "SharedDefinations.h"
@@ -65,3 +67,4 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
         corners.push_back(vertices.back());
     }
 }
+
