@@ -22,6 +22,24 @@ bool isCorner(double angle, double threshold) {
     return fabs(angle - threshold) <= TOLERANCE;
 }
 
+double normalizeAngle(double angle) {
+    while (angle < 0) {
+        angle += 2 * M_PI;
+    }
+    while (angle >= 2 * M_PI) {
+        angle -= 2 * M_PI;
+    }
+    return angle;
+}
+
+double snapToExactAngle(double angle, double TOLERANCE) {
+    if (fabs(angle - 0) < TOLERANCE) return 0;
+    if (fabs(angle - M_PI_2) < TOLERANCE) return M_PI_2;
+    if (fabs(angle - M_PI) < TOLERANCE) return M_PI;
+    if (fabs(angle - 3 * M_PI_2) < TOLERANCE) return 3 * M_PI_2;
+    return angle;
+}
+
 // Determine if two angles are equal within a tolerance
 bool areAnglesEqual(double angle1, double angle2, double tolerance) {
     return std::abs(angle1 - angle2) < tolerance;
@@ -34,6 +52,11 @@ void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& ver
         AcGePoint3d point;
         pPolyline->getPointAt(i, point);
         vertices.push_back(point);
+    }
+
+    // If polyline has 4 vertices, simulate closure by adding the first vertex as the closing vertex
+    if (numVerts == 4) {
+        vertices.push_back(vertices[0]);
     }
 }
 
@@ -48,21 +71,16 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
         return;
     }
 
-    for (size_t i = 0; i < numVerts; ++i) {
+    for (size_t i = 0; i < numVerts - 1; ++i) {
         AcGeVector3d currentDirection, nextDirection;
-        if (i < numVerts - 1) {
-            currentDirection = vertices[i + 1] - vertices[i];
-        }
-        else {
-            currentDirection = vertices[0] - vertices[i];
-        }
+        currentDirection = vertices[i + 1] - vertices[i];
         currentDirection.normalize();
 
         if (i > 0) {
             nextDirection = vertices[i] - vertices[i - 1];
         }
         else {
-            nextDirection = vertices[i] - vertices[numVerts - 1];
+            nextDirection = vertices[i] - vertices[numVerts - 2];
         }
         nextDirection.normalize();
 
@@ -81,7 +99,6 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
         corners.push_back(vertices.back());
     }
 }
-
 
 // Function to classify polyline entities
 void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detectedCorners, double angleThreshold) {
@@ -126,8 +143,8 @@ void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detec
         if (pEntity->isKindOf(AcDbPolyline::desc())) {
             AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
             acutPrintf(_T("\nPolyline detected.\n"));
-            if (pPolyline->isClosed()) {
-                acutPrintf(_T("\nClosed polyline detected. Processing...\n"));
+            if (pPolyline->isClosed() || pPolyline->numVerts() == 4) { // Treat 4-vertex polylines as closed rectangles
+                acutPrintf(_T("\nClosed or 4-vertex polyline detected. Processing...\n"));
                 processPolyline(pPolyline, detectedCorners, angleThreshold, TOLERANCE);
             }
             else {

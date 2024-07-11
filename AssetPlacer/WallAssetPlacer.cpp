@@ -1,7 +1,7 @@
 // Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-06-01)
 // TODO:
-// Height 135 is fucked up
+// Height 135 is fixed
 // Added 5 panel width
 // WallAssetPlacer.cpp
 /////////////////////////////////////////////////////////////////////////
@@ -127,13 +127,12 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
         return;
     }
 
-    
-    // Use the biggest block size to calculate the number of panels and empty space should be iterated  over using smaller block size
-	double distance = start.distanceTo(end)-50;
+    // Use the biggest block size to calculate the number of panels and empty space should be iterated over using smaller block size
+    double distance = start.distanceTo(end) - 50;
     AcGeVector3d direction = (end - start).normal();
     AcGePoint3d currentPoint = start + direction * 25;
 
-    //Fetch this variable from DefineHeight
+    // Fetch this variable from DefineHeight
     int wallHeight = globalVarHeight;
 
     int currentHeight = 0;
@@ -141,34 +140,31 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
 
     // List of available panels
     std::vector<Panel> panelSizes = {
-       /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
+        /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
         {75, {L"128281X", L"129838X"}},
         {60, {L"128282X", L"129839X"}},
         {45, {L"128283X", L"129840X"}},
         {30, {L"128284X", L"129841X"}},
         {15, {L"128285X", L"129842X"}},
-        {10, {L"128292X", L"129884X"}}, // *10 Compensator  move to middle TODO:
-        {5, {L"128287X", L"129879X"}} // *5 Compensator add a break 
+        {10, {L"128292X", L"129884X"}}, // *10 Compensator move to middle TODO:
+        {5, {L"128287X", L"129879X"}} // *5 Compensator add a break
     };
 
-    //Iterate through every panel type
+    // Iterate through every panel type
     for (const auto& panel : panelSizes) {
         currentHeight = 0;
         AcGePoint3d backupCurrentPoint = currentPoint;
         double backupDistance = distance;
 
-        //Iterate through 135 and 60 height
+        // Iterate through 135 and 60 height
         for (int panelNum = 0; panelNum < 2; panelNum++) {
-            //currentPoint = backupCurrentPoint;
-            //distance = backupDistance;
             AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
             acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
 
             if (assetId == AcDbObjectId::kNull) {
                 acutPrintf(_T("\nFailed to load asset."));
             }
-            else
-            {
+            else {
                 acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
                 acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
                 acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
@@ -182,8 +178,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                     currentPoint = backupCurrentPoint;
                     distance = backupDistance;
 
-                    //Place walls
-                    int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels that fit horizontaly
+                    // Place walls
+                    int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels that fit horizontally
                     int numOfWallSegmentsPlaced = 0;
                     for (int i = 0; i < numPanels; i++) {
                         double rotation = atan2(direction.y, direction.x);
@@ -194,6 +190,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
                         currentPointWithHeight.z += currentHeight;
                         pBlockRef->setPosition(currentPointWithHeight);
                         pBlockRef->setBlockTableRecord(assetId);
+                        rotation = normalizeAngle(rotation);
+                        rotation = snapToExactAngle(rotation, TOLERANCE);
                         pBlockRef->setRotation(rotation);  // Apply rotation
                         pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
@@ -207,17 +205,8 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
 
                         currentPoint += direction * panel.length;  // Move to the next panel
                         distance -= panel.length;
-                        /*
-                        if (currentPoint.distanceTo(end) < panel.length) {
-                            break;  // Stop if the remaining distance is less than a panel length
-                        }
-                        */
                     }
                     acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
-                    //Check if panel height fits in required wall height
-                    /*if (wallHeight - currentHeight >= panelHeights[panelNum]) {
-
-                    }*/
                     currentHeight += panelHeights[panelNum];
                 }
             }
@@ -273,19 +262,6 @@ void WallPlacer::placeWalls() {
     for (size_t i = 0; i < corners.size() - 1; ++i) {
         placeWallSegment(corners[i], corners[i + 1]);
     }
-
-    /*
-    AcDbObjectId assetId = loadAsset(L"128280X");
-
-    if (assetId == AcDbObjectId::kNull) {
-        acutPrintf(_T("\nFailed to load asset."));
-        return;
-    }
-
-    for (size_t i = 0; i < corners.size() - 1; ++i) {
-        placeWallSegment(corners[i], corners[i + 1], assetId);
-    }
-    */
 
     acutPrintf(_T("\nCompleted placing walls."));
 }
