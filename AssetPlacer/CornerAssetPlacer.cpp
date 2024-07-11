@@ -254,7 +254,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             rotation = atan2(direction.y, direction.x);
         }
         else {
-            AcGeVector3d direction = corners[0] - corners[i];
+            AcGeVector3d direction = corners[i-4] - corners[i]; //PROBLEM IS PROBABLY HERE
             rotation = atan2(direction.y, direction.x);
         }
 
@@ -272,6 +272,11 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
             isInside = crossProductZ < 0; // Change this logic based on your coordinate system
         }
+
+        acutPrintf(_T("\corners[i]: %d,"), corners[i]); // Debug
+        acutPrintf(_T(" rotation: %f,"), rotation); // Debug
+        acutPrintf(_T(" cornerPostId: %d,"), cornerPostId); // Debug
+        acutPrintf(_T(" panelId: %d"), panelId); // Debug
 
         if (isInside) {
             placeInsideCornerPostAndPanels(corners[i], rotation, cornerPostId, panelId);
@@ -469,8 +474,16 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
     AcGePoint3d cornerWithHeight = corner;
     cornerWithHeight.z += currentHeight;
 
+    acutPrintf(_T("\nDebug 1")); // Debug
+
     // Apply the correct offset based on rotation
+
+    acutPrintf(_T("\nrotation: %f"), rotation); // Debug
+
     int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
+
+    acutPrintf(_T("\nrotationDegrees: %d"), rotationDegrees); // Debug
+
     switch (rotationDegrees) {
     case 0:
         cornerWithHeight.x -= 10.0;
@@ -530,6 +543,8 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             AcGeVector3d panelAOffset, panelBOffset;
 
             rotation = normalizeAngle(rotation);  // Normalize the rotation angle
+
+            acutPrintf(_T("\nDebug 2")); // Debug
 
             switch (static_cast<int>(rotation * 180 / M_PI)) {
             case 0:
