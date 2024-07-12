@@ -35,6 +35,10 @@ struct Panel {
     std::wstring id[2];
 };
 
+bool isInteger(double num) {
+    return std::floor(num) == num;
+}
+
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
@@ -103,118 +107,12 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     }
 
     pBlockTable->close();
-    acutPrintf(_T("\nLoaded block: %s"), blockName);
+    acutPrintf(_T(" Loaded block: %s"), blockName);
     return blockId;
 }
 
 void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    if (!pDb) {
-        acutPrintf(_T("\nNo working database found."));
-        return;
-    }
-
-    AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
-        return;
-    }
-
-    AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
-        return;
-    }
-
-    // Use the biggest block size to calculate the number of panels and empty space should be iterated over using smaller block size
-    double distance = start.distanceTo(end) - 50;
-    AcGeVector3d direction = (end - start).normal();
-    AcGePoint3d currentPoint = start + direction * 25;
-
-    // Fetch this variable from DefineHeight
-    int wallHeight = globalVarHeight;
-
-    int currentHeight = 0;
-    int panelHeights[] = { 135, 60 };
-
-    // List of available panels
-    std::vector<Panel> panelSizes = {
-        /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
-        {75, {L"128281X", L"129838X"}},
-        {60, {L"128282X", L"129839X"}},
-        {45, {L"128283X", L"129840X"}},
-        {30, {L"128284X", L"129841X"}},
-        {15, {L"128285X", L"129842X"}},
-        {10, {L"128292X", L"129884X"}}, // *10 Compensator move to middle TODO:
-        {5, {L"128287X", L"129879X"}} // *5 Compensator add a break
-    };
-
-    // Iterate through every panel type
-    for (const auto& panel : panelSizes) {
-        currentHeight = 0;
-        AcGePoint3d backupCurrentPoint = currentPoint;
-        double backupDistance = distance;
-
-        // Iterate through 135 and 60 height
-        for (int panelNum = 0; panelNum < 2; panelNum++) {
-            AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
-            acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
-
-            if (assetId == AcDbObjectId::kNull) {
-                acutPrintf(_T("\nFailed to load asset."));
-            }
-            else {
-                acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
-                acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
-                acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
-                acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
-
-                int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
-
-                acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
-
-                for (int x = 0; x < numPanelsHeight; x++) {
-                    currentPoint = backupCurrentPoint;
-                    distance = backupDistance;
-
-                    // Place walls
-                    int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels that fit horizontally
-                    int numOfWallSegmentsPlaced = 0;
-                    for (int i = 0; i < numPanels; i++) {
-                        double rotation = atan2(direction.y, direction.x);
-
-                        // Place the wall segment without scaling
-                        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-                        AcGePoint3d currentPointWithHeight = currentPoint;
-                        currentPointWithHeight.z += currentHeight;
-                        pBlockRef->setPosition(currentPointWithHeight);
-                        pBlockRef->setBlockTableRecord(assetId);
-                        rotation = normalizeAngle(rotation);
-                        rotation = snapToExactAngle(rotation, TOLERANCE);
-                        pBlockRef->setRotation(rotation);  // Apply rotation
-                        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-                        if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-                            numOfWallSegmentsPlaced += 1;
-                        }
-                        else {
-                            acutPrintf(_T("\nFailed to place wall segment."));
-                        }
-                        pBlockRef->close();  // Decrement reference count
-
-                        currentPoint += direction * panel.length;  // Move to the next panel
-                        distance -= panel.length;
-                    }
-                    acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
-                    currentHeight += panelHeights[panelNum];
-                }
-            }
-        }
-    }
-
-    pModelSpace->close();  // Decrement reference count
-    pBlockTable->close();  // Decrement reference count
+    
 }
 
 void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
@@ -259,9 +157,163 @@ void WallPlacer::placeWalls() {
         return;
     }
 
-    for (size_t i = 0; i < corners.size() - 1; ++i) {
-        placeWallSegment(corners[i], corners[i + 1]);
+    int closeLoopCounter = -1;
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        acutPrintf(_T("\ncornerNum: %d,"), cornerNum); // Debug
+        //placeWallSegment(corners[i], corners[i + 1]);
+        closeLoopCounter++;
+        acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
+
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+
+        acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
+        acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+
+        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        if (isInteger(direction.x) && isInteger(direction.y)) {
+            acutPrintf(_T("\nYES."));
+            start = corners[cornerNum];
+            end = corners[cornerNum + 1];
+        }
+        else {
+            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            if (cornerNum < corners.size() - 1) {
+                acutPrintf(_T("\nYES."));
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+            }
+            else {
+                acutPrintf(_T("\nNO."));
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+            }
+        }
+
+        acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
+        acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
+
+
+        AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+        if (!pDb) {
+            acutPrintf(_T("\nNo working database found."));
+            return;
+        }
+
+        AcDbBlockTable* pBlockTable;
+        if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+            acutPrintf(_T("\nFailed to get block table."));
+            return;
+        }
+
+        AcDbBlockTableRecord* pModelSpace;
+        if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+            acutPrintf(_T("\nFailed to get model space."));
+            pBlockTable->close();
+            return;
+        }
+
+        // Use the biggest block size to calculate the number of panels and empty space should be iterated over using smaller block size
+        double distance = start.distanceTo(end) - 50;
+        direction = (end - start).normal();
+
+        acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
+        acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
+
+        AcGePoint3d currentPoint = start + direction * 25;
+
+
+        double rotation = atan2(direction.y, direction.x);
+        acutPrintf(_T("\nrotation: %f,"), rotation); // Debug
+
+        acutPrintf(_T("\nrotation after snap: %f,"), snapToExactAngle(rotation, TOLERANCE)); // Debug
+
+        // Fetch this variable from DefineHeight
+        int wallHeight = globalVarHeight;
+
+        int currentHeight = 0;
+        int panelHeights[] = { 135, 60 };
+
+        // List of available panels
+        std::vector<Panel> panelSizes = {
+            /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
+            {75, {L"128281X", L"129838X"}},
+            {60, {L"128282X", L"129839X"}},
+            {45, {L"128283X", L"129840X"}},
+            {30, {L"128284X", L"129841X"}},
+            {15, {L"128285X", L"129842X"}},
+            {10, {L"128292X", L"129884X"}}, // *10 Compensator move to middle TODO:
+            {5, {L"128287X", L"129879X"}} // *5 Compensator add a break
+        };
+
+        // Iterate through every panel type
+        for (const auto& panel : panelSizes) {
+            currentHeight = 0;
+            AcGePoint3d backupCurrentPoint = currentPoint;
+            double backupDistance = distance;
+
+            // Iterate through 135 and 60 height
+            for (int panelNum = 0; panelNum < 2; panelNum++) {
+                AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
+                //acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
+
+                if (assetId == AcDbObjectId::kNull) {
+                    acutPrintf(_T("\nFailed to load asset."));
+                }
+                else {
+                    //acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
+                    //acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
+                    //acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
+                    //acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
+
+                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
+
+                    //acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
+
+                    for (int x = 0; x < numPanelsHeight; x++) {
+                        currentPoint = backupCurrentPoint;
+                        distance = backupDistance;
+
+                        // Place walls
+                        int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels that fit horizontally
+                        int numOfWallSegmentsPlaced = 0;
+                        for (int i = 0; i < numPanels; i++) {
+
+                            // Place the wall segment without scaling
+                            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                            AcGePoint3d currentPointWithHeight = currentPoint;
+                            currentPointWithHeight.z += currentHeight;
+                            pBlockRef->setPosition(currentPointWithHeight);
+                            pBlockRef->setBlockTableRecord(assetId);
+                            rotation = normalizeAngle(rotation);
+                            rotation = snapToExactAngle(rotation, TOLERANCE);
+                            pBlockRef->setRotation(rotation);  // Apply rotation
+                            pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                            if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
+                                numOfWallSegmentsPlaced += 1;
+                            }
+                            else {
+                                acutPrintf(_T("\nFailed to place wall segment."));
+                            }
+                            pBlockRef->close();  // Decrement reference count
+
+                            currentPoint += direction * panel.length;  // Move to the next panel
+                            distance -= panel.length;
+                        }
+                        acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
+                        currentHeight += panelHeights[panelNum];
+                    }
+                }
+            }
+        }
+
+        pModelSpace->close();  // Decrement reference count
+        pBlockTable->close();  // Decrement reference count
     }
 
-    acutPrintf(_T("\nCompleted placing walls."));
+    //acutPrintf(_T("\nCompleted placing walls."));
 }
