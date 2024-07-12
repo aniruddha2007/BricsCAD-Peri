@@ -35,8 +35,8 @@ struct Panel {
     std::wstring id[2];
 };
 
-bool isInteger(double num) {
-    return std::floor(num) == num;
+bool isInteger(double value, double tolerance = 1e-9) {
+    return std::abs(value - std::round(value)) < tolerance;
 }
 
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
