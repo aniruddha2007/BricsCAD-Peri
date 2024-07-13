@@ -12,6 +12,7 @@
     <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="DefineScale.cpp" />
     <ClCompile Include="SettingsCommands.cpp" />
+    <ClCompile Include="Tie\TiePlacer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -25,6 +26,7 @@
     <ClInclude Include="DefineHeight.h" />
     <ClInclude Include="DefineScale.h" />
     <ClInclude Include="SettingsCommands.h" />
+    <ClInclude Include="Tie\TiePlacer.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

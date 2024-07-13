@@ -11,15 +11,16 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "AssetPlacer/CornerAssetPlacer.h" // Include the header for the CornerAssetPlacer class
-#include "AssetPlacer/WallAssetPlacer.h"   // Include the header for the WallPlacer class
-#include "Resource.h"                      // Include the header for the resource file
-#include "BrxSpecific/ribbon/AcRibbonCombo.h"  // Include the header for the AcRibbonCombo class
-#include "BrxSpecific/ribbon/AcRibbonTab.h"    // Include the header for the AcRibbonTab class
-#include "BrxSpecific/ribbon/AcRibbonPanel.h"  // Include the header for the AcRibbonPanel class
-#include "BrxSpecific/ribbon/AcRibbonButton.h" // Include the header for the AcRibbonButton class
-#include "Blocks/BlockLoader.h"                // Include the header for the BlockLoader class
+#include "AssetPlacer/CornerAssetPlacer.h"    // Include the header for the CornerAssetPlacer class
+#include "AssetPlacer/WallAssetPlacer.h"      // Include the header for the WallPlacer class
+#include "Resource.h"                         // Include the header for the resource file
+#include "BrxSpecific/ribbon/AcRibbonCombo.h" // Include the header for the AcRibbonCombo class
+#include "BrxSpecific/ribbon/AcRibbonTab.h"   // Include the header for the AcRibbonTab class
+#include "BrxSpecific/ribbon/AcRibbonPanel.h" // Include the header for the AcRibbonPanel class
+#include "BrxSpecific/ribbon/AcRibbonButton.h"// Include the header for the AcRibbonButton class
+#include "Blocks/BlockLoader.h"               // Include the header for the BlockLoader class
 #include "WallPanelConnector.h"               // Include the header for the WallPanelConnector class
+#include "Tie/TiePlacer.h" 				      // Include the header for the TiePlacer class
 #include "DefineHeight.h"                     // Include the header for the DefineHeight class
 #include "DefineScale.h"                      // Include the header for the DefineScale class
 #include "SettingsCommands.h"
@@ -47,6 +48,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceTies"), _T("PlaceTies"), ACRX_CMD_MODAL, []() { TiePlacer::placeTies(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
@@ -117,6 +119,13 @@ public:
         WallPanelConnector::placeConnectors();
     }
 
+    // PlaceTies command
+    static void BrxAppPlaceTies(void)
+	{
+		acutPrintf(_T("\nRunning PlaceTies."));
+		TiePlacer::placeTies();
+	}
+
     // LoadBlocks command
     static void BrxAppLoadBlocks(void)
     {
@@ -154,6 +163,7 @@ public:
         acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
         acutPrintf(_T("\nPlaceWalls: To only place Walls."));
         acutPrintf(_T("\nPlaceConnectors: To only place Connectors"));
+        acutPrintf(_T("\nPlaceTies: To only place Ties."));
         acutPrintf(_T("\nDefineHeight: Define Height, specify height in cm."));
         acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
@@ -194,3 +204,4 @@ ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceWalls, PlaceWalls, ACRX_CMD_MOD
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, LoadBlocks, LoadBlocks, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, Settings, Settings, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceConnectors, PlaceConnectors, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceTies, PlaceTies, ACRX_CMD_MODAL, NULL)

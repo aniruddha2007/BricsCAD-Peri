@@ -24,6 +24,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
+    <ClCompile Include="Tie\TiePlacer.cpp" />
     <ClCompile Include="WallPanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -37,6 +38,7 @@
     <ClInclude Include="SourceFiles\Resource.h" />
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
+    <ClInclude Include="Tie\TiePlacer.h" />
     <ClInclude Include="WallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>
@@ -151,6 +153,7 @@
       <StringPooling>true</StringPooling>
       <DisableSpecificWarnings>4192;</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
+      <LanguageStandard>Default</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
