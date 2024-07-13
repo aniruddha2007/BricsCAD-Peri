@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <algorithm>
+#include <cwctype>
 
 //Pi values for calculating the pre defined angles
 #ifndef M_PI
@@ -24,6 +26,16 @@
 #undef min
 #endif
 
+/**
+ * Helper function to convert a string to uppercase
+ * @param str The input string
+ * @return The uppercase version of the input string
+ */
+inline std::wstring toUpperCase(const std::wstring& str) {
+    std::wstring upperStr = str;
+    std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::towupper);
+    return upperStr;
+}
 
 // Asset names defined as string constants
 //Example usage: 

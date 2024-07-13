@@ -12,6 +12,8 @@ public:
 private:
 	static std::vector<std::tuple<AcGePoint3d, std::wstring, double>> getWallPanelPositions();
 	static AcDbObjectId LoadTieAsset(const wchar_t* blockName);
+	static void placeTieAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId);
+
 	//Add other helper functions here
 
 	// Comparator for AcGePoint3d

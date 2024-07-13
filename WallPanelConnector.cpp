@@ -25,13 +25,6 @@ const std::vector<std::wstring> panelsWithTwoConnectors = {
     ASSET_129839, ASSET_129837
 };
 
-// Helper function to convert a string to uppercase
-std::wstring toUpperCase(const std::wstring& str) {
-    std::wstring upperStr = str;
-    std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::towupper);
-    return upperStr;
-}
-
 // GET WALL PANEL POSITIONS
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;

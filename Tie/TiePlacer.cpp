@@ -1,6 +1,6 @@
 // Created by: Ani (2024-07-13)
 // Modified by:
-// TODO:
+// TODO: Write the sub-function to select which tie to place, can refer to WallAssetPlacer.cpp for reference
 // WallPanelConnector.cpp
 /////////////////////////////////////////////////////////////////////////
 
@@ -18,13 +18,6 @@
 #include "AssetPlacer/GeometryUtils.h" //For the geometry utilities
 
 const double TOLERANCE = 0.1; //Define a small tolerance for angle comparisons
-
-// Helper function to convert a string to uppercase
-std::wstring toUpperCase(const std::wstring& str) {
-    std::wstring upperStr = str;
-    std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::towupper);
-    return upperStr;
-}
 
 // GET WALL PANEL POSITIONS
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPanelPositions() {
@@ -186,9 +179,65 @@ AcDbObjectId TiePlacer::LoadTieAsset(const wchar_t* blockName){
 	return blockId;
 }
 
+//Place Tie at Position
+void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId){
+	AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+	if (!pDb){
+		acutPrintf(L"\nFailed to get the working database");
+		return;
+	}
+
+	AcDbBlockTable* pBlockTable;
+	if (Acad::eOk != pDb->getBlockTable(pBlockTable, AcDb::kForRead)){
+		acutPrintf(L"\nFailed to get the block table");
+		return;
+	}
+
+	AcDbBlockTableRecord* pModelSpace;
+	if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk){
+		acutPrintf(L"\nFailed to get the model space");
+		pBlockTable->close();
+		return;
+	}
+
+    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+    pBlockRef->setPosition(position);
+    pBlockRef->setBlockTableRecord(assetId);
+    pBlockRef->setRotation(rotation);
+    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  //Set the scale factor
+
+    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+		acutPrintf(_T("\nFailed to append block reference."));
+	}
+    else {
+        acutPrintf(_T("\nFailed to place tie."));
+    }
+
+	pBlockRef->close();
+	pModelSpace->close();
+	pBlockTable->close();
+}
+
 //Place Ties
 void TiePlacer::placeTies(){
 	acutPrintf(L"\nPlacing Ties");
 	std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
-	placeTie(panelPositions);
+	if (panelPositions.empty()){
+		acutPrintf(L"\nNo wall panels found");
+		return;
+	}
+
+    std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);
+    AcDbObjectId assetId = LoadTieAsset(ASSET_030005.c_str());  //Replace ASSET_TIE with the actual asset name
+    
+    if (assetId == AcDbObjectId::kNull){
+		acutPrintf(L"\nFailed to load the tie asset");
+		return;
+	}
+
+    for (const auto& tiePos : tiePositions){
+		placeTieAtPosition(std::get<0>(tiePos), std::get<1>(tiePos), assetId);
+	}
+
+    acutPrintf(L"\nTies placed successfully");
 }
