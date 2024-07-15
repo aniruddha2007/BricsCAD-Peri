@@ -1,3 +1,21 @@
+// Created by: Ani (2024-05-31)
+// Modified on (2024-07-11)
+// TODO:
+// BlockLoader.cpp
+// This blockloader function is used to load blocks from a JSON file into BricsCAD.
+// it uses the CFileDialog class to prompt the user to select a JSON file.
+// The JSON file is then read and parsed using the nlohmann/json library.
+// The file paths are extracted from the JSON data and the blocks are loaded into BricsCAD.
+// The loadBlockIntoBricsCAD function is used to insert the block into the BricsCAD database.
+// The charToACHAR function is used to convert a char pointer to an ACHAR pointer.
+// The extractFileNameFromPath function is used to extract the file name from a file path.
+// The loadBlocksFromJson function is the main function that loads the blocks from the JSON file.
+// The loadBlocksFromJson function is registered as a command in the BrxApp.cpp file.
+// The loadBlocksFromJson function is called when the LoadBlocks command is executed in BricsCAD.
+// The loadBlocksFromJson function is also added to the custom menu in the acrxEntryPoint.cpp file.
+// The loadBlocksFromJson function is used to load custom blocks into BricsCAD from a JSON file.
+// The loadBlocksFromJson function is part of the BlockLoader class.
+/////////////////////////////////////////////////////////////////////////
 #include "StdAfx.h"
 #include "BlockLoader.h"
 #include <acadstrc.h>

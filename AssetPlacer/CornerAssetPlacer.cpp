@@ -1,8 +1,17 @@
 ﻿// Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-07-04)
-// TODO: fix extra corner post at last vertice
-// Added 5 panel width
+// TODO: 
 // CornerAssetPlacer.cpp
+// This file contains the implementation of the CornerAssetPlacer class.
+// The CornerAssetPlacer class is used to place assets at corners in BricsCAD.
+// The detectPolylines function is used to detect polylines in the drawing.
+// The addTextAnnotation function is used to add text annotations to the drawing.
+// The placeAssetsAtCorners function is used to place assets at the detected corners.
+// The loadAsset function is used to load an asset from the block table.
+// The placeInsideCornerPostAndPanels function is used to place assets at inside corners.
+// The placeOutsideCornerPostAndPanels function is used to place assets at outside corners.
+// The recreateModelSpace function is used to recreate the model space.
+// The CornerAssetPlacer class is part of the AssetPlacer namespace.
 /////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
@@ -33,24 +42,6 @@ std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dCompar
 const int BATCH_SIZE = 10; // Process 10 entities at a time
 
 const double TOLERANCE = 0.1; // Tolerance for angle comparison
-
-//double normalizeAngle(double angle) {
-//	while (angle < 0) {
-//		angle += 2 * M_PI;
-//	}
-//	while (angle >= 2 * M_PI) {
-//		angle -= 2 * M_PI;
-//	}
-//	return angle;
-//}
-//
-//double snapToExactAngle(double angle, double TOLERANCE) {
-//    if (fabs(angle - 0) < TOLERANCE) return 0;
-//    if (fabs(angle - M_PI_2) < TOLERANCE) return M_PI_2;
-//    if (fabs(angle - M_PI) < TOLERANCE) return M_PI;
-//    if (fabs(angle - 3 * M_PI_2) < TOLERANCE) return 3 * M_PI_2;
-//    return angle;
-//}
 
 // Function to recreate the model space
 bool recreateModelSpace(AcDbDatabase* pDb) {
@@ -130,7 +121,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     }
 
     int entityCount = 0;
-    while (!pIter->done()) {
+    for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
         es = pIter->getEntity(pEnt, AcDb::kForRead);
         if (es == Acad::eOk) {
@@ -151,7 +142,6 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
         else {
             acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
         }
-        pIter->step();
     }
 
     delete pIter;
@@ -273,6 +263,7 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
+// PLACE ASSETS AT INSIDE CORNERS
 void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -387,6 +378,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
     pBlockTable->close();
 }
 
+// PLACE ASSETS AT OUTSIDE CORNERS
 void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
