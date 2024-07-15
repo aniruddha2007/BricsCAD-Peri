@@ -16,8 +16,20 @@
 #include "dbsymtb.h"            // For block table record definitions
 #include "AcDb.h"               //General database definitions
 #include "AssetPlacer/GeometryUtils.h" //For the geometry utilities
+#include <array>
 
 const double TOLERANCE = 0.1; //Define a small tolerance for angle comparisons
+
+// Threshold for comparing positions (adjust as needed)
+const double POSITION_THRESHOLD = 0.0;
+
+// Function to check if both coordinates have changed significantly
+bool isSignificantChange(const AcGePoint3d& pos1, const AcGePoint3d& pos2, double threshold) {
+    acutPrintf(_T("\n--------------------"));
+    acutPrintf(_T(" x pos difference: %f"), abs(pos1.x - pos2.x));
+    acutPrintf(_T(" y pos difference: %f"), abs(pos1.y - pos2.y));
+    return (std::abs(pos1.x - pos2.x) >= threshold) && (std::abs(pos1.y - pos2.y) >= threshold);
+}
 
 // GET WALL PANEL POSITIONS
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPanelPositions() {
@@ -50,12 +62,16 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         return positions;
     }
 
-    int entityCount = 0;
+    int entityCount = 0;    
+    bool innerLoopDetected = false;
+    AcGePoint3d previousPanelPosition;
+    bool firstPanel = true;
+
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
         entityCount++;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
-            acutPrintf(_T("\nEntity %d type: %s"), entityCount, pEnt->isA()->name());
+            //acutPrintf(_T("\nEntity %d type: %s"), entityCount, pEnt->isA()->name());
             if (pEnt->isKindOf(AcDbBlockReference::desc())) {
                 AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEnt);
                 if (pBlockRef) {
@@ -66,7 +82,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
                         pBlockDef->getName(blockName);
                         std::wstring blockNameStr(blockName);
                         blockNameStr = toUpperCase(blockNameStr);
-                        acutPrintf(_T("\nDetected block name: %s"), blockNameStr.c_str());
+                        //acutPrintf(_T("\nDetected block name: %s"), blockNameStr.c_str());
 
                         // Compare with assets list
                         if (blockNameStr == ASSET_128280 || blockNameStr == ASSET_128285 ||
@@ -76,7 +92,30 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
                             blockNameStr == ASSET_129839 || blockNameStr == ASSET_129840 ||
                             blockNameStr == ASSET_129841 || blockNameStr == ASSET_129842 ||
                             blockNameStr == ASSET_129864 || blockNameStr == ASSET_128282) {
-                            positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
+                            //positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
+                            
+                            AcGePoint3d currentPosition = pBlockRef->position();
+
+                            if (firstPanel) {
+                                // Save the position of the first panel
+                                previousPanelPosition = currentPosition;
+                                firstPanel = false;
+                            }
+                            else {
+
+                                if (innerLoopDetected) {
+                                    // Save inner loop positions
+                                    positions.emplace_back(currentPosition, blockNameStr, pBlockRef->rotation());
+                                }
+                                else if (isSignificantChange(currentPosition, previousPanelPosition, POSITION_THRESHOLD)) {
+                                    // Significant change detected, start saving inner loop positions
+                                    innerLoopDetected = true;
+                                    acutPrintf(_T("\n innerLoopDetected."));
+                                }
+
+                                // Update previous panel position
+                                previousPanelPosition = currentPosition;
+                            }
                         }
                         pBlockDef->close();
                     }
@@ -97,52 +136,54 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
 //Calculate position of the tie
 std::vector<std::tuple<AcGePoint3d, double>> calculateTiePositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
 	std::vector<std::tuple<AcGePoint3d, double>> tiePositions;
-    
+    acutPrintf(L"\n Debug: calculateTiePositions");
     //Define offsets here
-    double xOffset = 0.0; //Define the x offset
-    double yOffset = 0.0; //Define the y offset
-    double zOffset = 0.0; //Define the z offset
+    double xOffset = 20.0; //Define the x offset
+    double yOffset = 2.5; //Define the y offset
+    std::array<double, 2> zOffset = { 30.0, 105.0 }; // Define the z offset array
 
     for (const auto& panelPositions : panelPositions) {
         AcGePoint3d pos = std::get<0>(panelPositions);
         std::wstring panelName = std::get<1>(panelPositions);
         double rotation = std::get<2>(panelPositions);
 
-        int tieCount = 0;
+        // Adjust rotation by adding 90 degrees (pi/2 radians)
+        rotation += M_PI_2;
+
+        int tieCount = 2;
 
         for (int i = 0; i < tieCount; ++i) {
             AcGePoint3d tiePos = pos;
 
             //Adjust positions based on the rotation and apply any offset if required
             switch (static_cast<int>(round(rotation / M_PI_2))) {
-            case 0: //0 degrees
-                tiePos.x += xOffset;
-				tiePos.y += yOffset;
-				tiePos.z += zOffset;
-				break;
-            case 1: //90 degrees
+            case 1: //90 degrees (top)
 				tiePos.x += yOffset;
-                tiePos.y -= xOffset;
-                tiePos.z += zOffset;
+                tiePos.y += xOffset;
+                tiePos.z += zOffset[i];
                 break;
-            case 2: //180 degrees
+            case 2: //180 degrees(left)
                 tiePos.x -= xOffset;
 				tiePos.y -= yOffset;
-				tiePos.z += zOffset;
+				tiePos.z += zOffset[i];
 				break;
-            case 3: //270 degrees
-            case -1: //Normalize -90 degrees to 270 degrees
-				tiePos.x -= yOffset;
-				tiePos.y += xOffset;
-				tiePos.z += zOffset;
+            case 3: //270 degrees (botom)
+                tiePos.x -= yOffset;
+                tiePos.y -= xOffset;
+                tiePos.z += zOffset[i];
+                break;
+            case 4: //360 degrees(right)
+				tiePos.x += xOffset;
+				tiePos.y -= yOffset;
+				tiePos.z += zOffset[i];
 				break;
             default:
-				acutPrintf(_T("\nInvalid rotation angle: %f"), rotation);
+                acutPrintf(_T("\nInvalid rotation angle: %f"), rotation);
 				break;
             }
             //Print Debug Information
-            acutPrintf(_T("\nTie position: (%f, %f, %f)"), tiePos.x, tiePos.y, tiePos.z);
-            acutPrintf(_T("\nTie rotation: %f"), rotation);
+            //acutPrintf(_T("\nTie position: (%f, %f, %f)"), tiePos.x, tiePos.y, tiePos.z);
+            //acutPrintf(_T("\nTie rotation: %f"), rotation);
 
             tiePositions.emplace_back(std::make_tuple(tiePos, rotation));
 
@@ -200,6 +241,11 @@ void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation,
 		return;
 	}
 
+    // Print the values of position, assetId, and rotation
+    //acutPrintf(L"\nPosition: (%f, %f, %f)", position.x, position.y, position.z);
+    //acutPrintf(L"\nRotation: %f", rotation);
+    //acutPrintf(L"\nAsset ID: %llu", static_cast<unsigned long long>(assetId.asOldId()));
+
     AcDbBlockReference* pBlockRef = new AcDbBlockReference();
     pBlockRef->setPosition(position);
     pBlockRef->setBlockTableRecord(assetId);
@@ -210,7 +256,7 @@ void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation,
 		acutPrintf(_T("\nFailed to append block reference."));
 	}
     else {
-        acutPrintf(_T("\nFailed to place tie."));
+        //acutPrintf(_T("\nFailed to place tie."));
     }
 
 	pBlockRef->close();
