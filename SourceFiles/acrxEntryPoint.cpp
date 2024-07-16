@@ -20,6 +20,7 @@
 #include "BrxSpecific/ribbon/AcRibbonButton.h"      // Include the header for the AcRibbonButton class
 #include "Blocks/BlockLoader.h"                     // Include the header for the BlockLoader class
 #include "WallPanelConnectors/WallPanelConnector.h" // Include the header for the WallPanelConnector class
+#include "WallPanelConnectors/StackedWallPanelConnector.h" // Include the header for the StackedWallPanelConnector class
 #include "Tie/TiePlacer.h" 				            // Include the header for the TiePlacer class
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
@@ -117,6 +118,7 @@ public:
     {
         acutPrintf(_T("\nRunning PlaceConnectors."));
         WallPanelConnector::placeConnectors();
+        StackedWallPanelConnectors::placeStackedWallConnectors();
     }
 
     // PlaceTies command

@@ -23,6 +23,8 @@
 #include <AcDb/AcDbBlockTable.h>
 #include <AcDb/AcDbBlockTableRecord.h>
 #include <AcDb/AcDbPolyline.h>
+#include <AcGe/AcGeMatrix3d.h>
+#include "AcDb/AcDbBlockReference.h"
 
 const double TOLERANCE = 0.1; // Tolerance for comparing angles
 
@@ -175,4 +177,71 @@ void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detec
     pBlockTable->close();
 
     acutPrintf(_T("\nDetected %d corners from lines.\n"), detectedCorners.size());
+}
+
+// Function to apply rotation around the x-axis
+void rotateAroundXAxis(AcDbBlockReference* pBlockRef, double angle) {
+    // Get the current position of the block
+    AcGePoint3d position = pBlockRef->position();
+
+    // Create a translation matrix to move the block to the origin
+    AcGeMatrix3d translateToOrigin;
+    translateToOrigin.setToTranslation(-position.asVector());
+
+    // Create the rotation matrix around the X-axis
+    AcGeMatrix3d rotationMatrix;
+    rotationMatrix.setToRotation(angle, AcGeVector3d::kXAxis, AcGePoint3d::kOrigin);
+
+    // Create a translation matrix to move the block back to its original position
+    AcGeMatrix3d translateBack;
+    translateBack.setToTranslation(position.asVector());
+
+    // Combine all transformations
+    AcGeMatrix3d finalTransform = translateBack * rotationMatrix * translateToOrigin;
+
+    // Apply the final transformation
+    pBlockRef->transformBy(finalTransform);
+}
+
+// Function to apply rotation around the y-axis
+void rotateAroundYAxis(AcDbBlockReference* pBlockRef, double angle) {
+    AcGePoint3d position = pBlockRef->position();
+    AcGeMatrix3d translateToOrigin;
+    translateToOrigin.setToTranslation(-position.asVector());
+
+    AcGeMatrix3d rotationMatrix;
+    rotationMatrix.setToRotation(angle, AcGeVector3d::kYAxis, AcGePoint3d::kOrigin);
+
+    AcGeMatrix3d translateBack;
+    translateBack.setToTranslation(position.asVector());
+
+    AcGeMatrix3d finalMatrix = translateBack * rotationMatrix * translateToOrigin;
+    pBlockRef->transformBy(finalMatrix);
+}
+
+// Function to apply rotation around the z-axis
+void rotateAroundZAxis(AcDbBlockReference* pBlockRef, double angle) {
+    //enable next line if this implementation does not work
+    // AcGePoint3d position = pBlockRef->position();
+
+    // Get the current position of the block
+    AcGePoint3d position = pBlockRef->position();
+
+    // Create a translation matrix to move the block to the origin
+    AcGeMatrix3d translateToOrigin;
+    translateToOrigin.setToTranslation(-position.asVector());
+
+    // Create the rotation matrix around the Z-axis
+    AcGeMatrix3d rotationMatrix;
+    rotationMatrix.setToRotation(angle, AcGeVector3d::kZAxis, AcGePoint3d::kOrigin);
+
+    // Create a translation matrix to move the block back to its original position
+    AcGeMatrix3d translateBack;
+    translateBack.setToTranslation(position.asVector());
+
+    // Combine all transformations
+    AcGeMatrix3d finalTransform = translateBack * rotationMatrix * translateToOrigin;
+
+    // Apply the final transformation
+    pBlockRef->transformBy(finalTransform);
 }
