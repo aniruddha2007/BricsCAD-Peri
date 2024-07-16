@@ -183,7 +183,7 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateVertic
                 connectorPos.y -= xOffset;
                 break;
             default:
-                acutPrintf(_T("\nInvalid rotation angle detected."));
+                acutPrintf(_T("\nInvalid rotation angle detected: %f "), panelRotation);
                 continue;
             }
 

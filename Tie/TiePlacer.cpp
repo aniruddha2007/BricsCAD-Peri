@@ -1,7 +1,7 @@
 // Created by: Ani (2024-07-13)
 // Modified by:
 // TODO: Write the sub-function to select which tie to place, can refer to WallAssetPlacer.cpp for reference
-// WallPanelConnector.cpp
+// TiePlacer.cpp
 /////////////////////////////////////////////////////////////////////////
 
 #include "stdAfx.h"

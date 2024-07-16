@@ -1,9 +1,19 @@
 // Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-06-01)
 // TODO:
-// Height 135 is fixed
-// Added 5 panel width
+// Move the *10 Compensator to the middle of the panel
 // WallAssetPlacer.cpp
+// This file contains the implementation of the WallPlacer class.
+// The WallPlacer class is used to place wall segments in BricsCAD.
+// The detectPolylines function is used to detect polylines in the drawing.
+// The loadAsset function is used to load a block asset from the database.
+// The placeWallSegment function is used to place a wall segment between two points.
+// The addTextAnnotation function is used to add a text annotation at a given position.
+// The placeWalls function is the main function that places the walls in the drawing.
+// The placeWalls function is registered as a command in the BrxApp.cpp file.
+// The placeWalls function is called when the PlaceWalls command is executed in BricsCAD.
+// The placeWalls function is also added to the custom menu in the acrxEntryPoint.cpp file.
+// The placeWalls function is part of the WallPlacer class.
 /////////////////////////////////////////////////////////////////////////
 
 #include "StdAfx.h"
@@ -26,8 +36,14 @@
 #include "SharedDefinations.h"
 #include "DefineHeight.h"
 #include "DefineScale.h"
+#include <thread>
+#include <chrono>
 
-const double TOLERANCE = 0.1;
+std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> WallPlacer::wallMap;
+
+const int BATCH_SIZE = 10; // Batch size for processing entities
+
+const double TOLERANCE = 0.1; // Tolerance for comparing angles
 
 // Structure to hold panel information
 struct Panel {
@@ -39,9 +55,11 @@ bool isInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
 
+//Detect polylines
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
+    wallMap.clear();  // Clear previous data
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -50,37 +68,50 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     }
 
     AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
         return corners;
     }
 
     AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
         pBlockTable->close();
         return corners;
     }
 
     AcDbBlockTableRecordIterator* pIter;
-    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to create iterator."));
+    es = pModelSpace->newIterator(pIter);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to create iterator. Error status: %d\n"), es);
         pModelSpace->close();
         pBlockTable->close();
         return corners;
     }
 
+    int entityCount = 0;
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
-        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
-            acutPrintf(_T("\nEntity type: %s"), pEnt->isA()->name());
+        es = pIter->getEntity(pEnt, AcDb::kForRead);
+        if (es == Acad::eOk) {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    processPolyline(pPolyline, corners, 90, TOLERANCE);
+                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
                 }
             }
             pEnt->close();
+            entityCount++;
+
+            if (entityCount % BATCH_SIZE == 0) {
+                acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+            }
+        }
+        else {
+            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
         }
     }
 
@@ -90,8 +121,10 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
 
     acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
+
 }
 
+// Load asset
 AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     acutPrintf(_T("\nLoading asset: %s"), blockName);
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -111,10 +144,7 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
-    
-}
-
+// Add text annotation
 void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -148,6 +178,12 @@ void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* t
     pBlockTable->close();  // Decrement reference count
 }
 
+// Place wall segment
+void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
+    
+}
+
+// Place walls
 void WallPlacer::placeWalls() {
     acutPrintf(_T("\nPlacing walls..."));
     std::vector<AcGePoint3d> corners = detectPolylines();

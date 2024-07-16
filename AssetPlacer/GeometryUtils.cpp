@@ -1,3 +1,19 @@
+// Created by:Ani  (2024-05-31)
+// Modified on (2024-07-11)
+// TODO:
+// GeometryUtils.cpp
+// This file contains utility functions for geometry calculations.
+// The calculateAngle function calculates the angle between two vectors.
+// The isCorner function determines if an angle is a corner based on a threshold.
+// The normalizeAngle function normalizes an angle to the range [0, 2*PI].
+// The snapToExactAngle function snaps an angle to the nearest exact angle (0, 90, 180, 270).
+// The areAnglesEqual function determines if two angles are equal within a tolerance.
+// The detectVertices function detects the vertices of a polyline.
+// The processPolyline function processes a polyline to detect corners.
+// The classifyPolylineEntities function classifies polyline entities.
+// The classifyPolylineEntities function is used to classify polyline entities in BricsCAD.
+/////////////////////////////////////////////////////////////////////////
+
 #include "StdAfx.h"
 #include "GeometryUtils.h"
 #include "SharedDefinations.h"
