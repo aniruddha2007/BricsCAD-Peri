@@ -264,6 +264,10 @@ void WallPlacer::placeWalls() {
 
         AcGePoint3d currentPoint = start + direction * 25;
 
+        if (outerLoop || outerLoopLastPanel) {
+            distance += 20;
+            currentPoint -= direction * 10;
+        }
 
         double rotation = atan2(direction.y, direction.x);
         if (outerLoop) {
