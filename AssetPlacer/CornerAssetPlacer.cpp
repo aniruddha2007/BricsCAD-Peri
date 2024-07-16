@@ -281,8 +281,30 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
 
         rotation = atan2(direction.y, direction.x);
-
         if (!outerLoop && !outerLoopLastCorner) {
+            isInside = true;
+        }
+
+        if (cornerNum < corners.size() - 1) {
+            AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
+            AcGeVector3d nextDirection = corners[cornerNum + 1] - corners[cornerNum];
+            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+            if (crossProductZ > 0) {
+                isInside = !isInside;
+                rotation += M_PI_2;
+            } // Change this logic based on your coordinate system
+        }
+        else {
+            AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum - 1];
+            AcGeVector3d nextDirection = corners[0] - corners[cornerNum];
+            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+            if (crossProductZ > 0) {
+                isInside = !isInside;
+                rotation += M_PI_2;
+            } // Change this logic based on your coordinate system
+        }
+
+        if (isInside) {
             placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
             addTextAnnotation(corners[cornerNum], L"Inside Corner");
         }
@@ -290,6 +312,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
             addTextAnnotation(corners[cornerNum], L"Outside Corner");
         }
+
         if (!outerLoop && outerLoopLastCorner) {
             outerLoopLastCorner = false;
         }
