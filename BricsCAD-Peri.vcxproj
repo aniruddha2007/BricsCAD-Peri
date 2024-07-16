@@ -25,7 +25,9 @@
     </ClCompile>
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
-    <ClCompile Include="WallPanelConnector.cpp" />
+    <ClCompile Include="SharedDefinations.cpp" />
+    <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
@@ -39,7 +41,7 @@
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
-    <ClInclude Include="WallPanelConnector.h" />
+    <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

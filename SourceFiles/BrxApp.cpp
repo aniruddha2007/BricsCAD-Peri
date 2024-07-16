@@ -8,7 +8,7 @@
 #include <afxdllx.h>
 #include "AssetPlacer/CornerAssetPlacer.h"
 #include "AssetPlacer/WallAssetPlacer.h"
-#include "WallPanelConnector.h"
+#include "WallPanelConnectors/WallPanelConnector.h"
 #include "Blocks/BlockLoader.h"
 #include "DefineHeight.h"
 #include "DefineScale.h"

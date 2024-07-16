@@ -1,8 +1,10 @@
 #pragma once
-
+#include <vector>
 #include <string>
 #include <algorithm>
 #include <cwctype>
+#include <cmath>
+#include "gept3dar.h"  // For AcGePoint3d
 
 //Pi values for calculating the pre defined angles
 #ifndef M_PI
@@ -31,11 +33,19 @@
  * @param str The input string
  * @return The uppercase version of the input string
  */
-inline std::wstring toUpperCase(const std::wstring& str) {
-    std::wstring upperStr = str;
-    std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::towupper);
-    return upperStr;
-}
+ // Structure to define a point in 2D
+struct Point2D {
+    double x, y;
+};
+
+// Function to calculate the area of a right-angled polygon using the Shoelace formula
+double calculateRightAngledPolygonArea(const std::vector<Point2D>& vertices);
+
+// Function to convert a string to uppercase
+std::wstring toUpperCase(const std::wstring& str);
+
+// Function to convert AcGePoint3d to Point2D
+Point2D convertTo2D(const AcGePoint3d& point);
 
 // Asset names defined as string constants
 //Example usage: 
@@ -79,6 +89,7 @@ const std::wstring ASSET_128255 = L"128255X";
 const std::wstring ASSET_128257 = L"128257X";
 const std::wstring ASSET_128293 = L"128293X";
 const std::wstring ASSET_128294 = L"128294X";
+const std::wstring ASSET_136096 = L"136096X";
 
 //Asset names with their respective codes for all the assets
 //DUO Couplers	128247

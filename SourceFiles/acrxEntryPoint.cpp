@@ -11,18 +11,18 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "AssetPlacer/CornerAssetPlacer.h"    // Include the header for the CornerAssetPlacer class
-#include "AssetPlacer/WallAssetPlacer.h"      // Include the header for the WallPlacer class
-#include "Resource.h"                         // Include the header for the resource file
-#include "BrxSpecific/ribbon/AcRibbonCombo.h" // Include the header for the AcRibbonCombo class
-#include "BrxSpecific/ribbon/AcRibbonTab.h"   // Include the header for the AcRibbonTab class
-#include "BrxSpecific/ribbon/AcRibbonPanel.h" // Include the header for the AcRibbonPanel class
-#include "BrxSpecific/ribbon/AcRibbonButton.h"// Include the header for the AcRibbonButton class
-#include "Blocks/BlockLoader.h"               // Include the header for the BlockLoader class
-#include "WallPanelConnector.h"               // Include the header for the WallPanelConnector class
-#include "Tie/TiePlacer.h" 				      // Include the header for the TiePlacer class
-#include "DefineHeight.h"                     // Include the header for the DefineHeight class
-#include "DefineScale.h"                      // Include the header for the DefineScale class
+#include "AssetPlacer/CornerAssetPlacer.h"          // Include the header for the CornerAssetPlacer class
+#include "AssetPlacer/WallAssetPlacer.h"            // Include the header for the WallPlacer class
+#include "Resource.h"                               // Include the header for the resource file
+#include "BrxSpecific/ribbon/AcRibbonCombo.h"       // Include the header for the AcRibbonCombo class
+#include "BrxSpecific/ribbon/AcRibbonTab.h"         // Include the header for the AcRibbonTab class
+#include "BrxSpecific/ribbon/AcRibbonPanel.h"       // Include the header for the AcRibbonPanel class
+#include "BrxSpecific/ribbon/AcRibbonButton.h"      // Include the header for the AcRibbonButton class
+#include "Blocks/BlockLoader.h"                     // Include the header for the BlockLoader class
+#include "WallPanelConnectors/WallPanelConnector.h" // Include the header for the WallPanelConnector class
+#include "Tie/TiePlacer.h" 				            // Include the header for the TiePlacer class
+#include "DefineHeight.h"                           // Include the header for the DefineHeight class
+#include "DefineScale.h"                            // Include the header for the DefineScale class
 #include "SettingsCommands.h"
 
 #pragma comment(lib, "Shlwapi.lib")
