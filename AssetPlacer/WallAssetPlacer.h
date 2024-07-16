@@ -16,9 +16,10 @@
 class WallPlacer {
 public:
     static void placeWalls();
+	static void processWallPolygons();
 
 private:
-    static std::vector<AcGePoint3d> detectPolylines();
+    static std::vector<std::vector<AcGePoint3d>> detectPolylines();
     static AcDbObjectId loadAsset(const wchar_t* blockName);
     static void placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end);
     static void addTextAnnotation(const AcGePoint3d& position, const wchar_t* text);

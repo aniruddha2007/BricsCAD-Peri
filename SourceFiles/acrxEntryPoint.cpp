@@ -24,6 +24,7 @@
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
 #include "SettingsCommands.h"
+#include "SharedDefinations.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -151,9 +152,10 @@ public:
     static void BrxAppDoApp(void)
     {
         acutPrintf(_T("\nRunning DoAll."));
-        CornerAssetPlacer::placeAssetsAtCorners();
-        WallPlacer::placeWalls();
-        WallPanelConnector::placeConnectors();
+        SharedDefinations::exampleUsage();
+        //CornerAssetPlacer::placeAssetsAtCorners();
+        //WallPlacer::placeWalls();
+        //WallPanelConnector::placeConnectors();
     }
 
     // ListCMDS command

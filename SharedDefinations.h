@@ -6,7 +6,7 @@
 #include <cmath>
 #include "gept3dar.h"  // For AcGePoint3d
 
-//Pi values for calculating the pre defined angles
+// Pi values for calculating the predefined angles
 #ifndef M_PI
 #define M_PI 3.141592653589793238462643383279
 #endif
@@ -19,6 +19,7 @@
 #ifndef M_3PI_2
 #define M_3PI_2 4.7123889803846898576939650749185
 #endif
+
 // Undefine the conflicting macros
 #ifdef max
 #undef max
@@ -28,27 +29,26 @@
 #undef min
 #endif
 
-/**
- * Helper function to convert a string to uppercase
- * @param str The input string
- * @return The uppercase version of the input string
- */
- // Structure to define a point in 2D
+// Structure to define a point in 2D
 struct Point2D {
     double x, y;
 };
 
-// Function to calculate the area of a right-angled polygon using the Shoelace formula
-double calculateRightAngledPolygonArea(const std::vector<Point2D>& vertices);
-
-// Function to convert a string to uppercase
+//helper function to to convert a string to uppercase
 std::wstring toUpperCase(const std::wstring& str);
 
-// Function to convert AcGePoint3d to Point2D
-Point2D convertTo2D(const AcGePoint3d& point);
+namespace SharedDefinations {
+    double calculateRightAngledPolygonArea(const std::vector<Point2D>& vertices);
+    std::wstring toUpperCase(const std::wstring& str);
+    Point2D convertTo2D(const AcGePoint3d& point);
+    void processPolygons(const std::vector<std::vector<AcGePoint3d>>& polygonData,
+        std::vector<std::vector<AcGePoint3d>>& outer,
+        std::vector<std::vector<AcGePoint3d>>& inner);
+    void exampleUsage();
+}
 
 // Asset names defined as string constants
-//Example usage: 
+// Example usage: 
 // #include "SharedDefinations.h"
 // AcDbObjectId cornerPostId = loadAsset(ASSET_128286X.c_str());
 
