@@ -43,6 +43,10 @@ const int BATCH_SIZE = 10; // Process 10 entities at a time
 
 const double TOLERANCE = 0.1; // Tolerance for angle comparison
 
+bool isItInteger(double value, double tolerance = 1e-9) {
+    return std::abs(value - std::round(value)) < tolerance;
+}
+
 // Function to recreate the model space
 bool recreateModelSpace(AcDbDatabase* pDb) {
     AcDbBlockTable* pBlockTable;
@@ -203,15 +207,23 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         return;
     }
 
+    int closeLoopCounter = -1;
+    bool outerLoop = true;
+    bool outerLoopLastCorner = true;
+
     // Iterate through all detected corners and place assets accordingly
-    for (size_t i = 0; i < corners.size(); ++i) {
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+
         double rotation = 0.0;
-        if (i < corners.size() - 1) {
-            AcGeVector3d direction = corners[i + 1] - corners[i];
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+        /*if (i < corners.size() - 1) {
+            direction = corners[i + 1] - corners[i];
             rotation = atan2(direction.y, direction.x);
         }
         else {
-            AcGeVector3d direction = corners[0] - corners[i];
+            direction = corners[0] - corners[i];
             rotation = atan2(direction.y, direction.x);
         }
 
@@ -228,15 +240,58 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             AcGeVector3d nextDirection = corners[0] - corners[i];
             double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
             isInside = crossProductZ < 0; // Change this logic based on your coordinate system
-        }
+        }*/
+        closeLoopCounter++;
+        acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
 
-        if (isInside) {
-            placeInsideCornerPostAndPanels(corners[i], rotation, cornerPostId, panelId);
-            addTextAnnotation(corners[i], L"Inside Corner");
+        bool isInside = false;
+
+        acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
+        acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+
+        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        if (isItInteger(direction.x) && isItInteger(direction.y)) {
+            acutPrintf(_T("\nYES."));
+            start = corners[cornerNum];
+            end = corners[cornerNum + 1];
         }
         else {
-            placeOutsideCornerPostAndPanels(corners[i], rotation, cornerPostId, panelId);
-            addTextAnnotation(corners[i], L"Outside Corner");
+            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            if (cornerNum < corners.size() - 1) {
+                acutPrintf(_T("\nYES."));
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+                outerLoop = false;
+            }
+            else {
+                acutPrintf(_T("\nNO."));
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+            }
+        }
+
+        acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
+        acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
+
+        direction = (end - start).normal();
+
+        acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
+        acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
+
+        rotation = atan2(direction.y, direction.x);
+
+        if (!outerLoop && !outerLoopLastCorner) {
+            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
+            addTextAnnotation(corners[cornerNum], L"Inside Corner");
+        }
+        else {
+            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
+            addTextAnnotation(corners[cornerNum], L"Outside Corner");
+        }
+        if (!outerLoop && outerLoopLastCorner) {
+            outerLoopLastCorner = false;
         }
     }
 
@@ -408,21 +463,22 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
 
     double offset = 10.0;
     int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
+    acutPrintf(_T("\nrotationDegrees: %d "), rotationDegrees);
     switch (rotationDegrees) {
-    case 0:
-        cornerWithHeight.x -= offset;
-        cornerWithHeight.y -= offset;
-        break;
     case 90:
-        cornerWithHeight.x += offset;
+        cornerWithHeight.x -= offset;
         cornerWithHeight.y -= offset;
         break;
     case 180:
         cornerWithHeight.x += offset;
+        cornerWithHeight.y -= offset;
+        break;
+    case -90:
+        cornerWithHeight.x += offset;
         cornerWithHeight.y += offset;
         break;
     case 270:
-    case -90:
+    case 0:
         cornerWithHeight.x -= offset;
         cornerWithHeight.y += offset;
         break;
@@ -431,6 +487,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         return;
     }
 
+    rotation -= M_PI / 2;
     rotation = normalizeAngle(rotation + M_PI_2);
     rotation = snapToExactAngle(rotation, TOLERANCE);
 
