@@ -501,6 +501,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         cornerWithHeight.y += offset;
         break;
     case 270:
+        cornerWithHeight.x += 2*offset;
     case 0:
         cornerWithHeight.x -= offset;
         cornerWithHeight.y += offset;
