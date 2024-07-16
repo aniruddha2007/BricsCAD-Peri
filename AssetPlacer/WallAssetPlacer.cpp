@@ -126,7 +126,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
 
 // Load asset
 AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
-    acutPrintf(_T("\nLoading asset: %s"), blockName);
+    // acutPrintf(_T("\nLoading asset: %s"), blockName);
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) return AcDbObjectId::kNull;
 
@@ -140,7 +140,7 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     }
 
     pBlockTable->close();
-    acutPrintf(_T(" Loaded block: %s"), blockName);
+    // acutPrintf(_T(" Loaded block: %s"), blockName);
     return blockId;
 }
 
@@ -194,46 +194,83 @@ void WallPlacer::placeWalls() {
     }
 
     int closeLoopCounter = -1;
-    bool outerLoop = true;
-    bool outerLoopLastPanel = true;
-    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
-        acutPrintf(_T("\ncornerNum: %d,"), cornerNum); // Debug
-        //placeWallSegment(corners[i], corners[i + 1]);
-        closeLoopCounter++;
-        acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
+    int loopIndex = 0;
+    double outerPointCounter = corners[0].x;
+    int outerLoopIndexValue = 0;
 
+    // Loop through corners, find outer and inner loop
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
 
-        acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
-        acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+        acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
+        if (start.x > outerPointCounter) {
+            outerPointCounter = start.x;
+            outerLoopIndexValue = loopIndex;
+        }
 
         acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
         acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
         if (isInteger(direction.x) && isInteger(direction.y)) {
             acutPrintf(_T("\nYES."));
-            start = corners[cornerNum];
-            end = corners[cornerNum + 1];
         }
         else {
             acutPrintf(_T("\nNO. i < corners.size() - 1?"));
             if (cornerNum < corners.size() - 1) {
                 acutPrintf(_T("\nYES."));
-                start = corners[cornerNum];
-                end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
-                outerLoop = false;
+                loopIndex = 1;
             }
             else {
                 acutPrintf(_T("\nNO."));
+            }
+        }
+    }
+    acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
+
+    loopIndex = 0;
+    int loopIndexLastPanel = 0;
+    closeLoopCounter = -1;
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        //acutPrintf(_T("\ncornerNum: %d,"), cornerNum); // Debug
+        //placeWallSegment(corners[i], corners[i + 1]);
+        closeLoopCounter++;
+        //acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
+
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+
+        //acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+
+        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        if (isInteger(direction.x) && isInteger(direction.y)) {
+            //acutPrintf(_T("\nYES.")); // Debug
+            start = corners[cornerNum];
+            end = corners[cornerNum + 1];
+        }
+        else {
+            //acutPrintf(_T("\nNO. i < corners.size() - 1?")); // Debug
+            if (cornerNum < corners.size() - 1) {
+                //acutPrintf(_T("\nYES.")); // Debug
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+                loopIndex = 1;
+            }
+            else {
+                //acutPrintf(_T("\nNO.")); // Debug
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
             }
         }
 
-        acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
-        acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
+        //acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
 
 
         AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -259,26 +296,21 @@ void WallPlacer::placeWalls() {
         double distance = start.distanceTo(end) - 50;
         direction = (end - start).normal();
 
-        acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
-        acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
+        //acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
 
         AcGePoint3d currentPoint = start + direction * 25;
+        double rotation = atan2(direction.y, direction.x);
 
-        if (outerLoop || outerLoopLastPanel) {
+        if (loopIndex == outerLoopIndexValue || loopIndexLastPanel == outerLoopIndexValue) { // FIX consider if next corner is inner or outter
             distance += 20;
             currentPoint -= direction * 10;
-        }
-
-        double rotation = atan2(direction.y, direction.x);
-        if (outerLoop) {
             rotation += M_PI;
         }
-        else if (outerLoopLastPanel) {
-            rotation += M_PI;
-        }
-        acutPrintf(_T("\nrotation: %f,"), rotation); // Debug
+        
+        //acutPrintf(_T("\nrotation: %f,"), rotation); // Debug
 
-        acutPrintf(_T("\nrotation after snap: %f,"), snapToExactAngle(rotation, TOLERANCE)); // Debug
+        //acutPrintf(_T("\nrotation after snap: %f,"), snapToExactAngle(rotation, TOLERANCE)); // Debug
 
         // Fetch this variable from DefineHeight
         int wallHeight = globalVarHeight;
@@ -335,7 +367,7 @@ void WallPlacer::placeWalls() {
                             AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                             AcGePoint3d currentPointWithHeight = currentPoint;
                             currentPointWithHeight.z += currentHeight;
-                            if (outerLoop || outerLoopLastPanel) {
+                            if (loopIndex == outerLoopIndexValue || loopIndexLastPanel == outerLoopIndexValue) {
                                 currentPointWithHeight += direction * panel.length;
                             }
                             pBlockRef->setPosition(currentPointWithHeight);
@@ -356,14 +388,14 @@ void WallPlacer::placeWalls() {
                             currentPoint += direction * panel.length;  // Move to the next panel
                             distance -= panel.length;
                         }
-                        acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
+                        //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
                         currentHeight += panelHeights[panelNum];
                     }
                 }
             }
         }
-        if (!outerLoop && outerLoopLastPanel) {
-            outerLoopLastPanel = false;
+        if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
+            loopIndexLastPanel = 1;
         }
         pModelSpace->close();  // Decrement reference count
         pBlockTable->close();  // Decrement reference count
