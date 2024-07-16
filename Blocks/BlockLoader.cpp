@@ -16,6 +16,7 @@
 // The loadBlocksFromJson function is used to load custom blocks into BricsCAD from a JSON file.
 // The loadBlocksFromJson function is part of the BlockLoader class.
 /////////////////////////////////////////////////////////////////////////
+
 #include "StdAfx.h"
 #include "BlockLoader.h"
 #include <acadstrc.h>

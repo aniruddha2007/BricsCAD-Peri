@@ -7,12 +7,14 @@
     <ClCompile Include="SourceFiles\StdAfx.cpp" />
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
-    <ClCompile Include="WallPanelConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
     <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
     <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="DefineScale.cpp" />
     <ClCompile Include="SettingsCommands.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
+    <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
+    <ClCompile Include="SharedDefinations.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -20,7 +22,7 @@
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
-    <ClInclude Include="WallPanelConnector.h" />
+    <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
     <ClInclude Include="SharedDefinations.h" />
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
     <ClInclude Include="DefineHeight.h" />
