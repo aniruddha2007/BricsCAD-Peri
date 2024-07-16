@@ -158,6 +158,8 @@ void WallPlacer::placeWalls() {
     }
 
     int closeLoopCounter = -1;
+    bool outerLoop = true;
+    bool outerLoopLastPanel = true;
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         acutPrintf(_T("\ncornerNum: %d,"), cornerNum); // Debug
         //placeWallSegment(corners[i], corners[i + 1]);
@@ -185,6 +187,7 @@ void WallPlacer::placeWalls() {
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
+                outerLoop = false;
             }
             else {
                 acutPrintf(_T("\nNO."));
@@ -227,6 +230,12 @@ void WallPlacer::placeWalls() {
 
 
         double rotation = atan2(direction.y, direction.x);
+        if (outerLoop) {
+            rotation += M_PI;
+        }
+        else if (outerLoopLastPanel) {
+            rotation += M_PI;
+        }
         acutPrintf(_T("\nrotation: %f,"), rotation); // Debug
 
         acutPrintf(_T("\nrotation after snap: %f,"), snapToExactAngle(rotation, TOLERANCE)); // Debug
@@ -286,6 +295,9 @@ void WallPlacer::placeWalls() {
                             AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                             AcGePoint3d currentPointWithHeight = currentPoint;
                             currentPointWithHeight.z += currentHeight;
+                            if (outerLoop || outerLoopLastPanel) {
+                                currentPointWithHeight += direction * panel.length;
+                            }
                             pBlockRef->setPosition(currentPointWithHeight);
                             pBlockRef->setBlockTableRecord(assetId);
                             rotation = normalizeAngle(rotation);
@@ -310,7 +322,9 @@ void WallPlacer::placeWalls() {
                 }
             }
         }
-
+        if (!outerLoop && outerLoopLastPanel) {
+            outerLoopLastPanel = false;
+        }
         pModelSpace->close();  // Decrement reference count
         pBlockTable->close();  // Decrement reference count
     }
