@@ -17,8 +17,88 @@
 #include "AssetPlacer/GeometryUtils.h" // For the geometry utilities
 #include <array>
 #include <cmath>
+#include <map>
+#include <thread>
+#include <chrono>
+
+// Static member definition
+std::map<AcGePoint3d, std::vector<AcGePoint3d>, TiePlacer::Point3dComparator> TiePlacer::wallMap;
+
 
 const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
+
+const int BATCH_SIZE = 10; // Define the batch size for processing entities
+
+//Detect polylines
+std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
+    acutPrintf(_T("\nDetecting polylines..."));
+    std::vector<AcGePoint3d> corners;
+    wallMap.clear();  // Clear previous data
+
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return corners;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+        return corners;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+        pBlockTable->close();
+        return corners;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    es = pModelSpace->newIterator(pIter);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to create iterator. Error status: %d\n"), es);
+        pModelSpace->close();
+        pBlockTable->close();
+        return corners;
+    }
+
+    int entityCount = 0;
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        es = pIter->getEntity(pEnt, AcDb::kForRead);
+        if (es == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
+                if (pPolyline) {
+                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
+                }
+            }
+            pEnt->close();
+            entityCount++;
+
+            if (entityCount % BATCH_SIZE == 0) {
+                acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+            }
+        }
+        else {
+            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
+        }
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+
+    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    return corners;
+
+}
+
+
 
 // Function to get the vertices of an AcDbPolyline
 std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {

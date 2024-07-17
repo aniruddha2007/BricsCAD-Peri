@@ -10,6 +10,7 @@ public:
 		static void placeTies();
 		static void placeTie(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions);
 private:
+	static std::vector<AcGePoint3d> detectPolylines();
 	static std::vector<std::tuple<AcGePoint3d, std::wstring, double>> getWallPanelPositions();
 	static AcDbObjectId LoadTieAsset(const wchar_t* blockName);
 	static void placeTieAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId);
@@ -26,4 +27,8 @@ private:
 			return lhs.z < rhs.z;
 		}
 	};
+
+	// Static member to hold the wall mapping
+	static std::map<AcGePoint3d, std::vector<AcGePoint3d>, Point3dComparator> wallMap;
+
 };
