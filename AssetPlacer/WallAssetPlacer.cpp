@@ -260,7 +260,7 @@ void WallPlacer::placeWalls() {
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
-                loopIndex = 1;
+                loopIndexLastPanel = 1;
             }
             else {
                 //acutPrintf(_T("\nNO.")); // Debug
@@ -302,7 +302,7 @@ void WallPlacer::placeWalls() {
         AcGePoint3d currentPoint = start + direction * 25;
         double rotation = atan2(direction.y, direction.x);
 
-        if (loopIndex == outerLoopIndexValue || loopIndexLastPanel == outerLoopIndexValue) { // FIX consider if next corner is inner or outter
+        if (loopIndex == outerLoopIndexValue) { // FIX consider if next corner is inner or outter
             distance += 20;
             currentPoint -= direction * 10;
             rotation += M_PI;
@@ -367,7 +367,7 @@ void WallPlacer::placeWalls() {
                             AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                             AcGePoint3d currentPointWithHeight = currentPoint;
                             currentPointWithHeight.z += currentHeight;
-                            if (loopIndex == outerLoopIndexValue || loopIndexLastPanel == outerLoopIndexValue) {
+                            if (loopIndex == outerLoopIndexValue) {
                                 currentPointWithHeight += direction * panel.length;
                             }
                             pBlockRef->setPosition(currentPointWithHeight);
@@ -394,9 +394,10 @@ void WallPlacer::placeWalls() {
                 }
             }
         }
-        if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
+        /*if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
             loopIndexLastPanel = 1;
-        }
+        }*/
+        loopIndex = loopIndexLastPanel;
         pModelSpace->close();  // Decrement reference count
         pBlockTable->close();  // Decrement reference count
     }

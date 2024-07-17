@@ -182,7 +182,7 @@ void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wch
     AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
     es = pModelSpace->appendAcDbEntity(pText);
     if (es == Acad::eOk) {
-        acutPrintf(_T("\nAdded text annotation: %s"), text);
+        acutPrintf(_T("| Added text annotation: %s"), text);
     }
     else {
         acutPrintf(_T("\nFailed to add text annotation. Error status: %d\n"), es);
@@ -206,11 +206,48 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         acutPrintf(_T("\nFailed to load assets."));
         return;
     }
-
+    
     int closeLoopCounter = -1;
-    bool outerLoop = true;
-    bool outerLoopLastCorner = true;
+    int loopIndex = 0;
+    double outerPointCounter = corners[0].x;
+    int outerLoopIndexValue = 0;
 
+    // Loop through corners, find outer and inner loop
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        closeLoopCounter++;
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+
+        acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
+        if (start.x > outerPointCounter) {
+            outerPointCounter = start.x;
+            outerLoopIndexValue = loopIndex;
+        }
+
+        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        if (isItInteger(direction.x) && isItInteger(direction.y)) {
+            acutPrintf(_T("\nYES."));
+        }
+        else {
+            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            if (cornerNum < corners.size() - 1) {
+                acutPrintf(_T("\nYES. loopIndex = 1"));
+                closeLoopCounter = -1;
+                loopIndex = 1;
+            }
+            else {
+                acutPrintf(_T("\nNO."));
+            }
+        }
+    }
+    acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
+    acutPrintf(_T("\n============================================="));
+
+    loopIndex = 0;
+    int loopIndexLastPanel = 0;
+    closeLoopCounter = -1;
     // Iterate through all detected corners and place assets accordingly
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
 
@@ -242,46 +279,51 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             isInside = crossProductZ < 0; // Change this logic based on your coordinate system
         }*/
         closeLoopCounter++;
-        acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
+        acutPrintf(_T("\ncloseLoopCounter: %d "), closeLoopCounter); // Debug
 
         bool isInside = false;
 
-        acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
-        acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+        //acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
+        acutPrintf(_T("| [%f, %f] "), start.x, start.y); // Debug
 
-        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        acutPrintf(_T("| direction.y is integer?: %f "), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
         if (isItInteger(direction.x) && isItInteger(direction.y)) {
-            acutPrintf(_T("\nYES."));
+            acutPrintf(_T("| YES."));
             start = corners[cornerNum];
             end = corners[cornerNum + 1];
         }
         else {
-            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            acutPrintf(_T("| NO. i < corners.size() - 1?"));
             if (cornerNum < corners.size() - 1) {
-                acutPrintf(_T("\nYES."));
+                acutPrintf(_T("| YES."));
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
-                outerLoop = false;
+                loopIndexLastPanel = 1;
             }
             else {
-                acutPrintf(_T("\nNO."));
+                acutPrintf(_T("| NO."));
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
             }
         }
 
-        acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
-        acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
+        //acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
 
         direction = (end - start).normal();
 
-        acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
-        acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
+        //acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
 
         rotation = atan2(direction.y, direction.x);
-        if (!outerLoop && !outerLoopLastCorner) {
+
+        acutPrintf(_T("\nloopIndex : %d "), loopIndex); // Debug
+        acutPrintf(_T("| loopIndexLastPanel : %d "), loopIndexLastPanel); // Debug
+        acutPrintf(_T("| outerLoopIndexValue : %d "), outerLoopIndexValue); // Debug
+        if (!(loopIndex == outerLoopIndexValue)) {
             isInside = true;
         }
 
@@ -313,9 +355,11 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             addTextAnnotation(corners[cornerNum], L"Outside Corner");
         }
 
-        if (!outerLoop && outerLoopLastCorner) {
-            outerLoopLastCorner = false;
-        }
+        /*if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
+            loopIndexLastPanel = 1;
+            acutPrintf(_T("|| loopIndexLastPanel set to : %d ||"), loopIndexLastPanel); // Debug
+        }*/
+        loopIndex = loopIndexLastPanel;
     }
 
     acutPrintf(_T("\nCompleted placing assets."));
@@ -323,7 +367,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
 // LOAD ASSET FROM BLOCK TABLE
 AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
-    acutPrintf(_T("\nLoading asset: %s"), blockName);
+    //acutPrintf(_T("\nLoading asset: %s"), blockName);
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) return AcDbObjectId::kNull;
 
@@ -337,7 +381,7 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     }
 
     pBlockTable->close();
-    acutPrintf(_T("\nLoaded block: %s"), blockName);
+    //acutPrintf(_T("\nLoaded block: %s"), blockName);
     return blockId;
 }
 
@@ -386,7 +430,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                acutPrintf(_T("\nCorner post placed successfully."));
+                //acutPrintf(_T("\nCorner post placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
@@ -428,7 +472,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
             pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel A placed successfully."));
+                //acutPrintf(_T("\nPanel A placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
@@ -442,7 +486,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
             pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel B placed successfully."));
+                //acutPrintf(_T("\nPanel B placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
@@ -486,7 +530,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
 
     double offset = 10.0;
     int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
-    acutPrintf(_T("\nrotationDegrees: %d "), rotationDegrees);
+    //acutPrintf(_T("\nrotationDegrees: %d "), rotationDegrees); // Debug
     switch (rotationDegrees) {
     case 90:
         cornerWithHeight.x -= offset;
@@ -535,7 +579,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                acutPrintf(_T("\nCorner post placed successfully."));
+                //acutPrintf(_T("\nCorner post placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
@@ -577,7 +621,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel A placed successfully."));
+                //acutPrintf(_T("\nPanel A placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
@@ -591,7 +635,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel B placed successfully."));
+                //acutPrintf(_T("\nPanel B placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
