@@ -41,6 +41,7 @@
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
+    <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
     <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>

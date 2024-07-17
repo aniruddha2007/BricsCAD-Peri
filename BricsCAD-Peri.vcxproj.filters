@@ -29,6 +29,7 @@
     <ClInclude Include="DefineScale.h" />
     <ClInclude Include="SettingsCommands.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
+    <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />
