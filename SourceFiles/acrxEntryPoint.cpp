@@ -11,6 +11,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <chrono>
 #include "AssetPlacer/CornerAssetPlacer.h"          // Include the header for the CornerAssetPlacer class
 #include "AssetPlacer/WallAssetPlacer.h"            // Include the header for the WallPlacer class
 #include "Resource.h"                               // Include the header for the resource file
@@ -154,8 +156,19 @@ public:
     {
         acutPrintf(_T("\nRunning DoAll."));
         CornerAssetPlacer::placeAssetsAtCorners();
+        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+
         WallPlacer::placeWalls();
+        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+
         WallPanelConnector::placeConnectors();
+        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+
+        StackedWallPanelConnectors::placeStackedWallConnectors();
+        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+
+        TiePlacer::placeTies();
+        acutPrintf(_T("\nAll Assets Placed completed."));
     }
 
     // ListCMDS command
