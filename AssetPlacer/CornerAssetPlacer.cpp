@@ -206,11 +206,47 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         acutPrintf(_T("\nFailed to load assets."));
         return;
     }
-
+    
     int closeLoopCounter = -1;
-    bool outerLoop = true;
-    bool outerLoopLastCorner = true;
+    int loopIndex = 0;
+    double outerPointCounter = corners[0].x;
+    int outerLoopIndexValue = 0;
 
+    // Loop through corners, find outer and inner loop
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        closeLoopCounter++;
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+
+        acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
+        if (start.x > outerPointCounter) {
+            outerPointCounter = start.x;
+            outerLoopIndexValue = loopIndex;
+        }
+
+        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        if (isItInteger(direction.x) && isItInteger(direction.y)) {
+            acutPrintf(_T("\nYES."));
+        }
+        else {
+            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            if (cornerNum < corners.size() - 1) {
+                acutPrintf(_T("\nYES."));
+                closeLoopCounter = -1;
+                loopIndex = 1;
+            }
+            else {
+                acutPrintf(_T("\nNO."));
+            }
+        }
+    }
+    acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
+
+    loopIndex = 0;
+    int loopIndexLastPanel = 0;
+    closeLoopCounter = -1;
     // Iterate through all detected corners and place assets accordingly
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
 
@@ -263,7 +299,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
-                outerLoop = false;
+                loopIndex = 1;
             }
             else {
                 acutPrintf(_T("\nNO."));
@@ -281,7 +317,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
 
         rotation = atan2(direction.y, direction.x);
-        if (!outerLoop && !outerLoopLastCorner) {
+        if (!(loopIndex == outerLoopIndexValue) && !(loopIndexLastPanel == outerLoopIndexValue)) {
             isInside = true;
         }
 
@@ -313,8 +349,8 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             addTextAnnotation(corners[cornerNum], L"Outside Corner");
         }
 
-        if (!outerLoop && outerLoopLastCorner) {
-            outerLoopLastCorner = false;
+        if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
+            loopIndexLastPanel = 1;
         }
     }
 
