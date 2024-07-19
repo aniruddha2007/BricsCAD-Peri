@@ -321,7 +321,7 @@ void WallPlacer::placeWalls() {
         // List of available panels
         std::vector<Panel> panelSizes = {
             /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
-            {75, {L"128281X", L"129838X"}},
+            /*{75, {L"128281X", L"129838X"}}, */ // ONLY ENABLE FOR 75 PANELS
             {60, {L"128282X", L"129839X"}},
             {45, {L"128283X", L"129840X"}},
             {30, {L"128284X", L"129841X"}},
