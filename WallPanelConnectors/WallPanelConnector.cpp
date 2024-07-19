@@ -1,6 +1,6 @@
 ﻿// Created by: Ani (2024-05-31)
 // Modified by: Ani (2024-07-01)
-// TODO: Remove extra connector for 60* panels and add two connectors for vertical panels
+// TODO:
 // WallPanelConnector.cpp
 /////////////////////////////////////////////////////////////////////////
 
@@ -61,7 +61,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
         AcDbEntity* pEnt;
         entityCount++;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
-            acutPrintf(_T("\nEntity %d type: %s"), entityCount, pEnt->isA()->name());
+            //acutPrintf(_T("\nEntity %d type: %s"), entityCount, pEnt->isA()->name()); // Debug information
             if (pEnt->isKindOf(AcDbBlockReference::desc())) {
                 AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEnt);
                 if (pBlockRef) {
@@ -72,7 +72,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
                         pBlockDef->getName(blockName);
                         std::wstring blockNameStr(blockName);
                         blockNameStr = toUpperCase(blockNameStr);
-                        acutPrintf(_T("\nDetected block name: %s"), blockNameStr.c_str());
+                        //acutPrintf(_T("\nDetected block name: %s"), blockNameStr.c_str()); // Debug information
 
                         // Compare with assets list
                         if (blockNameStr == ASSET_128280 || blockNameStr == ASSET_128285 ||
@@ -80,7 +80,8 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
                             blockNameStr == ASSET_128283 || blockNameStr == ASSET_128284 ||
                             blockNameStr == ASSET_129837 || blockNameStr == ASSET_129838 ||
                             blockNameStr == ASSET_129839 || blockNameStr == ASSET_129840 ||
-                            blockNameStr == ASSET_129841 || blockNameStr == ASSET_129842) {
+                            blockNameStr == ASSET_129841 || blockNameStr == ASSET_129842 ||
+                            blockNameStr == ASSET_128285) {
                             positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
                         }
                         pBlockDef->close();
@@ -95,7 +96,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nTotal entities checked: %d"), entityCount);
+    //acutPrintf(_T("\nTotal entities checked: %d"), entityCount); // Debug information
     return positions;
 }
 
@@ -138,10 +139,10 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
             }
 
             // Print debug information
-            acutPrintf(_T("\nConnector calculated:\n"));
+           /* acutPrintf(_T("\nConnector calculated:\n"));
             acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos.x, connectorPos.y, connectorPos.z);
             acutPrintf(_T("Panel: %s\n"), panelName.c_str());
-            acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
+            acutPrintf(_T("Rotation: %f radians\n"), panelRotation);*/
 
             connectorPositions.emplace_back(std::make_tuple(connectorPos, panelRotation));
         }
@@ -152,7 +153,7 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
 
 // LOAD CONNECTOR ASSET
 AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
-    acutPrintf(_T("\nLoading asset: %s"), blockName);
+    //acutPrintf(_T("\nLoading asset: %s"), blockName); // Debug information
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -173,13 +174,13 @@ AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
     }
 
     pBlockTable->close();
-    acutPrintf(_T("\nLoaded block: %s"), blockName);
+    //acutPrintf(_T("\nLoaded block: %s"), blockName); // Debug information
     return blockId;
 }
 
 // PLACE CONNECTORS
 void WallPanelConnector::placeConnectors() {
-    acutPrintf(_T("\nPlacing connectors..."));
+    //acutPrintf(_T("\nPlacing connectors...")); // Debug information
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
         acutPrintf(_T("\nNo wall panels detected."));
@@ -198,7 +199,7 @@ void WallPanelConnector::placeConnectors() {
         placeConnectorAtPosition(std::get<0>(connector), std::get<1>(connector), assetId);
     }
 
-    acutPrintf(_T("\nCompleted placing connectors."));
+    //acutPrintf(_T("\nCompleted placing connectors.")); // Debug information
 }
 
 // PLACE CONNECTOR AT POSITION
@@ -229,7 +230,7 @@ void WallPanelConnector::placeConnectorAtPosition(const AcGePoint3d& position, d
     pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure scaling
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        acutPrintf(_T("\nConnector placed successfully."));
+        //acutPrintf(_T("\nConnector placed successfully.")); // Debug information
     }
     else {
         acutPrintf(_T("\nFailed to place connector."));

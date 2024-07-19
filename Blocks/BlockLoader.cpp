@@ -32,26 +32,27 @@
 
 using json = nlohmann::json;
 
+// Load blocks from a JSON file into BricsCAD
 void BlockLoader::loadBlocksFromJson() {
     // Prompt user to select the JSON file
     CFileDialog fileDlg(TRUE, _T("json"), NULL, OFN_FILEMUSTEXIST | OFN_HIDEREADONLY, _T("JSON Files (*.json)|*.json|All Files (*.*)|*.*||"));
     if (fileDlg.DoModal() != IDOK) {
-        acutPrintf(L"JSON file selection cancelled.\n");
+        //acutPrintf(L"JSON file selection cancelled.\n");
         return;
     }
 
     CString filePath = fileDlg.GetPathName();
-    acutPrintf(L"Selected JSON file: %s\n", (LPCTSTR)filePath);
+    //acutPrintf(L"Selected JSON file: %s\n", (LPCTSTR)filePath);
 
     // Convert CString to std::string
     CW2A pszConvertedAnsiString(filePath);
     std::string jsonPath(pszConvertedAnsiString);
-    acutPrintf(L"Converted JSON path: %s\n", jsonPath.c_str());
+    //acutPrintf(L"Converted JSON path: %s\n", jsonPath.c_str());
 
     // Read and parse the JSON file
     std::ifstream jsonFile(jsonPath);
     if (!jsonFile.is_open()) {
-        acutPrintf(L"Can't open JSON file: %s\n", jsonPath.c_str());
+        //acutPrintf(L"Can't open JSON file: %s\n", jsonPath.c_str());
         return;
     }
 
@@ -63,7 +64,7 @@ void BlockLoader::loadBlocksFromJson() {
     for (const auto& item : j) {
         if (item.contains("file_path")) {
             std::string filePath = item["file_path"];
-            acutPrintf(L"File path: %s\n", filePath.c_str());
+            //acutPrintf(L"File path: %s\n", filePath.c_str());
 
             // Load block into BricsCAD
             std::string blockName = extractFileNameFromPath(filePath);
@@ -74,9 +75,10 @@ void BlockLoader::loadBlocksFromJson() {
         }
     }
 
-    acutPrintf(L"JSON file processed successfully.\n");
+    acutPrintf(L"Assets successfully loaded.\n");
 }
 
+// Extract the file name from the file path
 std::string BlockLoader::extractFileNameFromPath(const std::string& path) {
     size_t pos = path.find_last_of("\\/");
     std::string fileName = (std::string::npos == pos) ? path : path.substr(pos + 1);
@@ -88,6 +90,7 @@ std::string BlockLoader::extractFileNameFromPath(const std::string& path) {
     return fileName;
 }
 
+// Load the block into BricsCAD
 void BlockLoader::loadBlockIntoBricsCAD(const char* blockName, const char* blockPath) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (pDb == nullptr) {
@@ -115,6 +118,7 @@ void BlockLoader::loadBlockIntoBricsCAD(const char* blockName, const char* block
     delete pSourceDb; // Clean up
 }
 
+// Convert char* to ACHAR*
 ACHAR* BlockLoader::charToACHAR(const char* str) {
     size_t newsize = strlen(str) + 1;
     wchar_t* wstr = new wchar_t[newsize];

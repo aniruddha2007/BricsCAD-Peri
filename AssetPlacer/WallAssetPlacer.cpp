@@ -41,7 +41,7 @@
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> WallPlacer::wallMap;
 
-const int BATCH_SIZE = 10; // Batch size for processing entities
+const int BATCH_SIZE = 30; // Batch size for processing entities
 
 const double TOLERANCE = 0.1; // Tolerance for comparing angles
 
@@ -144,39 +144,39 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-// Add text annotation
-void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    if (!pDb) {
-        acutPrintf(_T("\nNo working database found."));
-        return;
-    }
-
-    AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
-        return;
-    }
-
-    AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
-        return;
-    }
-
-    AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
-    if (pModelSpace->appendAcDbEntity(pText) == Acad::eOk) {
-        acutPrintf(_T("\nAdded text annotation: %s"), text);
-    }
-    else {
-        acutPrintf(_T("\nFailed to add text annotation."));
-    }
-    pText->close();  // Decrement reference count
-
-    pModelSpace->close();  // Decrement reference count
-    pBlockTable->close();  // Decrement reference count
-}
+// Add text annotation function only enable for debugging
+//void WallPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
+//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+//    if (!pDb) {
+//        acutPrintf(_T("\nNo working database found."));
+//        return;
+//    }
+//
+//    AcDbBlockTable* pBlockTable;
+//    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get block table."));
+//        return;
+//    }
+//
+//    AcDbBlockTableRecord* pModelSpace;
+//    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get model space."));
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
+//    if (pModelSpace->appendAcDbEntity(pText) == Acad::eOk) {
+//        acutPrintf(_T("\nAdded text annotation: %s"), text);
+//    }
+//    else {
+//        acutPrintf(_T("\nFailed to add text annotation."));
+//    }
+//    pText->close();  // Decrement reference count
+//
+//    pModelSpace->close();  // Decrement reference count
+//    pBlockTable->close();  // Decrement reference count
+//}
 
 // Place wall segment
 void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
@@ -185,7 +185,7 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
 
 // Place walls
 void WallPlacer::placeWalls() {
-    acutPrintf(_T("\nPlacing walls..."));
+    //acutPrintf(_T("\nPlacing walls...")); // Debug
     std::vector<AcGePoint3d> corners = detectPolylines();
 
     if (corners.empty()) {
@@ -205,30 +205,30 @@ void WallPlacer::placeWalls() {
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
 
-        acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
         if (start.x > outerPointCounter) {
             outerPointCounter = start.x;
             outerLoopIndexValue = loopIndex;
         }
 
-        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
         if (isInteger(direction.x) && isInteger(direction.y)) {
-            acutPrintf(_T("\nYES."));
+            //acutPrintf(_T("\nYES."));
         }
         else {
-            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            //acutPrintf(_T("\nNO. i < corners.size() - 1?"));
             if (cornerNum < corners.size() - 1) {
-                acutPrintf(_T("\nYES."));
+                //acutPrintf(_T("\nYES."));
                 closeLoopCounter = -1;
                 loopIndex = 1;
             }
             else {
-                acutPrintf(_T("\nNO."));
+                //acutPrintf(_T("\nNO."));
             }
         }
     }
-    acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
+    //acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
 
     loopIndex = 0;
     int loopIndexLastPanel = 0;

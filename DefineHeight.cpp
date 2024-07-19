@@ -11,7 +11,7 @@ void DefineHeight::defineHeight() {
     ads_printf(_T("\nEnter the height of the structure (mm): "));
     if (acedGetReal(NULL, &height) == RTNORM) {
         acutPrintf(_T("\nHeight defined as: %lfmm"), height);
-        globalVarHeight = height/10;
+        globalVarHeight = height/10; // Convert 
         // Store or use the height as needed in your application
         // For example, save it to a global variable or use it directly
     }

@@ -121,6 +121,7 @@ public:
         acutPrintf(_T("\nRunning PlaceConnectors."));
         WallPanelConnector::placeConnectors();
         StackedWallPanelConnectors::placeStackedWallConnectors();
+        //add *15 Panel Connector here
     }
 
     // PlaceTies command
@@ -154,7 +155,7 @@ public:
     // DoAll command
     static void BrxAppDoApp(void)
     {
-        acutPrintf(_T("\nRunning DoAll."));
+        acutPrintf(_T("\nRunning Peri Automation."));
         CornerAssetPlacer::placeAssetsAtCorners();
         std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
@@ -168,7 +169,7 @@ public:
         std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
         TiePlacer::placeTies();
-        acutPrintf(_T("\nAll Assets Placed completed."));
+        acutPrintf(_T("\nPeri Automation completed."));
     }
 
     // ListCMDS command
@@ -177,9 +178,11 @@ public:
         acutPrintf(_T("\nAvailable commands:"));
         acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
         acutPrintf(_T("\nPlaceWalls: To only place Walls."));
-        acutPrintf(_T("\nPlaceConnectors: To only place Connectors"));
+        acutPrintf(_T("\nPlaceConnectors: To only place Duo Couplers and "));
         acutPrintf(_T("\nPlaceTies: To only place Ties."));
-        acutPrintf(_T("\nDefineHeight: Define Height, specify height in cm."));
+        acutPrintf(_T("\nPlaceColunms: To only place Columns."));
+        acutPrintf(_T("\nPlaceWaler: To only place Waler 62 on *10 Compensator."));
+        acutPrintf(_T("\nDefineHeight: Define Height, specify height in mm."));
         acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
         acutPrintf(_T("\nDoAll: only for testing purposes"));

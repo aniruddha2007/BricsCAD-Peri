@@ -40,6 +40,7 @@ bool isCorner(double angle, double threshold) {
     return fabs(angle - threshold) <= TOLERANCE;
 }
 
+// Normalize an angle to the range [0, 2*PI]
 double normalizeAngle(double angle) {
     while (angle < 0) {
         angle += 2 * M_PI;
@@ -50,6 +51,7 @@ double normalizeAngle(double angle) {
     return angle;
 }
 
+// Snap an angle to the nearest exact angle (0, 90, 180, 270)
 double snapToExactAngle(double angle, double TOLERANCE) {
     if (fabs(angle - 0) < TOLERANCE) return 0;
     if (fabs(angle - M_PI_2) < TOLERANCE) return M_PI_2;

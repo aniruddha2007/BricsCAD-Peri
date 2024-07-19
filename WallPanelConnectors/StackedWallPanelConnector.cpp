@@ -55,13 +55,11 @@ const std::vector<std::wstring> panelNames = {
 // Define the function to get the width of the panel based on its name
 double getPanelWidth(const std::wstring& panelName) {
     static std::map<std::wstring, double> panelWidthMap = {
-        {ASSET_128285, 15.0},
         {ASSET_128280, 90.0},
         {ASSET_129840, 45.0},
         {ASSET_129838, 75.0},
         {ASSET_128283, 45.0},
         {ASSET_128281, 75.0},
-        {ASSET_129842, 15.0},
         {ASSET_129841, 30.0},
         {ASSET_129839, 60.0},
         {ASSET_129837, 90.0},
@@ -71,6 +69,7 @@ double getPanelWidth(const std::wstring& panelName) {
         {ASSET_129884, 10.0},
         {ASSET_128287, 5.0},
         {ASSET_128292, 10.0},
+        {ASSET_136096, 60.0},
         {ASSET_136096, 60.0}
     };
 
@@ -149,7 +148,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> StackedWallPanelConne
 
 // LOAD CONNECTOR ASSET
 AcDbObjectId StackedWallPanelConnectors::loadConnectorAsset(const wchar_t* blockName) {
-    acutPrintf(_T("\nLoading asset: %s"), blockName);
+    //acutPrintf(_T("\nLoading asset: %s"), blockName); // Debug information
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -170,7 +169,7 @@ AcDbObjectId StackedWallPanelConnectors::loadConnectorAsset(const wchar_t* block
     }
 
     pBlockTable->close();
-    acutPrintf(_T("\nLoaded block: %s"), blockName);
+    //acutPrintf(_T("\nLoaded block: %s"), blockName); // Debug information
     return blockId;
 }
 
@@ -192,7 +191,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> StackedWall
 
         // Skip placing connectors at z-axis 0
         if (pos.z == 0) {
-            acutPrintf(_T("\nSkipping connector at z-axis 0\n"));
+            //acutPrintf(_T("\nSkipping connector at z-axis 0\n")); // Debug information
             continue;
         }
 
@@ -254,15 +253,15 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> StackedWall
         }
 
         // Print debug information
-        acutPrintf(_T("\nConnector 1 calculated:\n"));
-        acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos1.x, connectorPos1.y, connectorPos1.z);
-        acutPrintf(_T("Panel: %s\n"), panelName.c_str());
-        acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
+        //acutPrintf(_T("\nConnector 1 calculated:\n"));
+        //acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos1.x, connectorPos1.y, connectorPos1.z);
+        //acutPrintf(_T("Panel: %s\n"), panelName.c_str());
+        //acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
 
-        acutPrintf(_T("\nConnector 2 calculated:\n"));
-        acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos2.x, connectorPos2.y, connectorPos2.z);
-        acutPrintf(_T("Panel: %s\n"), panelName.c_str());
-        acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
+        //acutPrintf(_T("\nConnector 2 calculated:\n"));
+        //acutPrintf(_T("Position: (%f, %f, %f)\n"), connectorPos2.x, connectorPos2.y, connectorPos2.z);
+        //acutPrintf(_T("Panel: %s\n"), panelName.c_str());
+        //acutPrintf(_T("Rotation: %f radians\n"), panelRotation);
 
         connectorPositions.emplace_back(std::make_tuple(connectorPos1, rotationXConnector1, rotationYConnector1, rotationZConnector1, panelRotation));
         connectorPositions.emplace_back(std::make_tuple(connectorPos2, rotationXConnector1, rotationYConnector2, rotationZConnector2, panelRotation));
@@ -314,7 +313,7 @@ void StackedWallPanelConnectors::placeConnectorAtPosition(const AcGePoint3d& pos
     pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure scaling
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        acutPrintf(_T("\nConnector placed successfully."));
+        //acutPrintf(_T("\nConnector placed successfully.")); // Debug information
     }
     else {
         acutPrintf(_T("\nFailed to place connector."));
@@ -327,7 +326,7 @@ void StackedWallPanelConnectors::placeConnectorAtPosition(const AcGePoint3d& pos
 
 // PLACE STACKED WALL CONNECTORS
 void StackedWallPanelConnectors::placeStackedWallConnectors() {
-    acutPrintf(_T("\nPlacing stacked wall connectors..."));
+    //acutPrintf(_T("\nPlacing stacked wall connectors...")); // Debug information
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
         acutPrintf(_T("\nNo wall panels detected."));
@@ -353,5 +352,5 @@ void StackedWallPanelConnectors::placeStackedWallConnectors() {
         );
     }
 
-    acutPrintf(_T("\nCompleted placing stacked wall connectors."));
+    //acutPrintf(_T("\nCompleted placing stacked wall connectors.")); // Debug information
 }
