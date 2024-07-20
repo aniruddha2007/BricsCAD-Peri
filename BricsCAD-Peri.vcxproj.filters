@@ -15,6 +15,8 @@
     <ClCompile Include="Tie\TiePlacer.cpp" />
     <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
     <ClCompile Include="SharedDefinations.cpp" />
+    <ClCompile Include="Columns\PlaceColumns.cpp" />
+    <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -30,6 +32,8 @@
     <ClInclude Include="SettingsCommands.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
     <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
+    <ClInclude Include="Columns\PlaceColumns.h" />
+    <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

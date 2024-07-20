@@ -1,6 +1,6 @@
 ﻿// Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-07-04)
-// TODO: 
+// TODO: BUG with *60 corner post it's not getting placed
 // CornerAssetPlacer.cpp
 // This file contains the implementation of the CornerAssetPlacer class.
 // The CornerAssetPlacer class is used to place assets at corners in BricsCAD.

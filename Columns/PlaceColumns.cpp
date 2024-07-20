@@ -1,0 +1,8 @@
+// Created by: Ani (19-07-2024)
+// Modified by: 
+// TODO:
+//PlaceColumns.cpp
+/////////////////////////////////////////////////////////////////////////////
+
+#include "StdAfx.h"
+#include "PlaceColumns.h"

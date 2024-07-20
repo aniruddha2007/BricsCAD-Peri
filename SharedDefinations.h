@@ -85,6 +85,7 @@ const std::wstring ASSET_117466 = L"117466X";
 const std::wstring ASSET_117467 = L"117467X";
 const std::wstring ASSET_117468 = L"117468X";
 const std::wstring ASSET_128254 = L"128254X";
+const std::wstring ASSET_128256 = L"128256X";
 const std::wstring ASSET_128255 = L"128255X";
 const std::wstring ASSET_128257 = L"128257X";
 const std::wstring ASSET_128293 = L"128293X";
