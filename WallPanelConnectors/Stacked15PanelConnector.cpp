@@ -17,6 +17,8 @@
 #include "dbents.h"
 #include "dbsymtb.h"
 #include "AcDb.h"
+#include <map>
+#include <string>
 
 const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
 
@@ -26,10 +28,16 @@ const std::vector<std::wstring> panelNames = {
 
 // Define the function to get the width of the panel based on its name
 double get15Panel(const std::wstring& panelName) {
-    static std::map<std::wstring, double> panelWidthMap = {
+    static const std::map<std::wstring, double> panelWidthMap = {
         {ASSET_129842, 15.0},
         {ASSET_128285, 15.0}
     };
+    auto it = panelWidthMap.find(panelName);
+    if (it != panelWidthMap.end()) {
+        return it->second;
+    }
+    // Handle case where panelName is not found
+    return 0.0;
 }
 
 // GET WALL PANEL POSITIONS
