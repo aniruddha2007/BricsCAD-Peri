@@ -1,6 +1,6 @@
 // Created by: Ani (2024-07-13)
 // Modified by:
-// TODO: Write the sub-function to select which tie to place, can refer to WallAssetPlacer.cpp for reference
+// TODO: Write the sub-function to select which tie to place(line 360)
 // TiePlacer.cpp
 /////////////////////////////////////////////////////////////////////////
 
@@ -37,6 +37,12 @@ const int BATCH_SIZE = 10; // Define the batch size for processing entities
 struct Panel {
     int length;
     std::wstring id[2];
+};
+
+// Structure to hold tie information
+struct Tie {
+    int length;
+    std::wstring id;
 };
 
 //Detect polylines
@@ -347,19 +353,27 @@ void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation,
 // Place Ties
 void TiePlacer::placeTies() {
     acutPrintf(L"\nPlacing Ties");
-    /*std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
+    std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
-        acutPrintf(L"\nNo wall panels found");
-        return;
+        //acutPrintf(L"\nNo wall panels found");
     }
+    // List of available panels FIXXXXXXXXXX
+    std::vector<Tie> tieSizes = {
+        {50,  L"030005X"},
+        {60,  L"030006X"},
+        {70,  L"030007X"},
+        {80,  L"030008X"},
+        {90,  L"030009X"},
+        {100,  L"030010X"}
+    };
 
-    std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);*/
+    //std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);
     AcDbObjectId assetId = LoadTieAsset(ASSET_030005.c_str());  // Replace ASSET_TIE with the actual asset name
 
-    if (assetId == AcDbObjectId::kNull) {
+    /*if (assetId == AcDbObjectId::kNull) {
         acutPrintf(L"\nFailed to load the tie asset");
         return;
-    }
+    }*/
 
     /*for (const auto& tiePos : tiePositions) {
         placeTieAtPosition(std::get<0>(tiePos), std::get<1>(tiePos), assetId);
@@ -385,26 +399,26 @@ void TiePlacer::placeTies() {
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
 
-        acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
+        //acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
         if (start.x > outerPointCounter) {
             outerPointCounter = start.x;
             outerLoopIndexValue = loopIndex;
         }
 
-        acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
+        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
+        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
         if (isThisInteger(direction.x) && isThisInteger(direction.y)) {
-            acutPrintf(_T("\nYES."));
+            //acutPrintf(_T("\nYES."));
         }
         else {
-            acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+            //acutPrintf(_T("\nNO. i < corners.size() - 1?"));
             if (cornerNum < corners.size() - 1) {
-                acutPrintf(_T("\nYES."));
+                //acutPrintf(_T("\nYES."));
                 closeLoopCounter = -1;
                 loopIndex = 1;
             }
             else {
-                acutPrintf(_T("\nNO."));
+                //acutPrintf(_T("\nNO."));
             }
         }
     }
@@ -481,6 +495,7 @@ void TiePlacer::placeTies() {
 
         AcGePoint3d currentPoint = start + direction * 25;
         double rotation = atan2(direction.y, direction.x);
+        rotation += M_PI_2;
 
         if (loopIndex == outerLoopIndexValue) { // FIX consider if next corner is inner or outter
             distance += 20;
@@ -497,91 +512,110 @@ void TiePlacer::placeTies() {
 
         int currentHeight = 0;
         int panelHeights[] = { 135, 60 };
-        int panelSizes[] = {75, 60, 45, 30, 15, 10, 5};
-        
-        // List of available ties
-        /*std::vector<Panel> panelSizes = {
-            // {90, {L"128280X", L"129837X"}}, // ONLY ENABLE FOR 90 PANELS
-            {75, {L"128281X", L"129838X"}},
-            {60, {L"128282X", L"129839X"}},
-            {45, {L"128283X", L"129840X"}},
-            {30, {L"128284X", L"129841X"}},
-            {15, {L"128285X", L"129842X"}},
-            {10, {L"128292X", L"129884X"}}, // *10 Compensator move to middle TODO:
-            {5, {L"128287X", L"129879X"}} // *5 Compensator add a break
-        };*/
+        int panelSizes[] = { 60, 45, 30, 15, 10, 5 };
+        int tieOffsetHeight[] = { 30, 105 };
+        double xOffset = 2.5; // X offset for the tie
+        double yOffset = 25; // Y offset for the tie
 
-        // Iterate through every panel type
-        for (int panelSize = 0; panelSize < sizeof(panelSizes); panelSize++) {
-            currentHeight = 0;
-            AcGePoint3d backupCurrentPoint = currentPoint;
-            double backupDistance = distance;
+        if (loopIndex != outerLoopIndexValue) {
+            // Iterate through every panel type
+            for (int panelSize = 0; panelSize < sizeof(panelSizes); panelSize++) {
+                currentHeight = 0;
+                AcGePoint3d backupCurrentPoint = currentPoint;
+                double backupDistance = distance;
 
-            // Iterate through 135 and 60 height
-            for (int panelNum = 0; panelNum < 2; panelNum++) {
+                // Iterate through 135 and 60 height
+                for (int panelNum = 0; panelNum < 2; panelNum++) {
 
-                //acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
+                    //acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
                     //acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
                     //acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
                     //acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
 
-                int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
+                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
 
-                //acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
+                    //acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
 
-                for (int x = 0; x < numPanelsHeight; x++) {
-                    currentPoint = backupCurrentPoint;
-                    distance = backupDistance;
+                    for (int x = 0; x < numPanelsHeight; x++) {
+                        currentPoint = backupCurrentPoint;
+                        distance = backupDistance;
 
-                    // Place walls
-                    int numPanels = static_cast<int>(distance / panelSizes[panelSize]);  // Calculate the number of panels that fit horizontally
-                    int numOfWallSegmentsPlaced = 0;
-                    for (int i = 0; i < numPanels; i++) {
+                        // Place tie
+                        int numPanels = static_cast<int>(distance / panelSizes[panelSize]);  // Calculate the number of panels that fit horizontally
+                        int numOfWallSegmentsPlaced = 0;
+                        
+                        for (int i = 0; i < numPanels; i++) {
+                            for (int tiePlaced = 0; tiePlaced < 2; tiePlaced++) {
+                                // Place the tie without scaling
+                                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                                AcGePoint3d currentPointWithHeight = currentPoint;
+                                currentPointWithHeight.z += currentHeight + tieOffsetHeight[tiePlaced];
 
-                        // Place the wall segment without scaling
-                        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-                        AcGePoint3d currentPointWithHeight = currentPoint;
-                        currentPointWithHeight.z += currentHeight;
-                        if (loopIndex == outerLoopIndexValue) {
-                            currentPointWithHeight += direction * panelSizes[panelSize];
+                                switch (static_cast<int>(round(rotation / M_PI_2))) {
+                                case 0: // 0 degrees
+                                    currentPointWithHeight.x += yOffset;
+                                    currentPointWithHeight.y -= xOffset;
+                                    break;
+                                case 1: // 90 degrees
+                                    currentPointWithHeight.x += xOffset;
+                                    currentPointWithHeight.y += yOffset;
+                                    break;
+                                case 2: // 180 degrees
+                                    currentPointWithHeight.x -= yOffset;
+                                    currentPointWithHeight.y += xOffset;
+                                    break;
+                                case 3: // 270 degrees
+                                case -1:
+                                    currentPointWithHeight.x -= xOffset;
+                                    currentPointWithHeight.y -= yOffset;
+                                }
+                                if (loopIndex == outerLoopIndexValue) {
+                                    currentPointWithHeight += direction * panelSizes[panelSize];
+                                }
+                                pBlockRef->setPosition(currentPointWithHeight);
+                                pBlockRef->setBlockTableRecord(assetId);
+                                rotation = normalizeAngle(rotation);
+                                rotation = snapToExactAngle(rotation, TOLERANCE);
+                                pBlockRef->setRotation(rotation);  // Apply rotation
+                                pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                                if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
+                                    //acutPrintf(_T("\nPlaced tie."));
+                                    numOfWallSegmentsPlaced += 1;
+                                }
+                                else {
+                                    acutPrintf(_T("\nFailed to place tie."));
+                                }
+                                pBlockRef->close();  // Decrement reference count
+
+                            }
+                            currentPoint += direction * panelSizes[panelSize];  // Move to the next panel
+                            distance -= panelSizes[panelSize];
+                            
                         }
-                        pBlockRef->setPosition(currentPointWithHeight);
-                        pBlockRef->setBlockTableRecord(assetId);
-                        rotation = normalizeAngle(rotation);
-                        rotation = snapToExactAngle(rotation, TOLERANCE);
-                        pBlockRef->setRotation(rotation);  // Apply rotation
-                        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-                        if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-                            numOfWallSegmentsPlaced += 1;
-                        }
-                        else {
-                            acutPrintf(_T("\nFailed to place wall segment."));
-                        }
-                        pBlockRef->close();  // Decrement reference count
-
-                        currentPoint += direction * panelSizes[panelSize];  // Move to the next panel
-                        distance -= panelSizes[panelSize];
+                        //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
+                        currentHeight += panelHeights[panelNum];
                     }
-                    //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
-                    currentHeight += panelHeights[panelNum];
-                }
 
-                /*AcDbObjectId assetId = LoadTieAsset(panel.id[panelNum].c_str());
-                //acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
+                    /*AcDbObjectId assetId = LoadTieAsset(panel.id[panelNum].c_str());
+                    //acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
 
-                if (assetId == AcDbObjectId::kNull) {
-                    acutPrintf(_T("\nFailed to load asset."));
+                    if (assetId == AcDbObjectId::kNull) {
+                        acutPrintf(_T("\nFailed to load asset."));
+                    }
+                    else {
+
+                    }*/
                 }
-                else {
-                    
-                }*/
             }
         }
+        
         /*if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
             loopIndexLastPanel = 1;
         }*/
         loopIndex = loopIndexLastPanel;
+        pModelSpace->close();  // Decrement reference count
+        pBlockTable->close();  // Decrement reference count
     }
     acutPrintf(L"\nTies placed successfully");
 }
