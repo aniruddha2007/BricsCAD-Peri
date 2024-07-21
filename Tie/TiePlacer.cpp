@@ -33,6 +33,8 @@ const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
 
 const int BATCH_SIZE = 10; // Define the batch size for processing entities
 
+double distanceBetweenPoly;
+
 // Structure to hold panel information
 struct Panel {
     int length;
@@ -203,7 +205,8 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
     if (pFirstPolyline && pSecondPolyline) {
         double distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
         if (distance > 0) {
-            acutPrintf(_T("\nDistance between polylines: %f"), distance);
+            //acutPrintf(_T("\nDistance between polylines: %f"), distance);
+            distanceBetweenPoly = distance;
         }
         else {
             acutPrintf(_T("\nNo matching deltas found between polylines."));
@@ -354,21 +357,36 @@ void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation,
 void TiePlacer::placeTies() {
     acutPrintf(L"\nPlacing Ties");
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
+    acutPrintf(_T("\nDistance between polylines: %f"), distanceBetweenPoly);
     if (panelPositions.empty()) {
         //acutPrintf(L"\nNo wall panels found");
     }
     // List of available panels FIXXXXXXXXXX
     std::vector<Tie> tieSizes = {
         {50,  L"030005X"},
-        {60,  L"030006X"},
-        {70,  L"030007X"},
-        {80,  L"030008X"},
-        {90,  L"030009X"},
-        {100,  L"030010X"}
+        {85,  L"030010X"},
+        {100,  L"030480X"},
+        {120,  L"030490X"},
+        {150,  L"030170X"},
+        {170,  L"030020X"},
+        {250,  L"030710X"},
+        {300,  L"030720X"},
+        {350,  L"030730X"},
+        {600,  L"030160X"}
     };
 
+    AcDbObjectId assetId;
     //std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);
-    AcDbObjectId assetId = LoadTieAsset(ASSET_030005.c_str());  // Replace ASSET_TIE with the actual asset name
+    for (const auto& tie : tieSizes) {
+        acutPrintf(_T("\n(int)distanceBetweenPoly + 30: %d"), ((int)distanceBetweenPoly + 30));
+        acutPrintf(_T("\ntie.length: %f"), tie.length);
+        if (tie.length >= ((int)distanceBetweenPoly + 30)) {
+            assetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
+            break;
+        }
+    }
+    //AcDbObjectId assetId = LoadTieAsset(ASSET_030005.c_str());  // Replace ASSET_TIE with the actual asset name
+
 
     /*if (assetId == AcDbObjectId::kNull) {
         acutPrintf(L"\nFailed to load the tie asset");
@@ -545,7 +563,7 @@ void TiePlacer::placeTies() {
                         int numOfWallSegmentsPlaced = 0;
                         
                         for (int i = 0; i < numPanels; i++) {
-                            for (int tiePlaced = 0; tiePlaced < 2; tiePlaced++) {
+                            for (int tiePlaced = 0; (tiePlaced + panelNum) < 2; tiePlaced++) {
                                 // Place the tie without scaling
                                 AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                                 AcGePoint3d currentPointWithHeight = currentPoint;
