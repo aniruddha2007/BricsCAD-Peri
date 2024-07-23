@@ -48,7 +48,7 @@ const double TOLERANCE = 0.1; // Tolerance for comparing angles
 // Structure to hold panel information
 struct Panel {
     int length;
-    std::wstring id[2];
+    std::wstring id[3];
 };
 
 bool isInteger(double value, double tolerance = 1e-9) {
@@ -316,18 +316,18 @@ void WallPlacer::placeWalls() {
         int wallHeight = globalVarHeight;
 
         int currentHeight = 0;
-        int panelHeights[] = { 135, 60 };
+        int panelHeights[] = { 135, 120, 60 };
 
         // List of available panels
         std::vector<Panel> panelSizes = {
-            /* {90, {L"128280X", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
-            /*{75, {L"128281X", L"129838X"}}, */ // ONLY ENABLE FOR 75 PANELS
-            {60, {L"128282X", L"129839X"}},
-            {45, {L"128283X", L"129840X"}},
-            {30, {L"128284X", L"129841X"}},
-            {15, {L"128285X", L"129842X"}},
-            {10, {L"128292X", L"129884X"}}, // *10 Compensator move to middle TODO:
-            {5, {L"128287X", L"129879X"}} // *5 Compensator add a break
+            /* {90, {L"128280X", L"Null", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
+            /*{75, {L"128281X", L"Null", L"129838X"}}, */ // ONLY ENABLE FOR 75 PANELS
+            {60, {L"128282X", L"136096X", L"129839X"}},
+            {45, {L"128283X", L"Null", L"129840X"}},
+            {30, {L"128284X", L"Null", L"129841X"}},
+            {15, {L"128285X", L"Null", L"129842X"}},
+            {10, {L"128292X", L"Null", L"129884X"}}, // *10 Compensator move to middle TODO:
+            {5, {L"128287X", L"Null", L"129879X"}} // *5 Compensator add a break
         };
 
         // Iterate through every panel type
