@@ -31,7 +31,7 @@ bool isThisInteger(double value, double tolerance = 1e-9) {
 
 const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
 
-const int BATCH_SIZE = 10; // Define the batch size for processing entities
+const int BATCH_SIZE = 50; // Define the batch size for processing entities
 
 double distanceBetweenPoly;
 
@@ -361,18 +361,18 @@ void TiePlacer::placeTies() {
     if (panelPositions.empty()) {
         //acutPrintf(L"\nNo wall panels found");
     }
-    // List of available panels FIXXXXXXXXXX
+    // List of available Tieswith their sizes
     std::vector<Tie> tieSizes = {
-        {50,  L"030005X"},
-        {85,  L"030010X"},
-        {100,  L"030480X"},
-        {120,  L"030490X"},
-        {150,  L"030170X"},
-        {170,  L"030020X"},
-        {250,  L"030710X"},
-        {300,  L"030720X"},
-        {350,  L"030730X"},
-        {600,  L"030160X"}
+        {50, L"030005X"},
+        {85, L"030010X"},
+        {100, L"030480X"},
+        {120, L"030490X"},
+        {150, L"030170X"},
+        {170, L"030020X"},
+        {250, L"030710X"},
+        {300, L"030720X"},
+        {350, L"030730X"},
+        {600, L"030160X"}
     };
 
     AcDbObjectId assetId;
