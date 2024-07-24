@@ -21,6 +21,7 @@
 #include <thread>
 #include <chrono>
 #include "DefineHeight.h"
+#include <string>
 
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, TiePlacer::Point3dComparator> TiePlacer::wallMap;
@@ -376,6 +377,8 @@ void TiePlacer::placeTies() {
     };
 
     AcDbObjectId assetId;
+    const std::wstring wingnut = L"030110X";
+    AcDbObjectId assetIdWingnut = LoadTieAsset(wingnut.c_str());
     //std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);
     for (const auto& tie : tieSizes) {
         acutPrintf(_T("\n(int)distanceBetweenPoly + 30: %d"), ((int)distanceBetweenPoly + 30));
@@ -534,6 +537,7 @@ void TiePlacer::placeTies() {
         int tieOffsetHeight[] = { 30, 105 };
         double xOffset = 2.5; // X offset for the tie
         double yOffset = 25; // Y offset for the tie
+        double wingtieOffset = (distanceBetweenPoly+20)/2;
 
         if (loopIndex != outerLoopIndexValue) {
             // Iterate through every panel type
@@ -605,6 +609,49 @@ void TiePlacer::placeTies() {
                                     acutPrintf(_T("\nFailed to place tie."));
                                 }
                                 pBlockRef->close();  // Decrement reference count
+                                for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
+                                    AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
+                                    AcGePoint3d wingnutPosition = currentPointWithHeight;
+                                    wingtieOffset = -wingtieOffset;
+                                    switch (static_cast<int>(round(rotation / M_PI_2))) {
+                                    case 0: // 0 degrees
+                                        wingnutPosition.x += wingtieOffset;
+                                        //currentPointWithHeight.y -= xOffset;
+                                        break;
+                                    case 1: // 90 degrees
+                                        //currentPointWithHeight.x += xOffset;
+                                        wingnutPosition.y += wingtieOffset;
+                                        break;
+                                    case 2: // 180 degrees
+                                        wingnutPosition.x -= wingtieOffset;
+                                        //currentPointWithHeight.y += xOffset;
+                                        break;
+                                    case 3: // 270 degrees
+                                    case -1:
+                                        //currentPointWithHeight.x -= xOffset;
+                                        wingnutPosition.y -= wingtieOffset;
+                                    }
+                                    //if (loopIndex == outerLoopIndexValue) {
+                                    //    currentPointWithHeight += direction * panelSizes[panelSize];
+                                    //}
+                                    pWingnutRef->setPosition(wingnutPosition);
+                                    pWingnutRef->setBlockTableRecord(assetIdWingnut);
+                                    if (wingnutNum == 1) {
+                                        pWingnutRef->setRotation(rotation + M_PI_2);  // Apply rotation
+                                    }
+                                    else {
+                                        pWingnutRef->setRotation(rotation - M_PI_2);  // Apply rotation
+                                    }
+                                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                                    if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
+                                        //acutPrintf(_T("\nPlaced wingnut."));
+                                    }
+                                    else {
+                                        acutPrintf(_T("\nFailed to place wingnut."));
+                                    }
+                                    pWingnutRef->close();  // Decrement reference count
+                                }
 
                             }
                             currentPoint += direction * panelSizes[panelSize];  // Move to the next panel
