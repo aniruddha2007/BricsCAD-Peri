@@ -183,9 +183,22 @@ void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& e
     
 }
 
-// Place walls
+// Function to compute if the corner is turning clockwise or counterclockwise
+bool isClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d& p2) {
+    // Compute the vectors for the edges
+    AcGeVector3d v1 = p1 - p0;  // Vector from p0 to p1
+    AcGeVector3d v2 = p2 - p1;  // Vector from p1 to p2
+
+    // Compute the cross product
+    AcGeVector3d crossProduct = v1.crossProduct(v2);
+
+    // Determine the direction of the turn
+    // If cross product z-component is positive, the turn is counterclockwise
+    // If cross product z-component is negative, the turn is clockwise
+    return crossProduct.z > 0;
+}
+
 void WallPlacer::placeWalls() {
-    //acutPrintf(_T("\nPlacing walls...")); // Debug
     std::vector<AcGePoint3d> corners = detectPolylines();
 
     if (corners.empty()) {
@@ -198,209 +211,272 @@ void WallPlacer::placeWalls() {
     double outerPointCounter = corners[0].x;
     int outerLoopIndexValue = 0;
 
-    // Loop through corners, find outer and inner loop
+    // First Pass: Determine inner and outer loops
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[cornerNum + 1];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  // Wrap around to the first point
         AcGeVector3d direction = (end - start).normal();
 
-        //acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
         if (start.x > outerPointCounter) {
             outerPointCounter = start.x;
             outerLoopIndexValue = loopIndex;
         }
 
-        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
-        if (isInteger(direction.x) && isInteger(direction.y)) {
-            //acutPrintf(_T("\nYES."));
-        }
-        else {
-            //acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+        if (!isInteger(direction.x) || !isInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
-                //acutPrintf(_T("\nYES."));
                 closeLoopCounter = -1;
                 loopIndex = 1;
             }
-            else {
-                //acutPrintf(_T("\nNO."));
-            }
         }
     }
-    //acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
 
+    struct WallPanel {
+        AcGePoint3d position;
+        AcDbObjectId assetId;
+        double rotation;
+    };
+
+    std::vector<WallPanel> wallPanels;
     loopIndex = 0;
     int loopIndexLastPanel = 0;
     closeLoopCounter = -1;
-    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
-        //acutPrintf(_T("\ncornerNum: %d,"), cornerNum); // Debug
-        //placeWallSegment(corners[i], corners[i + 1]);
-        closeLoopCounter++;
-        //acutPrintf(_T("\ncloseLoopCounter: %d,"), closeLoopCounter); // Debug
+    double totalPanelsPlaced = 0;
+    std::vector<int> cornerLocations;
 
+    // Second Pass: Save all positions, asset IDs, and rotations
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+
+        acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
+        acutPrintf(_T("\ntotalPanelsPlaced= %s.", totalPanelsPlaced));
+        acutPrintf(_T("\ntotalPanelsPlaced= %f.", totalPanelsPlaced));
+        acutPrintf(_T("\nType of variable:", typeof(totalPanelsPlaced)));
+        closeLoopCounter++;
+        cornerLocations.push_back(totalPanelsPlaced);
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[cornerNum + 1];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];
         AcGeVector3d direction = (end - start).normal();
 
-        //acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
-        //acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
-
-        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
-        if (isInteger(direction.x) && isInteger(direction.y)) {
-            //acutPrintf(_T("\nYES.")); // Debug
-            start = corners[cornerNum];
-            end = corners[cornerNum + 1];
-        }
-        else {
-            //acutPrintf(_T("\nNO. i < corners.size() - 1?")); // Debug
+        if (!isInteger(direction.x) || !isInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
-                //acutPrintf(_T("\nYES.")); // Debug
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
                 loopIndexLastPanel = 1;
             }
             else {
-                //acutPrintf(_T("\nNO.")); // Debug
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
             }
         }
 
-        //acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
-        //acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
+        // Get previous and next corners
+        AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
+        AcGePoint3d next = corners[(cornerNum + 2) % corners.size()];
 
+        bool prevClockwise = isClockwise(prev, start, end);
+        bool nextClockwise = isClockwise(start, end, next);
 
-        AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-        if (!pDb) {
-            acutPrintf(_T("\nNo working database found."));
-            return;
+        bool isInner = loopIndex != outerLoopIndexValue;
+        bool isOuter = !isInner;  // Outer loop is the opposite of inner
+
+        // Adjust start point
+        if (prevClockwise && isInner) {
+            start -= direction * 10;
+        }
+        else if (prevClockwise && isOuter) {
+            start += direction * 10;
         }
 
-        AcDbBlockTable* pBlockTable;
-        if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to get block table."));
-            return;
+        // Adjust end point
+        if (nextClockwise && isInner) {
+            end += direction * 10;
+        }
+        else if (nextClockwise && isOuter) {
+            end -= direction * 10;
         }
 
-        AcDbBlockTableRecord* pModelSpace;
-        if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to get model space."));
-            pBlockTable->close();
-            return;
-        }
-
-        // Use the biggest block size to calculate the number of panels and empty space should be iterated over using smaller block size
         double distance = start.distanceTo(end) - 50;
         direction = (end - start).normal();
-
-        //acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
-
         AcGePoint3d currentPoint = start + direction * 25;
         double rotation = atan2(direction.y, direction.x);
 
-        if (loopIndex == outerLoopIndexValue) { // FIX consider if next corner is inner or outter
+        if (isOuter) {
             distance += 20;
             currentPoint -= direction * 10;
             rotation += M_PI;
         }
-        
-        //acutPrintf(_T("\nrotation: %f,"), rotation); // Debug
 
-        //acutPrintf(_T("\nrotation after snap: %f,"), snapToExactAngle(rotation, TOLERANCE)); // Debug
-
-        // Fetch this variable from DefineHeight
         int wallHeight = globalVarHeight;
-
         int currentHeight = 0;
         int panelHeights[] = { 135, 120, 60 };
 
-        // List of available panels
         std::vector<Panel> panelSizes = {
-            /* {90, {L"128280X", L"Null", L"129837X"}},*/ // ONLY ENABLE FOR 90 PANELS
-            /*{75, {L"128281X", L"Null", L"129838X"}}, */ // ONLY ENABLE FOR 75 PANELS
             {60, {L"128282X", L"136096X", L"129839X"}},
             {45, {L"128283X", L"Null", L"129840X"}},
             {30, {L"128284X", L"Null", L"129841X"}},
             {15, {L"128285X", L"Null", L"129842X"}},
-            {10, {L"128292X", L"Null", L"129884X"}}, // *10 Compensator move to middle TODO:
-            {5, {L"128287X", L"Null", L"129879X"}} // *5 Compensator add a break
+            {10, {L"128292X", L"Null", L"129884X"}},
+            {5, {L"128287X", L"Null", L"129879X"}}
         };
 
-        // Iterate through every panel type
         for (const auto& panel : panelSizes) {
             currentHeight = 0;
             AcGePoint3d backupCurrentPoint = currentPoint;
             double backupDistance = distance;
 
-            // Iterate through 135 and 60 height
             for (int panelNum = 0; panelNum < 2; panelNum++) {
                 AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
-                //acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
 
-                if (assetId == AcDbObjectId::kNull) {
-                    acutPrintf(_T("\nFailed to load asset."));
-                }
-                else {
-                    //acutPrintf(_T("\nwallHeight: %d,"), wallHeight); // Debug
-                    //acutPrintf(_T(" currentHeight: %d,"), currentHeight); // Debug
-                    //acutPrintf(_T(" panelHeight num: %d,"), panelNum); // Debug
-                    //acutPrintf(_T(" panelHeight: %d"), panelHeights[panelNum]); // Debug
-
-                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);  // Calculate the number of panels that fit vertically
-
-                    //acutPrintf(_T("\nnumPanelsHeight: %d,"), numPanelsHeight); // Debug
+                if (assetId != AcDbObjectId::kNull) {
+                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
 
                     for (int x = 0; x < numPanelsHeight; x++) {
                         currentPoint = backupCurrentPoint;
                         distance = backupDistance;
 
-                        // Place walls
-                        int numPanels = static_cast<int>(distance / panel.length);  // Calculate the number of panels that fit horizontally
-                        int numOfWallSegmentsPlaced = 0;
+                        int numPanels = static_cast<int>(distance / panel.length);
                         for (int i = 0; i < numPanels; i++) {
-
-                            // Place the wall segment without scaling
-                            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                             AcGePoint3d currentPointWithHeight = currentPoint;
                             currentPointWithHeight.z += currentHeight;
-                            if (loopIndex == outerLoopIndexValue) {
+                            if (isOuter) {
                                 currentPointWithHeight += direction * panel.length;
                             }
-                            pBlockRef->setPosition(currentPointWithHeight);
-                            pBlockRef->setBlockTableRecord(assetId);
                             rotation = normalizeAngle(rotation);
                             rotation = snapToExactAngle(rotation, TOLERANCE);
-                            pBlockRef->setRotation(rotation);  // Apply rotation
-                            pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
 
-                            if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-                                numOfWallSegmentsPlaced += 1;
-                            }
-                            else {
-                                acutPrintf(_T("\nFailed to place wall segment."));
-                            }
-                            pBlockRef->close();  // Decrement reference count
+                            wallPanels.push_back({ currentPointWithHeight, assetId, rotation });
 
-                            currentPoint += direction * panel.length;  // Move to the next panel
+                            totalPanelsPlaced++;
+
+                            currentPoint += direction * panel.length;
                             distance -= panel.length;
                         }
-                        //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
                         currentHeight += panelHeights[panelNum];
                     }
                 }
             }
         }
-        /*if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
-            loopIndexLastPanel = 1;
-        }*/
         loopIndex = loopIndexLastPanel;
-        pModelSpace->close();  // Decrement reference count
-        pBlockTable->close();  // Decrement reference count
+    }
+    acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
+    acutPrintf(_T("\ntotalPanelsPlaced= %s.", totalPanelsPlaced));
+    acutPrintf(_T("\ntotalPanelsPlaced= %f.", totalPanelsPlaced));
+    acutPrintf(_T("\nType of variable:", typeof(totalPanelsPlaced)));
+
+    // Third Pass: Adjust positions for specific asset IDs
+    std::vector<AcDbObjectId> centerAssets = {
+        loadAsset(L"128285X"),
+        loadAsset(L"129842X"),
+        loadAsset(L"129879X"),
+        loadAsset(L"129884X"),
+        loadAsset(L"128287X"),
+        loadAsset(L"128292X")
+    };
+    acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
+    for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
+        WallPanel& panel = wallPanels[panelNum];
+        if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
+            // Find the two corner points between which the panel is placed
+            int panelPosition = panelNum;  // This should be the index of the panel
+            acutPrintf(_T("\nFound 5, 10 or 15 at %d.", panelNum));
+            WallPanel detectedPanel = wallPanels[panelPosition];
+            AcGePoint3d detectedPanelPosition = detectedPanel.position;
+            AcDbObjectId detectedPanelId = detectedPanel.assetId;
+
+            int startCornerIndex = -1;
+            int endCornerIndex = -1;
+
+            for (int j = 0; j < cornerLocations.size(); ++j) {
+                if (cornerLocations[j] < panelNum) {
+                    startCornerIndex = j;  // Last corner before the panel
+                }
+                if (cornerLocations[j] > panelNum) {
+                    endCornerIndex = j;  // First corner after the panel
+                    break;
+                }
+            }
+            acutPrintf(_T(", between %d.", startCornerIndex));
+            acutPrintf(_T(" and %d.", endCornerIndex));
+
+            // Validate the corner indices
+            if (startCornerIndex == -1 || endCornerIndex == -1) {
+                // No valid corners found; handle error
+            }
+
+            // Calculate the center index in wallPanels
+            int centerIndex = (startCornerIndex + endCornerIndex)/2;
+            double panelLength = 0;
+
+            // Determine the panel length
+            if (panel.assetId == loadAsset(L"128285X") || panel.assetId == loadAsset(L"129842X")) {
+                panelLength = 15;
+            }
+            else if (panel.assetId == loadAsset(L"129879X")) {
+                panelLength = 5;
+            }
+            else if (panel.assetId == loadAsset(L"129884X")) {
+                panelLength = 10;
+            }
+            else if (panel.assetId == loadAsset(L"128287X")) {
+                panelLength = 5;
+            }
+            else if (panel.assetId == loadAsset(L"128292X")) {
+                panelLength = 10;
+            }
+
+            // Get positions of centerIndex and detectedPanel
+            AcGePoint3d centerPanelPosition = wallPanels[centerIndex].position;
+
+            // Calculate the direction vector from centerIndex to detectedPanel
+            AcGeVector3d direction = (centerPanelPosition - detectedPanel.position).normal();
+
+            // Adjust the position of the detected panel
+            wallPanels[panelNum].position = centerPanelPosition;
+        }
     }
 
-    //acutPrintf(_T("\nCompleted placing walls."));
+    acutPrintf(_T("\ncornerLocations (size: %d): "), cornerLocations.size());
+    acutPrintf(_T("\ncornerLocations: "));
+    for (size_t i = 0; i < cornerLocations.size(); ++i) {
+        acutPrintf(_T("%d "), cornerLocations[i]);
+    }
+    acutPrintf(_T("\n"));
+
+    // Forth Pass: Place all wall panels
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table."));
+        return;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space."));
+        pBlockTable->close();
+        return;
+    }
+
+    for (const auto& panel : wallPanels) {
+        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+        pBlockRef->setPosition(panel.position);
+        pBlockRef->setBlockTableRecord(panel.assetId);
+        pBlockRef->setRotation(panel.rotation);
+        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+        if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+            acutPrintf(_T("\nFailed to place wall segment."));
+        }
+        pBlockRef->close();
+    }
+
+    pModelSpace->close();
+    pBlockTable->close();
+    acutPrintf(_T("\nCompleted placing walls."));
 }
