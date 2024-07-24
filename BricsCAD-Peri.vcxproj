@@ -27,6 +27,7 @@
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
     <ClCompile Include="SharedDefinations.cpp" />
+    <ClCompile Include="Timber\TimberAssetCreator.cpp" />
     <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
@@ -44,6 +45,7 @@
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
+    <ClInclude Include="Timber\TimberAssetCreator.h" />
     <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
     <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
     <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />

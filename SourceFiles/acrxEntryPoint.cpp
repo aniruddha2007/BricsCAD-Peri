@@ -28,6 +28,7 @@
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
 #include "SettingsCommands.h"
+#include "Columns/PlaceColumns.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -53,6 +54,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceTies"), _T("PlaceTies"), ACRX_CMD_MODAL, []() { TiePlacer::placeTies(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceColumns"), _T("PlaceColumns"), ACRX_CMD_MODAL, []() { ColumnPlacer::placeColumns(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
@@ -130,6 +132,13 @@ public:
 	{
 		acutPrintf(_T("\nRunning PlaceTies."));
 		TiePlacer::placeTies();
+	}
+
+    // PlaceColumns command
+    static void BrxAppPlaceColumns(void)
+	{
+		acutPrintf(_T("\nRunning PlaceColumns."));
+		ColumnPlacer::placeColumns();
 	}
 
     // LoadBlocks command

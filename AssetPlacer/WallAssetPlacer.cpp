@@ -38,6 +38,7 @@
 #include "DefineScale.h"
 #include <thread>
 #include <chrono>
+#include "Timber/TimberAssetCreator.h"
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> WallPlacer::wallMap;
 
@@ -352,6 +353,33 @@ void WallPlacer::placeWalls() {
                             currentPoint += direction * panel.length;
                             distance -= panel.length;
                         }
+                        // Place timber for remaining distance
+                        if (distance > 0 && distance < 5) {
+                            acutPrintf(_T("\nPlacing timber at distance: %f, height: %d"), distance, panelHeights[panelNum]);
+                            AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
+                            if (timberAssetId == AcDbObjectId::kNull) {
+                                acutPrintf(_T("\nFailed to create timber asset."));
+                            }
+                            else {
+                                AcDbBlockReference* pTimberRef = new AcDbBlockReference();
+                                AcGePoint3d timberPosition = currentPoint;
+                                timberPosition.z += currentHeight;
+                                pTimberRef->setPosition(timberPosition);
+                                pTimberRef->setBlockTableRecord(timberAssetId);
+                                pTimberRef->setRotation(rotation);
+                                pTimberRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                                if (pModelSpace->appendAcDbEntity(pTimberRef) == Acad::eOk) {
+                                    acutPrintf(_T("\nTimber placed successfully."));
+                                }
+                                else {
+                                    acutPrintf(_T("\nFailed to place timber."));
+                                }
+                                pTimberRef->close();
+                            }
+                        }
+
+                        //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
                         currentHeight += panelHeights[panelNum];
                     }
                 }
