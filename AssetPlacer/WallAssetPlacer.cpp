@@ -361,7 +361,10 @@ void WallPlacer::placeWalls() {
                                 acutPrintf(_T("\nFailed to create timber asset."));
                             }
                             else {
-                                AcDbBlockReference* pTimberRef = new AcDbBlockReference();
+
+                                wallPanels.push_back({ currentPoint, timberAssetId, rotation });
+                                
+                                /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
                                 AcGePoint3d timberPosition = currentPoint;
                                 timberPosition.z += currentHeight;
                                 pTimberRef->setPosition(timberPosition);
@@ -375,7 +378,7 @@ void WallPlacer::placeWalls() {
                                 else {
                                     acutPrintf(_T("\nFailed to place timber."));
                                 }
-                                pTimberRef->close();
+                                pTimberRef->close();*/
                             }
                         }
 
