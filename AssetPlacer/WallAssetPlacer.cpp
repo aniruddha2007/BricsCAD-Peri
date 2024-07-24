@@ -510,23 +510,6 @@ void WallPlacer::placeWalls() {
         pBlockRef->close();
     }
 
-    // Fifth Pass: Place compensators at the middle of each segment
-    for (const auto& segment : segments) {
-        AcGePoint3d midpoint = segment.first + (segment.second - segment.first) / 2.0;
-        AcDbObjectId compensatorId = loadAsset(L"CompensatorBlockName");  // Replace with actual compensator block name
-
-        if (compensatorId != AcDbObjectId::kNull) {
-            AcDbBlockReference* pCompRef = new AcDbBlockReference();
-            pCompRef->setPosition(midpoint);
-            pCompRef->setBlockTableRecord(compensatorId);
-            // Set rotation if necessary
-            if (pModelSpace->appendAcDbEntity(pCompRef) != Acad::eOk) {
-                acutPrintf(_T("\nFailed to place compensator."));
-            }
-            pCompRef->close();
-        }
-    }
-
     pModelSpace->close();
     pBlockTable->close();
     acutPrintf(_T("\nCompleted placing walls."));
