@@ -181,7 +181,7 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
 
 // Place wall segment
 void WallPlacer::placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end) {
-    
+
 }
 
 // Function to compute if the corner is turning clockwise or counterclockwise
@@ -236,6 +236,8 @@ void WallPlacer::placeWalls() {
         AcGePoint3d position;
         AcDbObjectId assetId;
         double rotation;
+        double length;
+        bool isOuterLoop;
     };
 
     std::vector<WallPanel> wallPanels;
@@ -300,6 +302,7 @@ void WallPlacer::placeWalls() {
         direction = (end - start).normal();
         AcGePoint3d currentPoint = start + direction * 25;
         double rotation = atan2(direction.y, direction.x);
+        double panelLength;
 
         if (isOuter) {
             distance += 20;
@@ -345,12 +348,12 @@ void WallPlacer::placeWalls() {
                             rotation = normalizeAngle(rotation);
                             rotation = snapToExactAngle(rotation, TOLERANCE);
 
-                            wallPanels.push_back({ currentPointWithHeight, assetId, rotation });
+                            panelLength = panel.length;
+                            wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, isOuter });
 
                             totalPanelsPlaced++;
-
-                            currentPoint += direction * panel.length;
-                            distance -= panel.length;
+                            currentPoint += direction * panelLength;
+                            distance -= panelLength;
                         }
                         // Place timber for remaining distance
                         if (distance > 0 && distance < 5) {
@@ -361,7 +364,7 @@ void WallPlacer::placeWalls() {
                             }
                             else {
 
-                                wallPanels.push_back({ currentPoint, timberAssetId, rotation });
+                                wallPanels.push_back({ currentPoint, timberAssetId, rotation, 0, isOuter });
 
                                 /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
                                 AcGePoint3d timberPosition = currentPoint;
@@ -401,6 +404,8 @@ void WallPlacer::placeWalls() {
         loadAsset(L"128287X"),
         loadAsset(L"128292X")
     };
+
+
     acutPrintf(_T("\ntotalPanelsPlaced= %d."), static_cast<int>(totalPanelsPlaced));
     for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
         WallPanel& panel = wallPanels[panelNum];
@@ -412,19 +417,27 @@ void WallPlacer::placeWalls() {
             AcGePoint3d detectedPanelPosition = detectedPanel.position;
             AcDbObjectId detectedPanelId = detectedPanel.assetId;
 
+            double panelLength = wallPanels[panelPosition].length;
+
+
+            acutPrintf(_T("\npanelLength = %f."), panelLength);
+
             int startCornerIndex = -1;
             int endCornerIndex = -1;
 
             for (int j = 0; j < cornerLocations.size(); ++j) {
                 if (cornerLocations[j] < panelNum) {
-                    startCornerIndex = j;  // Last corner before the panel
+                    startCornerIndex = cornerLocations[j];  // Last corner before the panel
                 }
                 if (cornerLocations[j] > panelNum) {
-                    endCornerIndex = j;  // First corner after the panel
+                    endCornerIndex = cornerLocations[j];  // First corner after the panel
                     break;
                 }
             }
             acutPrintf(_T(", between %d."), startCornerIndex);
+            if (endCornerIndex == -1) {
+                endCornerIndex = panelNum + 1;
+            }
             acutPrintf(_T(" and %d."), endCornerIndex);
 
             // Validate the corner indices
@@ -438,8 +451,22 @@ void WallPlacer::placeWalls() {
             // Get positions of centerIndex and detectedPanel
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex].position;
 
+            AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
+
             // Adjust the position of the detected panel
             wallPanels[panelNum].position = centerPanelPosition;
+            if (wallPanels[panelNum].isOuterLoop) {
+                wallPanels[panelNum].position -= direction * wallPanels[centerIndex].length;
+                wallPanels[panelNum].position += direction * panelLength;
+            }
+
+
+            acutPrintf(_T("\ncenterIndex = %d."), centerIndex);
+            acutPrintf(_T(" < panelNum = %d."), panelNum);
+            for (int centerToCornerPanelNum = centerIndex; centerToCornerPanelNum < panelNum; centerToCornerPanelNum++) {
+                wallPanels[centerToCornerPanelNum].position = wallPanels[centerToCornerPanelNum].position + direction * panelLength;
+            }
+
         }
     }
 
