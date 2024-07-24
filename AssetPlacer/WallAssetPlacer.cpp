@@ -239,6 +239,8 @@ void WallPlacer::placeWalls() {
     };
 
     std::vector<WallPanel> wallPanels;
+    std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
+
     loopIndex = 0;
     int loopIndexLastPanel = 0;
     closeLoopCounter = -1;
@@ -248,12 +250,9 @@ void WallPlacer::placeWalls() {
     // Second Pass: Save all positions, asset IDs, and rotations
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
 
-        acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
-        acutPrintf(_T("\ntotalPanelsPlaced= %s.", totalPanelsPlaced));
-        acutPrintf(_T("\ntotalPanelsPlaced= %f.", totalPanelsPlaced));
-        acutPrintf(_T("\nType of variable:", typeof(totalPanelsPlaced)));
+        acutPrintf(_T("\ntotalPanelsPlaced= %d."), static_cast<int>(totalPanelsPlaced));
         closeLoopCounter++;
-        cornerLocations.push_back(totalPanelsPlaced);
+        cornerLocations.push_back(static_cast<int>(totalPanelsPlaced));
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];
         AcGeVector3d direction = (end - start).normal();
@@ -363,7 +362,7 @@ void WallPlacer::placeWalls() {
                             else {
 
                                 wallPanels.push_back({ currentPoint, timberAssetId, rotation });
-                                
+
                                 /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
                                 AcGePoint3d timberPosition = currentPoint;
                                 timberPosition.z += currentHeight;
@@ -388,12 +387,10 @@ void WallPlacer::placeWalls() {
                 }
             }
         }
+        segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
         loopIndex = loopIndexLastPanel;
     }
-    acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
-    acutPrintf(_T("\ntotalPanelsPlaced= %s.", totalPanelsPlaced));
-    acutPrintf(_T("\ntotalPanelsPlaced= %f.", totalPanelsPlaced));
-    acutPrintf(_T("\nType of variable:", typeof(totalPanelsPlaced)));
+    acutPrintf(_T("\ntotalPanelsPlaced= %d."), static_cast<int>(totalPanelsPlaced));
 
     // Third Pass: Adjust positions for specific asset IDs
     std::vector<AcDbObjectId> centerAssets = {
@@ -404,13 +401,13 @@ void WallPlacer::placeWalls() {
         loadAsset(L"128287X"),
         loadAsset(L"128292X")
     };
-    acutPrintf(_T("\ntotalPanelsPlaced= %d.", totalPanelsPlaced));
+    acutPrintf(_T("\ntotalPanelsPlaced= %d."), static_cast<int>(totalPanelsPlaced));
     for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
         WallPanel& panel = wallPanels[panelNum];
         if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
             // Find the two corner points between which the panel is placed
             int panelPosition = panelNum;  // This should be the index of the panel
-            acutPrintf(_T("\nFound 5, 10 or 15 at %d.", panelNum));
+            acutPrintf(_T("\nFound 5, 10 or 15 at %d."), panelNum);
             WallPanel detectedPanel = wallPanels[panelPosition];
             AcGePoint3d detectedPanelPosition = detectedPanel.position;
             AcDbObjectId detectedPanelId = detectedPanel.assetId;
@@ -427,8 +424,8 @@ void WallPlacer::placeWalls() {
                     break;
                 }
             }
-            acutPrintf(_T(", between %d.", startCornerIndex));
-            acutPrintf(_T(" and %d.", endCornerIndex));
+            acutPrintf(_T(", between %d."), startCornerIndex);
+            acutPrintf(_T(" and %d."), endCornerIndex);
 
             // Validate the corner indices
             if (startCornerIndex == -1 || endCornerIndex == -1) {
@@ -436,31 +433,10 @@ void WallPlacer::placeWalls() {
             }
 
             // Calculate the center index in wallPanels
-            int centerIndex = (startCornerIndex + endCornerIndex)/2;
-            double panelLength = 0;
-
-            // Determine the panel length
-            if (panel.assetId == loadAsset(L"128285X") || panel.assetId == loadAsset(L"129842X")) {
-                panelLength = 15;
-            }
-            else if (panel.assetId == loadAsset(L"129879X")) {
-                panelLength = 5;
-            }
-            else if (panel.assetId == loadAsset(L"129884X")) {
-                panelLength = 10;
-            }
-            else if (panel.assetId == loadAsset(L"128287X")) {
-                panelLength = 5;
-            }
-            else if (panel.assetId == loadAsset(L"128292X")) {
-                panelLength = 10;
-            }
+            int centerIndex = (startCornerIndex + endCornerIndex) / 2;
 
             // Get positions of centerIndex and detectedPanel
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex].position;
-
-            // Calculate the direction vector from centerIndex to detectedPanel
-            AcGeVector3d direction = (centerPanelPosition - detectedPanel.position).normal();
 
             // Adjust the position of the detected panel
             wallPanels[panelNum].position = centerPanelPosition;
@@ -474,7 +450,7 @@ void WallPlacer::placeWalls() {
     }
     acutPrintf(_T("\n"));
 
-    // Forth Pass: Place all wall panels
+    // Fourth Pass: Place all wall panels
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -507,7 +483,25 @@ void WallPlacer::placeWalls() {
         pBlockRef->close();
     }
 
+    // Fifth Pass: Place compensators at the middle of each segment
+    for (const auto& segment : segments) {
+        AcGePoint3d midpoint = segment.first + (segment.second - segment.first) / 2.0;
+        AcDbObjectId compensatorId = loadAsset(L"CompensatorBlockName");  // Replace with actual compensator block name
+
+        if (compensatorId != AcDbObjectId::kNull) {
+            AcDbBlockReference* pCompRef = new AcDbBlockReference();
+            pCompRef->setPosition(midpoint);
+            pCompRef->setBlockTableRecord(compensatorId);
+            // Set rotation if necessary
+            if (pModelSpace->appendAcDbEntity(pCompRef) != Acad::eOk) {
+                acutPrintf(_T("\nFailed to place compensator."));
+            }
+            pCompRef->close();
+        }
+    }
+
     pModelSpace->close();
     pBlockTable->close();
     acutPrintf(_T("\nCompleted placing walls."));
 }
+
