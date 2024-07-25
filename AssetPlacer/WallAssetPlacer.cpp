@@ -257,8 +257,9 @@ void WallPlacer::placeWalls() {
         }
     }
 
-    acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
-    acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+    //Debug
+    //acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
+    //acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
 
     std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd +1);
     std::vector<AcGePoint3d> secondLoop(corners.begin() + firstLoopEnd + 1, corners.end());
@@ -272,7 +273,7 @@ void WallPlacer::placeWalls() {
     };
 
     //Debug
-    acutPrintf(_T("\nFirst loop first corner at (%f."), corners[0].x);
+    /*acutPrintf(_T("\nFirst loop first corner at (%f."), corners[0].x);
     acutPrintf(_T(", %f)"), corners[0].y);
     acutPrintf(_T(", next corner (%f, "), corners[1].x);
     acutPrintf(_T(", %f), is"), corners[1].y);
@@ -287,7 +288,7 @@ void WallPlacer::placeWalls() {
     if (!secondLoopIsClockwise) {
         acutPrintf(_T(" not"));
     }
-    acutPrintf(_T(" Clockwise"));
+    acutPrintf(_T(" Clockwise"));*/
 
 
 
@@ -296,11 +297,23 @@ void WallPlacer::placeWalls() {
         AcDbObjectId assetId;
         double rotation;
         double length;
+        int height;
+        int loopIndex;
+        bool isOuterLoop;
+    };
+    struct Timber {
+        AcGePoint3d position;
+        AcDbObjectId assetId;
+        double rotation;
+        double length;
+        int height;
         int loopIndex;
         bool isOuterLoop;
     };
 
     std::vector<WallPanel> wallPanels;
+    std::vector<Timber> timber;
+
     std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
 
     loopIndex = 0;
@@ -308,6 +321,20 @@ void WallPlacer::placeWalls() {
     closeLoopCounter = -1;
     double totalPanelsPlaced = 0;
     std::vector<int> cornerLocations;
+
+
+    int wallHeight = globalVarHeight;
+    int currentHeight = 0;
+    int panelHeights[] = { 135, 120, 60 };
+
+    std::vector<Panel> panelSizes = {
+        {60, {L"128282X", L"136096X", L"129839X"}},
+        {45, {L"128283X", L"Null", L"129840X"}},
+        {30, {L"128284X", L"Null", L"129841X"}},
+        {15, {L"128285X", L"Null", L"129842X"}},
+        {10, {L"128292X", L"Null", L"129884X"}},
+        {5, {L"128287X", L"Null", L"129879X"}}
+    };
 
     // Second Pass: Save all positions, asset IDs, and rotations
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
@@ -374,35 +401,25 @@ void WallPlacer::placeWalls() {
             rotation += M_PI;
         }
 
-        int wallHeight = globalVarHeight;
-        int currentHeight = 0;
-        int panelHeights[] = { 135, 120, 60 };
-
-        std::vector<Panel> panelSizes = {
-            {60, {L"128282X", L"136096X", L"129839X"}},
-            {45, {L"128283X", L"Null", L"129840X"}},
-            {30, {L"128284X", L"Null", L"129841X"}},
-            {15, {L"128285X", L"Null", L"129842X"}},
-            {10, {L"128292X", L"Null", L"129884X"}},
-            {5, {L"128287X", L"Null", L"129879X"}}
-        };
-
         for (const auto& panel : panelSizes) {
             currentHeight = 0;
-            AcGePoint3d backupCurrentPoint = currentPoint;
-            double backupDistance = distance;
+            //AcGePoint3d backupCurrentPoint = currentPoint;
+            //double backupDistance = distance;
 
-            for (int panelNum = 0; panelNum < 2; panelNum++) {
+            for (int panelNum = 0; panelNum < 3; panelNum++) {
                 AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
 
                 if (assetId != AcDbObjectId::kNull) {
                     int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-
-                    for (int x = 0; x < numPanelsHeight; x++) {
-                        currentPoint = backupCurrentPoint;
-                        distance = backupDistance;
+                    
+                    //acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
+                    //for (int x = 0; x < numPanelsHeight; x++) {
+                    if (numPanelsHeight > 0) {
+                        //currentPoint = backupCurrentPoint;
+                        //distance = backupDistance;
 
                         int numPanels = static_cast<int>(distance / panel.length);
+                        //acutPrintf(_T("\nnumPanels = %d"), numPanels);
                         for (int i = 0; i < numPanels; i++) {
                             AcGePoint3d currentPointWithHeight = currentPoint;
                             currentPointWithHeight.z += currentHeight;
@@ -413,7 +430,7 @@ void WallPlacer::placeWalls() {
                             rotation = snapToExactAngle(rotation, TOLERANCE);
 
                             panelLength = panel.length;
-                            wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, loopIndex, isOuter });
+                            wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter });
 
                             totalPanelsPlaced++;
                             currentPoint += direction * panelLength;
@@ -427,9 +444,9 @@ void WallPlacer::placeWalls() {
                                 acutPrintf(_T("\nFailed to create timber asset."));
                             }
                             else {
-                                //rotation = rotation + M_PI;
-                                //wallPanels.push_back({ currentPoint, timberAssetId, rotation, 0, isOuter });
-
+                                rotation = rotation + M_PI;
+                                timber.push_back({ currentPoint, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
+                                distance = 0;
                                 /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
                                 AcGePoint3d timberPosition = currentPoint;
                                 timberPosition.z += currentHeight;
@@ -449,7 +466,7 @@ void WallPlacer::placeWalls() {
                         }
 
                         //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
-                        currentHeight += panelHeights[panelNum];
+                        currentHeight = wallHeight;
                     }
                 }
             }
@@ -477,7 +494,7 @@ void WallPlacer::placeWalls() {
 
             // Find the two corner points between which the panel is placed
             int panelPosition = panelNum;  // This should be the index of the panel
-            acutPrintf(_T("\nFound compensator at %d."), panelNum);
+            //acutPrintf(_T("\nFound compensator at %d."), panelNum);
             WallPanel detectedPanel = wallPanels[panelPosition];
             AcGePoint3d detectedPanelPosition = detectedPanel.position;
             AcDbObjectId detectedPanelId = detectedPanel.assetId;
@@ -485,7 +502,7 @@ void WallPlacer::placeWalls() {
             double panelLength = wallPanels[panelPosition].length;
 
 
-            acutPrintf(_T(" panelLength = %f."), panelLength);
+            //acutPrintf(_T(" panelLength = %f."), panelLength);
 
             int startCornerIndex = -1;
             int endCornerIndex = -1;
@@ -499,11 +516,11 @@ void WallPlacer::placeWalls() {
                     break;
                 }
             }
-            acutPrintf(_T(" Between %d."), startCornerIndex);
+            //acutPrintf(_T(" Between %d."), startCornerIndex);
             if (endCornerIndex == -1) {
                 endCornerIndex = panelNum + 1;
             }
-            acutPrintf(_T(" and %d."), endCornerIndex);
+            //acutPrintf(_T(" and %d."), endCornerIndex);
 
 
             if (prevStartCornerIndex != startCornerIndex) {
@@ -536,7 +553,7 @@ void WallPlacer::placeWalls() {
             }
 
 
-            acutPrintf(_T("\t | Moved to centerIndex = %d."), centerIndex + movedCompensators);
+            //acutPrintf(_T("\t | Moved to centerIndex = %d."), centerIndex + movedCompensators);
             for (int centerToCornerPanelNum = centerIndex + movedCompensators; centerToCornerPanelNum < panelNum - movedCompensators; centerToCornerPanelNum++) {
                 wallPanels[centerToCornerPanelNum].position = wallPanels[centerToCornerPanelNum].position + direction * panelLength;
             }
@@ -546,12 +563,15 @@ void WallPlacer::placeWalls() {
         }
     }
 
-    acutPrintf(_T("\ncornerLocations (size: %d): "), cornerLocations.size());
-    acutPrintf(_T("\ncornerLocations: "));
+    //acutPrintf(_T("\ncornerLocations (size: %d): "), cornerLocations.size());
+    //acutPrintf(_T("\ncornerLocations: "));
     for (size_t i = 0; i < cornerLocations.size(); ++i) {
-        acutPrintf(_T("%d "), cornerLocations[i]);
+        //acutPrintf(_T("%d "), cornerLocations[i]);
     }
-    acutPrintf(_T("\n"));
+    //acutPrintf(_T("\n"));
+
+    wallHeight = globalVarHeight;
+    currentHeight = globalVarHeight;
 
     // Fourth Pass: Place all wall panels
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -572,8 +592,9 @@ void WallPlacer::placeWalls() {
         pBlockTable->close();
         return;
     }
-
+    int timberHeight;
     for (const auto& panel : wallPanels) {
+
         AcDbBlockReference* pBlockRef = new AcDbBlockReference();
         pBlockRef->setPosition(panel.position);
         pBlockRef->setBlockTableRecord(panel.assetId);
@@ -584,6 +605,136 @@ void WallPlacer::placeWalls() {
             acutPrintf(_T("\nFailed to place wall segment."));
         }
         pBlockRef->close();
+        currentHeight = panel.height;
+        timberHeight = panel.height;
+        for (const auto& panel2 : panelSizes) {
+            if (panel2.length == panel.length) {
+                for (int panelNum = 0; panelNum < 3; panelNum++) {
+                    AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
+
+                    if (assetId != AcDbObjectId::kNull) {
+                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+
+                        for (int x = 0; x < numPanelsHeight; x++) {
+
+                            AcGePoint3d currentPointWithHeight = panel.position;
+                            currentPointWithHeight.z += currentHeight;
+
+                            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                            pBlockRef->setPosition(currentPointWithHeight);
+                            pBlockRef->setBlockTableRecord(assetId);
+                            pBlockRef->setRotation(panel.rotation);
+                            pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                            if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                acutPrintf(_T("\nFailed to place wall segment."));
+                            }
+                            pBlockRef->close();
+                            currentHeight += panelHeights[panelNum];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pModelSpace->close();
+    pBlockTable->close();
+    acutPrintf(_T("\nCompleted placing walls."));
+
+    // Fifth Pass: Place all timber
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return;
+    }
+
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table."));
+        return;
+    }
+
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space."));
+        pBlockTable->close();
+        return;
+    }
+
+    for (const auto& timb : timber) {
+        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+        pBlockRef->setPosition(timb.position);
+        pBlockRef->setBlockTableRecord(timb.assetId);
+        pBlockRef->setRotation(timb.rotation);
+        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+        if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+            acutPrintf(_T("\nFailed to place wall segment."));
+        }
+        pBlockRef->close();
+        currentHeight = timberHeight;
+        for (const auto& panel2 : panelSizes) {
+            for (int panelNum = 0; panelNum < 3; panelNum++) {
+                AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
+
+                if (assetId != AcDbObjectId::kNull) {
+                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+                    //acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
+
+                    for (int x = 0; x < numPanelsHeight; x++) {
+                        //acutPrintf(_T("\ncurrentHeight = %d"), currentHeight);
+
+                        AcGePoint3d currentPointWithHeight = timb.position;
+                        currentPointWithHeight.z += currentHeight;
+                        AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(timb.length, panelHeights[panelNum]);
+                        if (timberAssetId == AcDbObjectId::kNull) {
+                            acutPrintf(_T("\nFailed to create timber asset."));
+                        }
+                        else {
+                            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                            pBlockRef->setPosition(currentPointWithHeight);
+                            pBlockRef->setBlockTableRecord(timberAssetId);
+                            pBlockRef->setRotation(timb.rotation);
+                            pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                            if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                acutPrintf(_T("\nFailed to place timber."));
+                            }
+                            pBlockRef->close();
+                            currentHeight += panelHeights[panelNum];
+                        }
+                    }
+                }
+            }
+        }
+
+        /*for (const auto& panel2 : panelSizes) {
+            if (panel2.length == timb.length) {
+                for (int panelNum = 0; panelNum < 3; panelNum++) {
+                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+
+                        for (int x = 0; x < numPanelsHeight; x++) {
+                            AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(timb.length, panelHeights[panelNum]);
+                            if (timberAssetId == AcDbObjectId::kNull) {
+                                acutPrintf(_T("\nFailed to create timber asset."));
+                            }
+                            else {
+                                AcGePoint3d currentPointWithHeight = timb.position;
+                                currentPointWithHeight.z += currentHeight;
+
+                                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                                pBlockRef->setPosition(currentPointWithHeight);
+                                pBlockRef->setBlockTableRecord(timberAssetId);
+                                pBlockRef->setRotation(timb.rotation);
+                                pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                                if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                    acutPrintf(_T("\nFailed to place wall segment."));
+                                }
+                                pBlockRef->close();
+                            }
+                        }
+                }
+            }
+        }*/
     }
 
     pModelSpace->close();
