@@ -193,6 +193,30 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
 //    pBlockTable->close();  // Decrement reference count
 //}
 
+double crossProduct2(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+bool directionOfDrawing2(std::vector<AcGePoint3d>& points) {
+    // Ensure the shape is closed
+    if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
+        points.push_back(points.front());
+    }
+
+    double totalTurns = 0.0;
+
+    for (size_t i = 1; i < points.size() - 1; ++i) {
+        totalTurns += crossProduct2(points[i - 1], points[i], points[i + 1]);
+    }
+
+    if (totalTurns < 0) {
+        return true;
+    }
+    else if (totalTurns > 0) {
+        return false;
+    }
+}
+
 // PLACE ASSETS AT DETECTED CORNERS
 void CornerAssetPlacer::placeAssetsAtCorners() {
     //acutPrintf(_T("\nPlacing assets at corners..."));
@@ -211,6 +235,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
     int loopIndex = 0;
     double outerPointCounter = corners[0].x;
     int outerLoopIndexValue = 0;
+    int firstLoopEnd;
 
     // Loop through corners, find outer and inner loop
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
@@ -236,6 +261,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
                 //acutPrintf(_T("\nYES. loopIndex = 1"));
                 closeLoopCounter = -1;
                 loopIndex = 1;
+                firstLoopEnd = cornerNum;
             }
             else {
                 //acutPrintf(_T("\nNO."));
@@ -243,6 +269,20 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         }
     }
     //acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
+
+    acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
+    acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+
+    std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
+    std::vector<AcGePoint3d> secondLoop(corners.begin() + firstLoopEnd + 1, corners.end());
+
+    bool firstLoopIsClockwise = directionOfDrawing2(firstLoop);
+    bool secondLoopIsClockwise = directionOfDrawing2(secondLoop);
+
+    std::vector<bool> loopIsClockwise = {
+        firstLoopIsClockwise,
+        secondLoopIsClockwise
+    };
 
     loopIndex = 0;
     int loopIndexLastPanel = 0;
@@ -302,6 +342,9 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         //acutPrintf(_T("| outerLoopIndexValue : %d "), outerLoopIndexValue); // Debug
         if (!(loopIndex == outerLoopIndexValue)) {
             isInside = true;
+        }
+        if (!loopIsClockwise[loopIndex]) {
+            isInside = !isInside;
         }
 
         if (cornerNum < corners.size() - 1) {
