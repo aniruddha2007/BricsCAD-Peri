@@ -466,22 +466,32 @@ void WallPlacer::placeWalls() {
 
             // Adjust start point
             if (!prevClockwise && isInner) {
-                start -= direction * 10;
+                start += direction * 50;
             }
             else if (!prevClockwise && isOuter) {
-                start += direction * 10;
+                start -= direction * 50;
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
-                end += direction * 10;
+                end -= direction * 50;
             }
             else if (!nextClockwise && isOuter) {
-                end -= direction * 10;
+                end += direction * 50;
             }
 
-            double distance = start.distanceTo(end) - 50;
-            AcGePoint3d currentPoint = start + direction * 25;
+            double distance;
+            AcGePoint3d currentPoint;
+
+            if (isInner) {
+                distance = start.distanceTo(end) - 50;
+                currentPoint = start + direction * 25;
+            }
+            else {
+                distance = start.distanceTo(end) - 170;
+                currentPoint = start + direction * 85;
+            }
+
             double rotation = atan2(direction.y, direction.x);
             double panelLength;
 
