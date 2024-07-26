@@ -285,7 +285,7 @@ std::vector<std::tuple<AcGePoint3d, double>> calculateTiePositions(const std::ve
 
 // Load Tie Asset
 AcDbObjectId TiePlacer::LoadTieAsset(const wchar_t* blockName) {
-    acutPrintf(L"\nLoading Tie Asset: %s", blockName);
+    //acutPrintf(L"\nLoading Tie Asset: %s", blockName);
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(L"\nFailed to get the working database");
@@ -300,13 +300,13 @@ AcDbObjectId TiePlacer::LoadTieAsset(const wchar_t* blockName) {
 
     AcDbObjectId blockId;
     if (pBlockTable->getAt(blockName, blockId) != Acad::eOk) {
-        acutPrintf(_T("\nBlock not found %s"), blockName);
+        //acutPrintf(_T("\nBlock not found %s"), blockName);
         pBlockTable->close();
         return AcDbObjectId::kNull;
     }
 
     pBlockTable->close();
-    acutPrintf(L"\nLoaded block: %s", blockName);
+    //acutPrintf(L"\nLoaded block: %s", blockName);
     return blockId;
 }
 
@@ -354,6 +354,44 @@ void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation,
     pBlockTable->close();
 }
 
+double crossProduct3(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+bool directionOfDrawing3(std::vector<AcGePoint3d>& points) {
+    // Ensure the shape is closed
+    if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
+        points.push_back(points.front());
+    }
+
+    double totalTurns = 0.0;
+
+    for (size_t i = 1; i < points.size() - 1; ++i) {
+        totalTurns += crossProduct3(points[i - 1], points[i], points[i + 1]);
+    }
+
+    if (totalTurns < 0) {
+        return true;
+    }
+    else if (totalTurns > 0) {
+        return false;
+    }
+}
+
+bool isThisClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d& p2) {
+    // Compute the vectors for the edges
+    AcGeVector3d v1 = p1 - p0;  // Vector from p0 to p1
+    AcGeVector3d v2 = p2 - p1;  // Vector from p1 to p2
+
+    // Compute the cross product
+    AcGeVector3d crossProduct = v1.crossProduct(v2);
+
+    // Determine the direction of the turn
+    // If cross product z-component is positive, the turn is clockwise
+    // If cross product z-component is negative, the turn is counterclockwise
+    return crossProduct.z < 0;
+}
+
 // Place Ties
 void TiePlacer::placeTies() {
     acutPrintf(L"\nPlacing Ties");
@@ -376,7 +414,7 @@ void TiePlacer::placeTies() {
         {600, L"030160X"}
     };
 
-    AcDbObjectId assetId;
+    AcDbObjectId tieAssetId;
     const std::wstring wingnut = L"030110X";
     AcDbObjectId assetIdWingnut = LoadTieAsset(wingnut.c_str());
     //std::vector<std::tuple<AcGePoint3d, double>> tiePositions = calculateTiePositions(panelPositions);
@@ -384,7 +422,7 @@ void TiePlacer::placeTies() {
         acutPrintf(_T("\n(int)distanceBetweenPoly + 30: %d"), ((int)distanceBetweenPoly + 30));
         acutPrintf(_T("\ntie.length: %f"), tie.length);
         if (tie.length >= ((int)distanceBetweenPoly + 30)) {
-            assetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
+            tieAssetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
             break;
         }
     }
@@ -412,39 +450,588 @@ void TiePlacer::placeTies() {
     int loopIndex = 0;
     double outerPointCounter = corners[0].x;
     int outerLoopIndexValue = 0;
+    int firstLoopEnd;
 
-    // Loop through corners, find outer and inner loop
+    // First Pass: Determine inner and outer loops
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[cornerNum + 1];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  // Wrap around to the first point
         AcGeVector3d direction = (end - start).normal();
 
-        //acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
         if (start.x > outerPointCounter) {
             outerPointCounter = start.x;
             outerLoopIndexValue = loopIndex;
         }
 
-        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
-        if (isThisInteger(direction.x) && isThisInteger(direction.y)) {
-            //acutPrintf(_T("\nYES."));
-        }
-        else {
-            //acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+        if (!isThisInteger(direction.x) || !isThisInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
-                //acutPrintf(_T("\nYES."));
                 closeLoopCounter = -1;
                 loopIndex = 1;
-            }
-            else {
-                //acutPrintf(_T("\nNO."));
+                firstLoopEnd = cornerNum;
             }
         }
     }
-    acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
 
+    //Debug
+    //acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
+    //acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+
+    std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
+    std::vector<AcGePoint3d> secondLoop(corners.begin() + firstLoopEnd + 1, corners.end());
+
+    bool firstLoopIsClockwise = directionOfDrawing3(firstLoop);
+    bool secondLoopIsClockwise = directionOfDrawing3(secondLoop);
+
+    std::vector<bool> loopIsClockwise = {
+        firstLoopIsClockwise,
+        secondLoopIsClockwise
+    };
+
+
+    struct WallPanel {
+        AcGePoint3d position;
+        AcDbObjectId assetId;
+        double rotation;
+        double length;
+        int height;
+        int loopIndex;
+        bool isOuterLoop;
+        bool firstOrLast;
+    };
+    struct Timber {
+        AcGePoint3d position;
+        AcDbObjectId assetId;
+        double rotation;
+        double length;
+        int height;
+        int loopIndex;
+        bool isOuterLoop;
+    };
+
+    std::vector<WallPanel> wallPanels;
+    std::vector<Timber> timber;
+
+    std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
+
+    loopIndex = 0;
+    int loopIndexLastPanel = 0;
+    closeLoopCounter = -1;
+    double totalPanelsPlaced = 0;
+    std::vector<int> cornerLocations;
+
+
+    int wallHeight = globalVarHeight;
+    int currentHeight = 0;
+    int panelHeights[] = { 135, 120, 60 };
+
+    // Structure to hold panel information
+    struct Panel {
+        int length;
+        std::wstring id[3];
+    };
+
+    std::vector<Panel> panelSizes = {
+        {60, {L"128282X", L"136096X", L"129839X"}},
+        {45, {L"128283X", L"Null", L"129840X"}},
+        {30, {L"128284X", L"Null", L"129841X"}},
+        {15, {L"128285X", L"Null", L"129842X"}},
+        {10, {L"128292X", L"Null", L"129884X"}},
+        {5, {L"128287X", L"Null", L"129879X"}}
+    };
+
+
+    // Second Pass: Save all positions, asset IDs, and rotations
+    for (int cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+
+        acutPrintf(_T("\nCorner."));
+
+        closeLoopCounter++;
+        cornerLocations.push_back(static_cast<int>(totalPanelsPlaced));
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[cornerNum + 1];
+        AcGeVector3d direction = (end - start).normal();
+
+        if (!isThisInteger(direction.x) || !isThisInteger(direction.y)) {
+            if (cornerNum < corners.size() - 1) {
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+                loopIndexLastPanel = 1;
+            }
+            else {
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+            }
+        }
+
+        // Get previous and next corners
+        AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
+        AcGePoint3d next = corners[(cornerNum + 2) % corners.size()];
+
+        bool prevClockwise = isThisClockwise(prev, start, end);
+        bool nextClockwise = isThisClockwise(start, end, next);
+
+        bool isInner = loopIndex != outerLoopIndexValue;
+        bool isOuter = !isInner;  // Outer loop is the opposite of inner
+
+        if (!loopIsClockwise[loopIndex]) {
+            isInner = !isInner;
+            isOuter = !isOuter;
+        }
+        
+        if ((isInner && loopIsClockwise[loopIndex]) || (isOuter && !loopIsClockwise[loopIndex])) {
+
+            direction = (end - start).normal();
+
+            bool skipFirstTie = false;
+            bool skipLastTie = false;
+            if (!prevClockwise) {
+                skipFirstTie = true;
+            }
+            if (!nextClockwise) {
+                skipLastTie = true;
+            }
+            // Adjust start point
+            if (!prevClockwise && isInner) {
+                start -= direction * 10;
+                //skipFirstTie = true;
+            }
+            else if (!prevClockwise && isOuter) {
+                start += direction * 10;
+            }
+
+            // Adjust end point
+            if (!nextClockwise && isInner) {
+                end += direction * 10;
+                //skipLastTie = true;
+            }
+            else if (!nextClockwise && isOuter) {
+                end -= direction * 10;
+            }
+
+            double distance = start.distanceTo(end) - 50;
+            AcGePoint3d currentPoint = start + direction * 25;
+            double rotation = atan2(direction.y, direction.x);
+            double panelLength;
+
+            if (isOuter) {
+                distance += 20;
+                currentPoint -= direction * 10;
+                rotation += M_PI;
+            }
+
+            double skipedFirstTie = false;
+            bool firstOrLast;
+
+            for (const auto& panel : panelSizes) {
+                currentHeight = 0;
+                //AcGePoint3d backupCurrentPoint = currentPoint;
+                //double backupDistance = distance;
+
+                for (int panelNum = 0; panelNum < 3; panelNum++) {
+                    AcDbObjectId assetId = LoadTieAsset(panel.id[panelNum].c_str());
+
+                    if (assetId != AcDbObjectId::kNull) {
+                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+
+                        //acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
+                        //for (int x = 0; x < numPanelsHeight; x++) {
+                        if (numPanelsHeight > 0) {
+                            //currentPoint = backupCurrentPoint;
+                            //distance = backupDistance;
+
+                            int numPanels = static_cast<int>(distance / panel.length);
+                            //acutPrintf(_T("\nnumPanels = %d"), numPanels);
+                            if (numPanels != 0) {
+                                for (int i = 0; i < numPanels; i++) {
+                                    AcGePoint3d currentPointWithHeight = currentPoint;
+                                    currentPointWithHeight.z += currentHeight;
+                                    if (isOuter) {
+                                        currentPointWithHeight += direction * panel.length;
+                                    }
+                                    rotation = normalizeAngle(rotation);
+                                    rotation = snapToExactAngle(rotation, TOLERANCE);
+                                    firstOrLast = false;
+                                    if (skipFirstTie && !skipedFirstTie) {
+                                        firstOrLast = true;
+                                        acutPrintf(_T("\nPrev not clockwise, Skip first tie."));
+                                        skipedFirstTie = true;
+                                    }
+                                    /*else if (skipLastTie && i == numPanels - 1) {
+                                        firstOrLast = true;
+                                        acutPrintf(_T("\nNext not clockwise, Skip last tie."));
+                                    }*/
+                                    panelLength = panel.length;
+                                    wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter, firstOrLast });
+                                    acutPrintf(_T("\ntie placed at %f, %f, numPanels = %d, panelNum = %d, i = %d", currentPointWithHeight.x, currentPointWithHeight.y, numPanels, panelNum, i));
+                                    totalPanelsPlaced++;
+                                    currentPoint += direction * panelLength;
+                                    distance -= panelLength;
+                                }
+                            }
+                            //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
+                            currentHeight = wallHeight;
+                        }
+                    }
+                }
+            }
+            wallPanels.back().firstOrLast = skipLastTie;
+            segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
+        }
+        
+        loopIndex = loopIndexLastPanel;
+    }
+
+    // Third Pass: Adjust positions for specific asset IDs
+    std::vector<AcDbObjectId> centerAssets = {
+        LoadTieAsset(L"128285X"),
+        LoadTieAsset(L"129842X"),
+        LoadTieAsset(L"129879X"),
+        LoadTieAsset(L"129884X"),
+        LoadTieAsset(L"128287X"),
+        LoadTieAsset(L"128292X")
+    };
+
+    int prevStartCornerIndex = -1;
+    int movedCompensators = 0;
+
+    for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
+        WallPanel& panel = wallPanels[panelNum];
+        if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
+
+            // Find the two corner points between which the panel is placed
+            int panelPosition = panelNum;  // This should be the index of the panel
+            //acutPrintf(_T("\nFound compensator at %d."), panelNum);
+            WallPanel detectedPanel = wallPanels[panelPosition];
+            AcGePoint3d detectedPanelPosition = detectedPanel.position;
+            AcDbObjectId detectedPanelId = detectedPanel.assetId;
+
+            double panelLength = wallPanels[panelPosition].length;
+
+
+            //acutPrintf(_T(" panelLength = %f."), panelLength);
+
+            int startCornerIndex = -1;
+            int endCornerIndex = -1;
+
+            for (int j = 0; j < cornerLocations.size(); ++j) {
+                if (cornerLocations[j] < panelNum) {
+                    startCornerIndex = cornerLocations[j];  // Last corner before the panel
+                }
+                if (cornerLocations[j] > panelNum) {
+                    endCornerIndex = cornerLocations[j];  // First corner after the panel
+                    break;
+                }
+            }
+            //acutPrintf(_T(" Between %d."), startCornerIndex);
+            if (endCornerIndex == -1) {
+                endCornerIndex = panelNum + 1;
+            }
+            //acutPrintf(_T(" and %d."), endCornerIndex);
+
+
+            if (prevStartCornerIndex != startCornerIndex) {
+                movedCompensators = 0;
+                prevStartCornerIndex = startCornerIndex;
+            }
+
+            // Validate the corner indices
+            if (startCornerIndex == -1 || endCornerIndex == -1) {
+                // No valid corners found; handle error
+            }
+
+            // Calculate the center index in wallPanels
+            int centerIndex = (startCornerIndex + endCornerIndex) / 2;
+
+            // Get positions of centerIndex and detectedPanel
+            AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;
+
+            AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
+
+            // Adjust the position of the detected panel
+            wallPanels[panelNum].position = centerPanelPosition;
+            if (wallPanels[panelNum].isOuterLoop && loopIsClockwise[wallPanels[panelNum].loopIndex]) {
+                wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
+                wallPanels[panelNum].position += direction * panelLength;
+            }
+            if (!loopIsClockwise[wallPanels[panelNum].loopIndex]) {
+                //wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
+                //wallPanels[panelNum].position += direction * panelLength;
+            }
+
+
+            //acutPrintf(_T("\t | Moved to centerIndex = %d."), centerIndex + movedCompensators);
+            for (int centerToCornerPanelNum = centerIndex + movedCompensators; centerToCornerPanelNum < panelNum - movedCompensators; centerToCornerPanelNum++) {
+                wallPanels[centerToCornerPanelNum].position = wallPanels[centerToCornerPanelNum].position + direction * panelLength;
+            }
+            if (prevStartCornerIndex == startCornerIndex) {
+                movedCompensators++;
+            }
+        }
+    }
+
+    //acutPrintf(_T("\ncornerLocations (size: %d): "), cornerLocations.size());
+    //acutPrintf(_T("\ncornerLocations: "));
+    for (size_t i = 0; i < cornerLocations.size(); ++i) {
+        //acutPrintf(_T("%d "), cornerLocations[i]);
+    }
+    //acutPrintf(_T("\n"));
+
+    wallHeight = globalVarHeight;
+    currentHeight = globalVarHeight;
+
+    // Fourth Pass: Place all ties
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table."));
+        return;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space."));
+        pBlockTable->close();
+        return;
+    }
+    int timberHeight;
+
+    int tieOffsetHeight[] = { 30, 105 };
+    double xOffset;
+    if (loopIsClockwise[outerLoopIndexValue]) {
+        xOffset = 25; // X offset for the tie
+    }
+    else {
+        xOffset = 50; // X offset for the tie
+    }
+    double yOffset = 2.5; // Y offset for the tie
+    double wingtieOffset = (distanceBetweenPoly + 20) / 2;
+    AcGePoint3d wingnutPosition;
+    double wingnutRotation;
+    AcGePoint3d currentPointWithHeight;
+
+    for (const auto& panel : wallPanels) {
+        if (panel.length != 10 && !panel.firstOrLast) {
+            int tiesToPlace = 2;
+            if (panel.height == 60) {
+                tiesToPlace = 1;
+            }
+            for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
+                // Place the tie without scaling
+                currentPointWithHeight = panel.position;
+                currentPointWithHeight.z += tieOffsetHeight[tiePlaced];
+
+                //acutPrintf(_T("\nstatic_cast<int>(round(panel.rotation / M_PI_2)) = %d."), static_cast<int>(round(panel.rotation / M_PI_2)));
+                switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                case 0: // 0 degrees TOP
+                    currentPointWithHeight.x += yOffset;
+                    currentPointWithHeight.y += xOffset;
+                    break;
+                case 1: // 90 degrees LEFT
+                    currentPointWithHeight.x -= xOffset;
+                    currentPointWithHeight.y += yOffset;
+                    break;
+                case 2: // 180 degrees BOTTOM
+                    currentPointWithHeight.x -= yOffset;
+                    currentPointWithHeight.y -= xOffset;
+                    break;
+                case 3: // 270 degrees RIGHT
+                    currentPointWithHeight.x += xOffset;
+                    currentPointWithHeight.y -= yOffset;
+                    break;
+                }
+                /*if (loopIndex == outerLoopIndexValue) {
+                    currentPointWithHeight += direction * panelSizes[panelSize];
+                }*/
+                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                pBlockRef->setPosition(currentPointWithHeight);
+                pBlockRef->setBlockTableRecord(tieAssetId);
+                pBlockRef->setRotation(panel.rotation + M_PI_2);
+                pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                    acutPrintf(_T("\nFailed to place tie."));
+                }
+                pBlockRef->close();
+                for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
+                    AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
+                    wingnutPosition = currentPointWithHeight;
+                    wingtieOffset = -wingtieOffset;
+                    wingnutRotation = panel.rotation;
+                    switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                    case 0: // 0 degrees TOP
+                        wingnutPosition.y += wingtieOffset;
+                        wingnutRotation += M_PI;
+                        break;
+                    case 1: // 90 degrees LEFT
+                        wingnutPosition.x += wingtieOffset;
+                        break;
+                    case 2: // 180 degrees BOTTOM
+                        wingnutPosition.y -= wingtieOffset;
+                        wingnutRotation += M_PI;
+                        break;
+                    case 3: // 270 degrees RIGHT
+                        wingnutPosition.x -= wingtieOffset;
+                        break;
+                    case -1:
+                        break;
+                    }
+                    //if (loopIndex == outerLoopIndexValue) {
+                    //    currentPointWithHeight += direction * panelSizes[panelSize];
+                    //}
+                    pWingnutRef->setPosition(wingnutPosition);
+                    pWingnutRef->setBlockTableRecord(assetIdWingnut);
+                    if (wingnutNum == 1) {
+                        pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                    }
+                    else {
+                        pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                    }
+                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                    if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
+                        //acutPrintf(_T("\nPlaced wingnut."));
+                    }
+                    else {
+                        acutPrintf(_T("\nFailed to place wingnut."));
+                    }
+                    pWingnutRef->close();  // Decrement reference count
+                }
+            }
+            currentHeight = panel.height;
+            currentPointWithHeight.z += tieOffsetHeight[0];
+            int tieOffsetHeight2[] = { 30, 75 };
+            for (const auto& panel2 : panelSizes) {
+                if (panel2.length == panel.length) {
+                    for (int panelNum = 0; panelNum < 3; panelNum++) {
+                        AcDbObjectId assetId = LoadTieAsset(panel2.id[panelNum].c_str());
+
+                        if (assetId != AcDbObjectId::kNull) {
+                            int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+
+                            for (int x = 0; x < numPanelsHeight; x++) {
+
+                                for (int tiePlaced = 0; tiePlaced + (panelNum/2) < 2; tiePlaced++) {
+                                    currentPointWithHeight.z += tieOffsetHeight2[tiePlaced];
+
+                                    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                                    pBlockRef->setPosition(currentPointWithHeight);
+                                    pBlockRef->setBlockTableRecord(tieAssetId);
+                                    pBlockRef->setRotation(panel.rotation + M_PI_2);
+                                    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                                    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                        acutPrintf(_T("\nFailed to place tie."));
+                                    }
+                                    pBlockRef->close();
+
+                                    for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
+                                        AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
+                                        wingnutPosition = currentPointWithHeight;
+                                        wingtieOffset = -wingtieOffset;
+                                        wingnutRotation = panel.rotation;
+                                        switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                                        case 0: // 0 degrees TOP
+                                            wingnutPosition.y += wingtieOffset;
+                                            wingnutRotation += M_PI;
+                                            break;
+                                        case 1: // 90 degrees LEFT
+                                            wingnutPosition.x += wingtieOffset;
+                                            break;
+                                        case 2: // 180 degrees BOTTOM
+                                            wingnutPosition.y -= wingtieOffset;
+                                            wingnutRotation += M_PI;
+                                            break;
+                                        case 3: // 270 degrees RIGHT
+                                            wingnutPosition.x -= wingtieOffset;
+                                            break;
+                                        case -1:
+                                            break;
+                                        }
+                                        pWingnutRef->setPosition(wingnutPosition);
+                                        pWingnutRef->setBlockTableRecord(assetIdWingnut);
+                                        if (wingnutNum == 1) {
+                                            pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                                        }
+                                        else {
+                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                                        }
+                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                                        if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
+                                            //acutPrintf(_T("\nPlaced wingnut."));
+                                        }
+                                        else {
+                                            acutPrintf(_T("\nFailed to place wingnut."));
+                                        }
+                                        pWingnutRef->close();  // Decrement reference count
+
+                                    }
+                                }
+                                currentPointWithHeight.z += tieOffsetHeight[0];
+                                
+                            }
+                            if (numPanelsHeight != 0) {
+                                currentHeight += panelHeights[panelNum];
+                            }
+                            
+                        }
+                    }
+                }
+            }
+        }
+        /*for (const auto& panel2 : panelSizes) {
+            if (panel2.length == panel.length) {
+                for (int panelNum = 0; panelNum < 3; panelNum++) {
+                    AcDbObjectId assetId = LoadTieAsset(panel2.id[panelNum].c_str());
+
+                    if (assetId != AcDbObjectId::kNull) {
+                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+
+                        for (int x = 0; x < numPanelsHeight; x++) {
+
+                            AcGePoint3d currentPointWithHeight = panel.position;
+                            currentPointWithHeight.z += currentHeight;
+
+                            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                            pBlockRef->setPosition(currentPointWithHeight);
+                            pBlockRef->setBlockTableRecord(assetId);
+                            pBlockRef->setRotation(panel.rotation);
+                            pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                            if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                acutPrintf(_T("\nFailed to place wall segment."));
+                            }
+                            pBlockRef->close();
+                            currentHeight += panelHeights[panelNum];
+                        }
+                    }
+                }
+            }
+        }*/
+    }
+
+    pModelSpace->close();
+    pBlockTable->close();
+    acutPrintf(_T("\nCompleted placing ties and wingnuts."));
+
+
+
+
+
+
+
+
+
+
+
+    /*
     loopIndex = 0;
     int loopIndexLastPanel = 0;
     closeLoopCounter = -1;
@@ -662,25 +1249,14 @@ void TiePlacer::placeTies() {
                         currentHeight += panelHeights[panelNum];
                     }
 
-                    /*AcDbObjectId assetId = LoadTieAsset(panel.id[panelNum].c_str());
-                    //acutPrintf(_T("\nPanel length: %d,"), panel.length); // Debug
-
-                    if (assetId == AcDbObjectId::kNull) {
-                        acutPrintf(_T("\nFailed to load asset."));
-                    }
-                    else {
-
-                    }*/
                 }
             }
         }
         
-        /*if (!(loopIndex == outerLoopIndexValue) && loopIndexLastPanel == outerLoopIndexValue) {
-            loopIndexLastPanel = 1;
-        }*/
         loopIndex = loopIndexLastPanel;
         pModelSpace->close();  // Decrement reference count
         pBlockTable->close();  // Decrement reference count
-    }
+        
+    }*/
     acutPrintf(L"\nTies placed successfully");
 }
