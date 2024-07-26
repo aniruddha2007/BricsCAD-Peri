@@ -1,6 +1,6 @@
 ﻿// Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-07-04)
-// TODO: BUG with *60 corner post it's not getting placed
+// TODO:
 // CornerAssetPlacer.cpp
 // This file contains the implementation of the CornerAssetPlacer class.
 // The CornerAssetPlacer class is used to place assets at corners in BricsCAD.
@@ -221,10 +221,13 @@ bool directionOfDrawing2(std::vector<AcGePoint3d>& points) {
 void CornerAssetPlacer::placeAssetsAtCorners() {
     //acutPrintf(_T("\nPlacing assets at corners..."));
     std::vector<AcGePoint3d> corners = detectPolylines();
+    //check for corner connector cases
+     
     //acutPrintf(_T("\nDetected %d corners from lines."), corners.size());
 
     AcDbObjectId cornerPostId = loadAsset(L"128286X");
     AcDbObjectId panelId = loadAsset(L"128285X");
+    AcDbObjectId panel75Id = loadAsset(L"128281X");
 
     if (cornerPostId == AcDbObjectId::kNull || panelId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load assets."));
@@ -371,7 +374,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             //addTextAnnotation(corners[cornerNum], L"Inside Corner"); // Debug
         }
         else {
-            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
+            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId, panel75Id);
             //addTextAnnotation(corners[cornerNum], L"Outside Corner"); // Debug
         }
         loopIndex = loopIndexLastPanel;
@@ -431,6 +434,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
         if (panelNum == 1) {
             cornerPostId = loadAsset(L"129864X");
             panelId = loadAsset(L"129842X");
+            //panel75Id = loadAsset(L"");
         }
 
         for (int x = 0; x < numPanelsHeight; x++) {
@@ -452,25 +456,33 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
             }
             pCornerPostRef->close();
 
-            AcGeVector3d panelAOffset, panelBOffset;
+            AcGeVector3d panelAOffset, panelBOffset, panel75OffsetA, panel75OffsetB;
             rotation = normalizeAngle(rotation);
             rotation = snapToExactAngle(rotation, TOLERANCE);
 
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);
                 panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(15.0, 0.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, -75.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);
                 panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, 15.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(15.0, 0.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);
                 panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(-15.0, 0.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, 15.0, 0.0);
             }
             else if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);
                 panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, -15.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(-15.0, 0.0, 0.0);
             }
             else {
                 acutPrintf(_T("\nInvalid rotation angle detected: %f at %f"), rotation, corner);
@@ -479,6 +491,8 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 
             AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
             AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
+            AcGePoint3d panelPosition75A = cornerWithHeight + panel75OffsetA;
+            AcGePoint3d panelPosition75B = cornerWithHeight + panel75OffsetB;
 
             AcDbBlockReference* pPanelARef = new AcDbBlockReference();
             pPanelARef->setPosition(panelPositionA);
@@ -507,6 +521,36 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
                 acutPrintf(_T("\nFailed to place Panel B."));
             }
             pPanelBRef->close();
+
+            // Place Panel 75 near Panel A and Panel B
+            AcDbBlockReference* pPanel75RefA = new AcDbBlockReference();
+            pPanel75RefA->setPosition(panelPosition75A);
+            //pPanel75RefA->setBlockTableRecord(panel75Id);
+            pPanel75RefA->setRotation(rotation);
+            pPanel75RefA->setScaleFactors(AcGeScale3d(globalVarScale));
+
+            if (pModelSpace->appendAcDbEntity(pPanel75RefA) == Acad::eOk) {
+                //acutPrintf(_T("\nPanel 75 placed near Panel A successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel 75 near Panel A."));
+            }
+            pPanel75RefA->close();
+
+            AcDbBlockReference* pPanel75RefB = new AcDbBlockReference();
+            pPanel75RefB->setPosition(panelPosition75B);
+            //pPanel75RefB->setBlockTableRecord(panel75Id);
+            pPanel75RefB->setRotation(rotation + M_PI_2);
+            pPanel75RefB->setScaleFactors(AcGeScale3d(globalVarScale));
+
+            if (pModelSpace->appendAcDbEntity(pPanel75RefB) == Acad::eOk) {
+                //acutPrintf(_T("\nPanel 75 placed near Panel B successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel 75 near Panel B."));
+            }
+            pPanel75RefB->close();
+
             currentHeight += panelHeights[panelNum];
         }
     }
@@ -516,7 +560,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 }
 
 // PLACE ASSETS AT OUTSIDE CORNERS
-void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
+void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId, AcDbObjectId panel75Id) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -560,7 +604,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         cornerWithHeight.y += offset;
         break;
     case 270:
-        cornerWithHeight.x += 2*offset;
+        cornerWithHeight.x += 2 * offset;
     case 0:
         cornerWithHeight.x -= offset;
         cornerWithHeight.y += offset;
@@ -580,6 +624,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         if (panelNum == 1) {
             cornerPostId = loadAsset(L"129864X");
             panelId = loadAsset(L"129842X");
+            panel75Id = loadAsset(L"129838X");
         }
 
         for (int x = 0; x < numPanelsHeight; x++) {
@@ -601,25 +646,33 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             }
             pCornerPostRef->close();
 
-            AcGeVector3d panelAOffset, panelBOffset;
+            AcGeVector3d panelAOffset, panelBOffset, panel75OffsetA, panel75OffsetB;
             rotation = normalizeAngle(rotation);
             rotation = snapToExactAngle(rotation, TOLERANCE);
 
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(25.0, -10.0, 0.0);
                 panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(75.0, 0.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, -15.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(10.0, 25.0, 0.0);
                 panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, 75.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(15.0, 0.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(-25.0, 10.0, 0.0);
                 panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(-75.0, 0.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, 15.0, 0.0);
             }
             else if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
                 panelAOffset = AcGeVector3d(-10.0, -25.0, 0.0);
                 panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);
+                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, -75.0, 0.0);
+                panel75OffsetB = panelBOffset + AcGeVector3d(-15.0, 0.0, 0.0);
             }
             else {
                 acutPrintf(_T("\nInvalid rotation angle detected."));
@@ -628,6 +681,8 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
 
             AcGePoint3d panelPositionA = currentCornerWithHeight + panelAOffset;
             AcGePoint3d panelPositionB = currentCornerWithHeight + panelBOffset;
+            AcGePoint3d panelPosition75A = currentCornerWithHeight + panel75OffsetA;
+            AcGePoint3d panelPosition75B = currentCornerWithHeight + panel75OffsetB;
 
             AcDbBlockReference* pPanelARef = new AcDbBlockReference();
             pPanelARef->setPosition(panelPositionA);
@@ -656,6 +711,36 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
                 acutPrintf(_T("\nFailed to place Panel B."));
             }
             pPanelBRef->close();
+
+            // Place Panel 75 near Panel A and Panel B
+            AcDbBlockReference* pPanel75RefA = new AcDbBlockReference();
+            pPanel75RefA->setPosition(panelPosition75A);
+            pPanel75RefA->setBlockTableRecord(panel75Id);
+            pPanel75RefA->setRotation(rotation + M_PI);
+            pPanel75RefA->setScaleFactors(AcGeScale3d(globalVarScale));
+
+            if (pModelSpace->appendAcDbEntity(pPanel75RefA) == Acad::eOk) {
+                //acutPrintf(_T("\nPanel 75 placed near Panel A successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel 75 near Panel A."));
+            }
+            pPanel75RefA->close();
+
+            AcDbBlockReference* pPanel75RefB = new AcDbBlockReference();
+            pPanel75RefB->setPosition(panelPosition75B);
+            pPanel75RefB->setBlockTableRecord(panel75Id);
+            pPanel75RefB->setRotation(rotation + M_PI_2 + M_PI);
+            pPanel75RefB->setScaleFactors(AcGeScale3d(globalVarScale));
+
+            if (pModelSpace->appendAcDbEntity(pPanel75RefB) == Acad::eOk) {
+                //acutPrintf(_T("\nPanel 75 placed near Panel B successfully."));
+            }
+            else {
+                acutPrintf(_T("\nFailed to place Panel 75 near Panel B."));
+            }
+            pPanel75RefB->close();
+
             currentHeight += panelHeights[panelNum];
         }
     }

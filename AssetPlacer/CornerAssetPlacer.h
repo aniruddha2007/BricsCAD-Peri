@@ -22,7 +22,7 @@ private:
     // Method to place corner post and panels (Inside corner)
     static void placeInsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId);
     // Method to place corner post and panels (Outside corner)
-    static void placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId);
+    static void placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId, AcDbObjectId panel75Id);
     // Method to add text annotation at a specific position
     static void addTextAnnotation(const AcGePoint3d& position, const wchar_t* text);
 
