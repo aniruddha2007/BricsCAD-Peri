@@ -623,7 +623,6 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
 
         if (panelNum == 1) {
             cornerPostId = loadAsset(L"129864X");
-            panelId = loadAsset(L"129842X");
             panel75Id = loadAsset(L"129838X");
         }
 
@@ -651,66 +650,37 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
             rotation = snapToExactAngle(rotation, TOLERANCE);
 
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(25.0, -10.0, 0.0);
+                panelAOffset = AcGeVector3d(85.0, -10.0, 0.0);
                 panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(75.0, 0.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, -15.0, 0.0);
+                panel75OffsetA = panelAOffset;
+                panel75OffsetB = panelBOffset;
             }
             else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(10.0, 25.0, 0.0);
+                panelAOffset = AcGeVector3d(10.0, 85.0, 0.0);
                 panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, 75.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(15.0, 0.0, 0.0);
+                panel75OffsetA = panelAOffset;
+                panel75OffsetB = panelBOffset;
             }
             else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(-25.0, 10.0, 0.0);
+                panelAOffset = AcGeVector3d(-85.0, 10.0, 0.0);
                 panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(-75.0, 0.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, 15.0, 0.0);
+                panel75OffsetA = panelAOffset;
+                panel75OffsetB = panelBOffset;
             }
             else if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(-10.0, -25.0, 0.0);
+                panelAOffset = AcGeVector3d(-10.0, -85.0, 0.0);
                 panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, -75.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(-15.0, 0.0, 0.0);
+                panel75OffsetA = panelAOffset;
+                panel75OffsetB = panelBOffset;
             }
             else {
                 acutPrintf(_T("\nInvalid rotation angle detected."));
                 continue;
             }
 
-            AcGePoint3d panelPositionA = currentCornerWithHeight + panelAOffset;
-            AcGePoint3d panelPositionB = currentCornerWithHeight + panelBOffset;
             AcGePoint3d panelPosition75A = currentCornerWithHeight + panel75OffsetA;
             AcGePoint3d panelPosition75B = currentCornerWithHeight + panel75OffsetB;
 
-            AcDbBlockReference* pPanelARef = new AcDbBlockReference();
-            pPanelARef->setPosition(panelPositionA);
-            pPanelARef->setBlockTableRecord(panelId);
-            pPanelARef->setRotation(rotation + M_PI);
-            pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
-
-            if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel A placed successfully."));
-            }
-            else {
-                acutPrintf(_T("\nFailed to place Panel A."));
-            }
-            pPanelARef->close();
-
-            AcDbBlockReference* pPanelBRef = new AcDbBlockReference();
-            pPanelBRef->setPosition(panelPositionB);
-            pPanelBRef->setBlockTableRecord(panelId);
-            pPanelBRef->setRotation(rotation + M_PI_2 + M_PI);
-            pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
-
-            if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel B placed successfully."));
-            }
-            else {
-                acutPrintf(_T("\nFailed to place Panel B."));
-            }
-            pPanelBRef->close();
 
             // Place Panel 75 near Panel A and Panel B
             AcDbBlockReference* pPanel75RefA = new AcDbBlockReference();
