@@ -33,11 +33,11 @@
 #include "rxregsvc.h"
 #include "geassign.h"
 #include <string>
-#include "SharedDefinations.h"
 #include "DefineHeight.h"
 #include "DefineScale.h"
 #include <thread>
 #include <chrono>
+#include <map>
 #include "Timber/TimberAssetCreator.h"
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> WallPlacer::wallMap;
@@ -198,6 +198,7 @@ bool isClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d
     // If cross product z-component is negative, the turn is counterclockwise
     return crossProduct.z < 0;
 }
+
 double crossProduct(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 }
@@ -314,6 +315,7 @@ void WallPlacer::placeWalls() {
         int loopIndex;
         bool isOuterLoop;
     };
+
     struct Timber {
         AcGePoint3d position;
         AcDbObjectId assetId;

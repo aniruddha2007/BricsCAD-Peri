@@ -118,7 +118,6 @@ std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
 }
 
 
-
 // Function to get the vertices of an AcDbPolyline
 std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {
     std::vector<AcGePoint3d> vertices;
@@ -1120,7 +1119,7 @@ void TiePlacer::placeTies() {
 
         int currentHeight = 0;
         int panelHeights[] = { 135, 60 };
-        int panelSizes[] = { 60, 45, 30, 15, 10, 5 };
+        int panelSizes[] = {90, 75, 60, 45, 30, 15, 5 };
         int tieOffsetHeight[] = { 30, 105 };
         double xOffset = 2.5; // X offset for the tie
         double yOffset = 25; // Y offset for the tie
