@@ -29,6 +29,7 @@
 #include "DefineScale.h"                            // Include the header for the DefineScale class
 #include "SettingsCommands.h"
 #include "Columns/PlaceColumns.h"
+#include "AssetPlacer/SpecialCaseCorners.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -59,6 +60,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
 
@@ -117,6 +119,13 @@ public:
         SettingsCommands::openSettings();
         // Add settings dialog here
     }
+
+    // handle special cases
+    static void BrxAppSpecialCaseCorners(void)
+	{
+		acutPrintf(_T("\nRunning SpecialCaseCorners."));
+		SpecialCaseCorners::handleSpecialCases();
+	}
 
     // PlaceConnectors command
     static void BrxAppPlaceConnectors(void)
