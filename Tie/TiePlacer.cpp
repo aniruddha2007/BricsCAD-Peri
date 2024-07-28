@@ -498,6 +498,16 @@ void TiePlacer::placeTies() {
         bool isOuterLoop;
         bool firstOrLast;
     };
+    struct CornerTie {
+        AcGePoint3d position;
+        AcDbObjectId assetId;
+        double rotation;
+        double length;
+        int height;
+        int loopIndex;
+        bool isOuterLoop;
+        bool firstOrLast;
+    };
     struct Timber {
         AcGePoint3d position;
         AcDbObjectId assetId;
@@ -506,9 +516,10 @@ void TiePlacer::placeTies() {
         int height;
         int loopIndex;
         bool isOuterLoop;
-    };
+    };    
 
     std::vector<WallPanel> wallPanels;
+    std::vector<CornerTie> cornerTie;
     std::vector<Timber> timber;
 
     std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
@@ -543,7 +554,7 @@ void TiePlacer::placeTies() {
     // Second Pass: Save all positions, asset IDs, and rotations
     for (int cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
 
-        acutPrintf(_T("\nCorner."));
+        //acutPrintf(_T("\nCorner."));
 
         closeLoopCounter++;
         cornerLocations.push_back(static_cast<int>(totalPanelsPlaced));
@@ -578,7 +589,11 @@ void TiePlacer::placeTies() {
             isInner = !isInner;
             isOuter = !isOuter;
         }
-        
+        AcGePoint3d currentPointWithHeight;
+        double rotation;
+        bool firstOrLast;
+        int prevHeight;
+
         if ((isInner && loopIsClockwise[loopIndex]) || (isOuter && !loopIsClockwise[loopIndex])) {
 
             direction = (end - start).normal();
@@ -593,36 +608,35 @@ void TiePlacer::placeTies() {
             }
             // Adjust start point
             if (!prevClockwise && isInner) {
-                start -= direction * 10;
+                start += direction * 50;
                 //skipFirstTie = true;
             }
             else if (!prevClockwise && isOuter) {
-                start += direction * 10;
+                //start += direction * 10;
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
-                end += direction * 10;
+                end -= direction * 50;
                 //skipLastTie = true;
             }
             else if (!nextClockwise && isOuter) {
-                end -= direction * 10;
+                //end -= direction * 10;
             }
 
             double distance = start.distanceTo(end) - 50;
             AcGePoint3d currentPoint = start + direction * 25;
-            double rotation = atan2(direction.y, direction.x);
+            rotation = atan2(direction.y, direction.x);
             double panelLength;
 
             if (isOuter) {
-                distance += 20;
-                currentPoint -= direction * 10;
+                //distance += 20;
+                //currentPoint -= direction * 10;
                 rotation += M_PI;
             }
-
+            //AcDbObjectId cornerTieAssetId = LoadTieAsset(panelSizes[3].id[0].c_str());
+            //AcGePoint3d cornerTiePosition = end;
             double skipedFirstTie = false;
-            bool firstOrLast;
-
             for (const auto& panel : panelSizes) {
                 currentHeight = 0;
                 //AcGePoint3d backupCurrentPoint = currentPoint;
@@ -644,7 +658,7 @@ void TiePlacer::placeTies() {
                             //acutPrintf(_T("\nnumPanels = %d"), numPanels);
                             if (numPanels != 0) {
                                 for (int i = 0; i < numPanels; i++) {
-                                    AcGePoint3d currentPointWithHeight = currentPoint;
+                                    currentPointWithHeight = currentPoint;
                                     currentPointWithHeight.z += currentHeight;
                                     if (isOuter) {
                                         currentPointWithHeight += direction * panel.length;
@@ -653,17 +667,18 @@ void TiePlacer::placeTies() {
                                     rotation = snapToExactAngle(rotation, TOLERANCE);
                                     firstOrLast = false;
                                     if (skipFirstTie && !skipedFirstTie) {
-                                        firstOrLast = true;
-                                        acutPrintf(_T("\nPrev not clockwise, Skip first tie."));
-                                        skipedFirstTie = true;
+                                        //firstOrLast = true;
+                                        //acutPrintf(_T("\nPrev not clockwise, Skip first tie."));
+                                        //skipedFirstTie = true;
                                     }
                                     /*else if (skipLastTie && i == numPanels - 1) {
                                         firstOrLast = true;
                                         acutPrintf(_T("\nNext not clockwise, Skip last tie."));
                                     }*/
                                     panelLength = panel.length;
+                                    prevHeight = panelHeights[panelNum];
                                     wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter, firstOrLast });
-                                    acutPrintf(_T("\ntie placed at %f, %f, numPanels = %d, panelNum = %d, i = %d", currentPointWithHeight.x, currentPointWithHeight.y, numPanels, panelNum, i));
+                                    //acutPrintf(_T("\ntie placed at %f, %f, numPanels = %d, panelNum = %d, i = %d", currentPointWithHeight.x, currentPointWithHeight.y, numPanels, panelNum, i));
                                     totalPanelsPlaced++;
                                     currentPoint += direction * panelLength;
                                     distance -= panelLength;
@@ -675,10 +690,23 @@ void TiePlacer::placeTies() {
                     }
                 }
             }
-            wallPanels.back().firstOrLast = skipLastTie;
+            WallPanel lastPanel = wallPanels.back();
+            CornerTie newTie = {
+                lastPanel.position,
+                lastPanel.assetId,
+                lastPanel.rotation,
+                lastPanel.length,
+                lastPanel.height,
+                lastPanel.loopIndex,
+                lastPanel.isOuterLoop,
+                lastPanel.firstOrLast
+            };
+            cornerTie.push_back(newTie);
+            cornerTie.back().assetId = LoadTieAsset(panelSizes[3].id[0].c_str());
+            cornerTie.back().length = panelSizes[3].length;
+            cornerTie.back().position += direction * wallPanels.back().length;
             segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
         }
-        
         loopIndex = loopIndexLastPanel;
     }
 
@@ -816,7 +844,202 @@ void TiePlacer::placeTies() {
     AcGePoint3d currentPointWithHeight;
 
     for (const auto& panel : wallPanels) {
-        if (panel.length != 10 && !panel.firstOrLast) {
+        if (panel.length > 10 && !panel.firstOrLast) {
+            int tiesToPlace = 2;
+            if (panel.height == 60) {
+                tiesToPlace = 1;
+            }
+            for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
+                // Place the tie without scaling
+                currentPointWithHeight = panel.position;
+                currentPointWithHeight.z += tieOffsetHeight[tiePlaced];
+
+                //acutPrintf(_T("\nstatic_cast<int>(round(panel.rotation / M_PI_2)) = %d."), static_cast<int>(round(panel.rotation / M_PI_2)));
+                switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                case 0: // 0 degrees TOP
+                    currentPointWithHeight.x += yOffset;
+                    currentPointWithHeight.y += xOffset;
+                    break;
+                case 1: // 90 degrees LEFT
+                    currentPointWithHeight.x -= xOffset;
+                    currentPointWithHeight.y += yOffset;
+                    break;
+                case 2: // 180 degrees BOTTOM
+                    currentPointWithHeight.x -= yOffset;
+                    currentPointWithHeight.y -= xOffset;
+                    break;
+                case 3: // 270 degrees RIGHT
+                    currentPointWithHeight.x += xOffset;
+                    currentPointWithHeight.y -= yOffset;
+                    break;
+                }
+                //if (loopIndex == outerLoopIndexValue) {
+                //    currentPointWithHeight += direction * panelSizes[panelSize];
+                //}
+                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                pBlockRef->setPosition(currentPointWithHeight);
+                pBlockRef->setBlockTableRecord(tieAssetId);
+                pBlockRef->setRotation(panel.rotation + M_PI_2);
+                pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                    acutPrintf(_T("\nFailed to place tie."));
+                }
+                pBlockRef->close();
+                for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
+                    AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
+                    wingnutPosition = currentPointWithHeight;
+                    wingtieOffset = -wingtieOffset;
+                    wingnutRotation = panel.rotation;
+                    switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                    case 0: // 0 degrees TOP
+                        wingnutPosition.y += wingtieOffset;
+                        wingnutRotation += M_PI;
+                        break;
+                    case 1: // 90 degrees LEFT
+                        wingnutPosition.x += wingtieOffset;
+                        break;
+                    case 2: // 180 degrees BOTTOM
+                        wingnutPosition.y -= wingtieOffset;
+                        wingnutRotation += M_PI;
+                        break;
+                    case 3: // 270 degrees RIGHT
+                        wingnutPosition.x -= wingtieOffset;
+                        break;
+                    case -1:
+                        break;
+                    }
+                    //if (loopIndex == outerLoopIndexValue) {
+                    //    currentPointWithHeight += direction * panelSizes[panelSize];
+                    //}
+                    pWingnutRef->setPosition(wingnutPosition);
+                    pWingnutRef->setBlockTableRecord(assetIdWingnut);
+                    if (wingnutNum == 1) {
+                        pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                    }
+                    else {
+                        pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                    }
+                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                    if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
+                        //acutPrintf(_T("\nPlaced wingnut."));
+                    }
+                    else {
+                        acutPrintf(_T("\nFailed to place wingnut."));
+                    }
+                    pWingnutRef->close();  // Decrement reference count
+                }
+            }
+            currentHeight = panel.height;
+            currentPointWithHeight.z += tieOffsetHeight[0];
+            int tieOffsetHeight2[] = { 30, 75 };
+            for (const auto& panel2 : panelSizes) {
+                if (panel2.length == panel.length) {
+                    for (int panelNum = 0; panelNum < 3; panelNum++) {
+                        AcDbObjectId assetId = LoadTieAsset(panel2.id[panelNum].c_str());
+
+                        if (assetId != AcDbObjectId::kNull) {
+                            acutPrintf(_T("\ncurrentHeight = %d."), currentHeight);
+                            int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+                            acutPrintf(_T("\nnumPanelsHeight = %d."), numPanelsHeight);
+
+                            for (int x = 0; x < numPanelsHeight; x++) {
+
+                                for (int tiePlaced = 0; tiePlaced + (panelNum/2) < 2; tiePlaced++) {
+                                    currentPointWithHeight.z += tieOffsetHeight2[tiePlaced];
+
+                                    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                                    pBlockRef->setPosition(currentPointWithHeight);
+                                    pBlockRef->setBlockTableRecord(tieAssetId);
+                                    pBlockRef->setRotation(panel.rotation + M_PI_2);
+                                    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                                    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+                                        acutPrintf(_T("\nFailed to place tie."));
+                                    }
+                                    pBlockRef->close();
+
+                                    for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
+                                        AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
+                                        wingnutPosition = currentPointWithHeight;
+                                        wingtieOffset = -wingtieOffset;
+                                        wingnutRotation = panel.rotation;
+                                        switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                                        case 0: // 0 degrees TOP
+                                            wingnutPosition.y += wingtieOffset;
+                                            wingnutRotation += M_PI;
+                                            break;
+                                        case 1: // 90 degrees LEFT
+                                            wingnutPosition.x += wingtieOffset;
+                                            break;
+                                        case 2: // 180 degrees BOTTOM
+                                            wingnutPosition.y -= wingtieOffset;
+                                            wingnutRotation += M_PI;
+                                            break;
+                                        case 3: // 270 degrees RIGHT
+                                            wingnutPosition.x -= wingtieOffset;
+                                            break;
+                                        case -1:
+                                            break;
+                                        }
+                                        pWingnutRef->setPosition(wingnutPosition);
+                                        pWingnutRef->setBlockTableRecord(assetIdWingnut);
+                                        if (wingnutNum == 1) {
+                                            pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                                        }
+                                        else {
+                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                                        }
+                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+
+                                        if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
+                                            //acutPrintf(_T("\nPlaced wingnut."));
+                                        }
+                                        else {
+                                            acutPrintf(_T("\nFailed to place wingnut."));
+                                        }
+                                        pWingnutRef->close();  // Decrement reference count
+
+                                    }
+                                }
+                                currentPointWithHeight.z += tieOffsetHeight[0];
+                                
+                            }
+                            if (numPanelsHeight != 0) {
+                                currentHeight += panelHeights[panelNum];
+                            }
+                            
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    //pModelSpace->close();
+    //pBlockTable->close();
+    
+    /*for (const auto& tie : cornerTie) {
+        acutPrintf(_T("\nPosition: (%lf, %lf, %lf)"), tie.position.x, tie.position.y, tie.position.z);
+        acutPrintf(_T("\nAsset ID: %d"), tie.assetId.asOldId()); // Adjust this line based on how you want to print AcDbObjectId
+        acutPrintf(_T("\nRotation: %lf"), tie.rotation);
+        acutPrintf(_T("\nLength: %lf"), tie.length);
+        acutPrintf(_T("\nHeight: %d"), tie.height);
+        acutPrintf(_T("\nLoop Index: %d"), tie.loopIndex);
+        acutPrintf(_T("\nIs Outer Loop: %s"), tie.isOuterLoop ? _T("True") : _T("False"));
+        acutPrintf(_T("\nFirst Or Last: %s"), tie.firstOrLast ? _T("True") : _T("False"));
+        acutPrintf(_T("\n--------------------------\n"));
+    }*/
+
+    prevStartCornerIndex = -1;
+    movedCompensators = 0;
+
+    //acutPrintf(_T("\nPlacing corner ties)"));
+
+    // Place corner ties
+    for (const auto& panel : cornerTie) {
+        if (panel.length > 10 && !panel.firstOrLast) {
             int tiesToPlace = 2;
             if (panel.height == 60) {
                 tiesToPlace = 1;
@@ -916,7 +1139,7 @@ void TiePlacer::placeTies() {
 
                             for (int x = 0; x < numPanelsHeight; x++) {
 
-                                for (int tiePlaced = 0; tiePlaced + (panelNum/2) < 2; tiePlaced++) {
+                                for (int tiePlaced = 0; tiePlaced + (panelNum / 2) < 2; tiePlaced++) {
                                     currentPointWithHeight.z += tieOffsetHeight2[tiePlaced];
 
                                     AcDbBlockReference* pBlockRef = new AcDbBlockReference();
@@ -928,6 +1151,7 @@ void TiePlacer::placeTies() {
                                     if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
                                         acutPrintf(_T("\nFailed to place tie."));
                                     }
+
                                     pBlockRef->close();
 
                                     for (int wingnutNum = 0; wingnutNum < 2; wingnutNum++) {
@@ -974,12 +1198,12 @@ void TiePlacer::placeTies() {
                                     }
                                 }
                                 currentPointWithHeight.z += tieOffsetHeight[0];
-                                
+
                             }
                             if (numPanelsHeight != 0) {
                                 currentHeight += panelHeights[panelNum];
                             }
-                            
+
                         }
                     }
                 }
@@ -1018,6 +1242,7 @@ void TiePlacer::placeTies() {
 
     pModelSpace->close();
     pBlockTable->close();
+
     acutPrintf(_T("\nCompleted placing ties and wingnuts."));
 
 
