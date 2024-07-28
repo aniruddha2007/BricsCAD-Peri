@@ -45,7 +45,7 @@
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Menu\CustomMenu.cui" />
+    <None Include="Menu\AP-Peri_Automation_Tools.cui" />
     <None Include="README.md" />
     <None Include="packages.config" />
   </ItemGroup>

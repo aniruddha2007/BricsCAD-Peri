@@ -32,7 +32,7 @@ bool isThisInteger(double value, double tolerance = 1e-9) {
 
 const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
 
-const int BATCH_SIZE = 50; // Define the batch size for processing entities
+const int BATCH_SIZE = 150; // Define the batch size for processing entities
 
 double distanceBetweenPoly;
 
@@ -156,18 +156,21 @@ double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
+    // Get the working database
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
         return positions;
     }
 
+    // Get the block table
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
         return positions;
     }
 
+    // Get the model space
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get model space."));
@@ -175,6 +178,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         return positions;
     }
 
+    // Create an iterator for the model space
     AcDbBlockTableRecordIterator* pIter;
     if (pModelSpace->newIterator(pIter) != Acad::eOk) {
         acutPrintf(_T("\nFailed to create iterator."));
@@ -186,15 +190,17 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
     AcDbPolyline* pFirstPolyline = nullptr;
     AcDbPolyline* pSecondPolyline = nullptr;
 
+    // Iterate through the entities to find polylines
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
-                if (pFirstPolyline == nullptr) {
+                if (!pFirstPolyline) {
                     pFirstPolyline = AcDbPolyline::cast(pEnt);
                 }
                 else {
                     pSecondPolyline = AcDbPolyline::cast(pEnt);
+                    pEnt->close();
                     break; // Found both polylines, no need to continue
                 }
             }
@@ -202,10 +208,10 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         }
     }
 
+    // Calculate the distance between the first two polylines
     if (pFirstPolyline && pSecondPolyline) {
         double distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
         if (distance > 0) {
-            //acutPrintf(_T("\nDistance between polylines: %f"), distance);
             distanceBetweenPoly = distance;
         }
         else {
@@ -216,6 +222,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         acutPrintf(_T("\nDid not find two polylines."));
     }
 
+    // Close the iterator and model space
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
@@ -227,55 +234,43 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
 std::vector<std::tuple<AcGePoint3d, double>> calculateTiePositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double>> tiePositions;
     acutPrintf(L"\n Debug: calculateTiePositions");
+
     // Define offsets here
-    double xOffset = 20.0; // Define the x offset
-    double yOffset = 2.5; // Define the y offset
-    std::array<double, 2> zOffset = { 30.0, 105.0 }; // Define the z offset array
+    const double xOffset = 20.0;
+    const double yOffset = 2.5;
+    const std::array<double, 2> zOffset = { 30.0, 105.0 };
 
-    for (const auto& panelPositions : panelPositions) {
-        AcGePoint3d pos = std::get<0>(panelPositions);
-        std::wstring panelName = std::get<1>(panelPositions);
-        double rotation = std::get<2>(panelPositions);
+    for (const auto& panelPosition : panelPositions) {
+        AcGePoint3d pos = std::get<0>(panelPosition);
+        double rotation = std::get<2>(panelPosition) + M_PI_2;
 
-        // Adjust rotation by adding 90 degrees (pi/2 radians)
-        rotation += M_PI_2;
-
-        int tieCount = 2;
-
-        for (int i = 0; i < tieCount; ++i) {
+        for (int i = 0; i < 2; ++i) {
             AcGePoint3d tiePos = pos;
 
-            // Adjust positions based on the rotation and apply any offset if required
-            switch (static_cast<int>(round(rotation / M_PI_2))) {
-            case 1: // 90 degrees (top)
+            switch (static_cast<int>(round(rotation / M_PI_2)) % 4) {
+            case 0:
                 tiePos.x += yOffset;
                 tiePos.y += xOffset;
-                tiePos.z += zOffset[i];
                 break;
-            case 2: // 180 degrees(left)
+            case 1:
                 tiePos.x -= xOffset;
-                tiePos.y -= yOffset;
-                tiePos.z += zOffset[i];
+                tiePos.y += yOffset;
                 break;
-            case 3: // 270 degrees (bottom)
+            case 2:
                 tiePos.x -= yOffset;
                 tiePos.y -= xOffset;
-                tiePos.z += zOffset[i];
                 break;
-            case 4: // 360 degrees(right)
+            case 3:
                 tiePos.x += xOffset;
                 tiePos.y -= yOffset;
-                tiePos.z += zOffset[i];
                 break;
             default:
                 acutPrintf(_T("\nInvalid rotation angle: %f"), rotation);
                 break;
             }
-            // Print Debug Information
-            // acutPrintf(_T("\nTie position: (%f, %f, %f)"), tiePos.x, tiePos.y, tiePos.z);
-            // acutPrintf(_T("\nTie rotation: %f"), rotation);
 
-            tiePositions.emplace_back(std::make_tuple(tiePos, rotation));
+            tiePos.z += zOffset[i];
+            tiePositions.emplace_back(tiePos, rotation);
         }
     }
 

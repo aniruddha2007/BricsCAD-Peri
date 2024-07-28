@@ -50,6 +50,7 @@ public:
         // Place your initialization code and base info here
         acutPrintf(_T("\nWelcome to PERICAD plugin developed for BRICSCAD V24 by Ani."));
         acutPrintf(_T("\nType 'ListCmds' to see the available commands."));
+        acutPrintf(_T("\nFor more information please contact ani@aniruddhapandit.com\n"));
 
         // Register the commands
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
@@ -199,10 +200,9 @@ public:
         acutPrintf(_T("\nAvailable commands:"));
         acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
         acutPrintf(_T("\nPlaceWalls: To only place Walls."));
-        acutPrintf(_T("\nPlaceConnectors: To only place Duo Couplers and "));
+        acutPrintf(_T("\nPlaceConnectors: To Place all types of Connectors. Duo Couplers, Waler, Duo Grip DW 15. "));
         acutPrintf(_T("\nPlaceTies: To only place Ties."));
         acutPrintf(_T("\nPlaceColunms: To only place Columns."));
-        acutPrintf(_T("\nPlaceWaler: To only place Waler 62 on *10 Compensator."));
         acutPrintf(_T("\nDefineHeight: Define Height, specify height in mm."));
         acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
