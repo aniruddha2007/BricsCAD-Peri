@@ -147,7 +147,7 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		ColumnPlacer::placeColumnsCmd();
+		ColumnPlacer::placeColumns();
 	}
 
     // LoadBlocks command

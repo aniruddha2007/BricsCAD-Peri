@@ -1,35 +1,15 @@
-// PlaceColumns.cpp
-
 #include "StdAfx.h"
 #include "PlaceColumns.h"
-#include "SharedDefinations.h"
-#include "AssetPlacer/GeometryUtils.h"
+#include "SharedDefinations.h"  // For M_PI constants
+#include "DefineScale.h"       // For globalVarScale
 #include <vector>
-#include <limits>
-#include "dbapserv.h"
-#include "dbents.h"
-#include "dbsymtb.h"
-#include "AcDb.h"
-#include "aced.h"
+#include <tuple>
 #include <cmath>
-#include "acutads.h"
-#include "acdocman.h"
-#include "rxregsvc.h"
-#include "geassign.h"
-#include <string>
-#include <thread>
-#include <map>
-#include <chrono>
-
-const struct Panel {
-    int size;
-    std::vector<std::wstring> blockNames;
-};
-
-std::map<AcGePoint3d, std::vector<AcGePoint3d>, ColumnPlacer::Point3dComparator> ColumnPlacer::columnMap;
-
-const int BATCH_SIZE = 30;
-const double TOLERANCE = 0.1;
+#include <algorithm>            // For std::transform
+#include "dbapserv.h"           // For acdbHostApplicationServices() and related services
+#include "dbents.h"             // For AcDbBlockReference
+#include "dbsymtb.h"            // For block table record definitions
+#include "AcDb.h"               // General database definitions
 
 AcDbObjectId ColumnPlacer::loadAsset(const wchar_t* blockName) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -38,17 +18,17 @@ AcDbObjectId ColumnPlacer::loadAsset(const wchar_t* blockName) {
         return AcDbObjectId::kNull;
     }
 
-    AcDbBlockTable* pBlockTable = nullptr;
+    AcDbBlockTable* pBlockTable;
     Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
     if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table. Error: %d"), es);
+        acutPrintf(_T("\nFailed to get block table: %s"), acadErrorStatusText(es));
         return AcDbObjectId::kNull;
     }
 
     AcDbObjectId blockId;
     es = pBlockTable->getAt(blockName, blockId);
     if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block ID for %s. Error: %d"), blockName, es);
+        acutPrintf(_T("\nBlock not found: %s, Error: %s"), blockName, acadErrorStatusText(es));
         pBlockTable->close();
         return AcDbObjectId::kNull;
     }
@@ -57,214 +37,165 @@ AcDbObjectId ColumnPlacer::loadAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-void ColumnPlacer::placeColumn(const AcGePoint3d& position, const int width, const int length) {
-    // List of available panels
-    std::vector<Panel> panelSizes = {
-        {60, {L"128282X", L"136096X", L"129839X"}},
-        {45, {L"128283X", L"Null", L"129840X"}},
-        {30, {L"128284X", L"Null", L"129841X"}},
-        {15, {L"128285X", L"Null", L"129842X"}},
-        {10, {L"128292X", L"Null", L"129884X"}},
-        {5, {L"128287X", L"Null", L"129879X"}}
+AcDbObjectId ColumnPlacer::createCompositeBlock(const wchar_t* newBlockName) {
+    std::vector<const wchar_t*> baseBlockNames = {
+        L"128281X", L"128295X", L"128265X", L"030110X"
     };
-
-    // Define the composite block name
-    const wchar_t* blockName = L"CompositePanelBlock";
-
-    // Define panel block names, positions, and rotations
-    std::vector<std::wstring> panelNames = { L"128282X", L"128282X", L"128282X", L"128282X" };
-    std::vector<AcGePoint3d> positions = { position, AcGePoint3d(position.x + 200, position.y, position.z), AcGePoint3d(position.x + 200, position.y + 200, position.z), AcGePoint3d(position.x, position.y + 200, position.z) };
-    std::vector<double> rotations = { 0, M_PI_2, M_PI, 3 * M_PI_2 };
-
-    // Create the composite block
-    acutPrintf(_T("\nCreating composite block..."));
-    ColumnPlacer::createCompositeBlock(acdbHostApplicationServices()->workingDatabase(), blockName, panelNames, positions, rotations);
-    acutPrintf(_T("Composite block created."));
-
-    // Insert the composite block
-    acutPrintf(_T("\nInserting composite block..."));
-    ColumnPlacer::insertCompositeBlock(acdbHostApplicationServices()->workingDatabase(), blockName, position);
-    acutPrintf(_T("Composite block inserted."));
-}
-
-void ColumnPlacer::placeColumns() {
-    // Implement the logic to place columns here.
-    // This is a placeholder for the actual logic to place columns at desired positions.
-    acutPrintf(_T("\nHey there, columns."));
-    AcGePoint3d position = AcGePoint3d(0, 0, 0);
-    int width = 30;
-    int length = 30;
-    placeColumn(position, width, length);
-}
-
-void ColumnPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-    AcDbText* pText = new AcDbText();
-    pText->setPosition(position);
-    pText->setHeight(5.0);
-    pText->setTextString(text);
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
-        delete pText;
-        return;
+        return AcDbObjectId::kNull;
     }
 
-    AcDbBlockTable* pBlockTable = nullptr;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
-        delete pText;
-        return;
+    AcDbBlockTable* pBlockTable;
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table for reading: %s"), acadErrorStatusText(es));
+        return AcDbObjectId::kNull;
     }
 
-    AcDbBlockTableRecord* pModelSpace = nullptr;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
-        delete pText;
-        return;
-    }
-
-    if (pModelSpace->appendAcDbEntity(pText) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append text."));
-        pModelSpace->close();
-        pBlockTable->close();
-        delete pText;
-        return;
-    }
-
-    pText->close();
-    pModelSpace->close();
-    pBlockTable->close();
-}
-
-void ColumnPlacer::createCompositeBlock(AcDbDatabase* pDb, const wchar_t* blockName, const std::vector<std::wstring>& panelNames, const std::vector<AcGePoint3d>& positions, const std::vector<double>& rotations)
-{
-    AcDbBlockTable* pBlockTable = nullptr;
-    if (pDb->getSymbolTable(pBlockTable, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table for write."));
-        return;
-    }
-
-    // Check if the block already exists
-    AcDbBlockTableRecord* pBlockTableRecord = nullptr;
-    if (pBlockTable->has(blockName) == Adesk::kTrue) {
-        if (pBlockTable->getAt(blockName, pBlockTableRecord, AcDb::kForWrite) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to get existing block table record for write."));
+    std::vector<AcDbObjectId> baseBlockIds;
+    for (const wchar_t* baseBlockName : baseBlockNames) {
+        AcDbObjectId baseBlockId;
+        es = pBlockTable->getAt(baseBlockName, baseBlockId);
+        if (es != Acad::eOk) {
+            acutPrintf(_T("\nBlock not found: %s, Error: %s"), baseBlockName, acadErrorStatusText(es));
             pBlockTable->close();
-            return;
+            return AcDbObjectId::kNull;
         }
+        baseBlockIds.push_back(baseBlockId);
     }
-    else {
-        pBlockTableRecord = new AcDbBlockTableRecord();
-        pBlockTableRecord->setName(blockName);
-        if (pBlockTable->add(pBlockTableRecord) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to add new block table record."));
-            pBlockTableRecord->close();
-            pBlockTable->close();
-            return;
-        }
-    }
-
-    // Iterate through panel names, positions, and rotations
-    for (size_t i = 0; i < panelNames.size(); ++i) {
-        AcDbBlockReference* pBlockRef = new AcDbBlockReference(positions[i], AcDbObjectId::kNull);
-
-        // Set the block name
-        AcDbObjectId blockId;
-        if (pBlockTable->getAt(panelNames[i].c_str(), blockId) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to get block ID for panel: %s"), panelNames[i].c_str());
-            delete pBlockRef;
-            continue;
-        }
-        pBlockRef->setBlockTableRecord(blockId);
-
-        // Set the rotation angle
-        pBlockRef->setRotation(rotations[i]);
-
-        // Add the block reference to the block table record
-        if (pBlockTableRecord->appendAcDbEntity(pBlockRef) != Acad::eOk) {
-            acutPrintf(_T("\nFailed to append block reference for panel: %s"), panelNames[i].c_str());
-            delete pBlockRef;
-            continue;
-        }
-        pBlockRef->close();
-    }
-
-    // Close the block table record
-    pBlockTableRecord->close();
     pBlockTable->close();
+
+    // Now open the block table for writing to add the new block
+    es = pDb->getBlockTable(pBlockTable, AcDb::kForWrite);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table for writing: %s"), acadErrorStatusText(es));
+        return AcDbObjectId::kNull;
+    }
+
+    // Check if the block name already exists
+    AcDbObjectId existingBlockId;
+    es = pBlockTable->getAt(newBlockName, existingBlockId);
+    if (es == Acad::eOk) {
+        acutPrintf(_T("\nBlock with the name %s already exists. Using the existing block."), newBlockName);
+        pBlockTable->close();
+        return existingBlockId;
+    }
+    else if (es != Acad::eKeyNotFound) {
+        acutPrintf(_T("\nFailed to check for existing block: %s"), acadErrorStatusText(es));
+        pBlockTable->close();
+        return AcDbObjectId::kNull;
+    }
+
+    AcDbBlockTableRecord* pNewBlockDef = new AcDbBlockTableRecord();
+    pNewBlockDef->setName(newBlockName);
+
+    AcDbObjectId newBlockId;
+    es = pBlockTable->add(pNewBlockDef);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to add new block definition: %s"), acadErrorStatusText(es));
+        pBlockTable->close();
+        delete pNewBlockDef;
+        return AcDbObjectId::kNull;
+    }
+
+    // Define positions and rotations for the blocks
+    struct BlockPlacement {
+        AcGePoint3d position;
+        double rotation;
+    };
+
+    std::vector<BlockPlacement> placements = {
+        { AcGePoint3d(0, 0, 0), 0.0 },
+        { AcGePoint3d(200, 0, 0), M_PI_2 },
+        { AcGePoint3d(200, 200, 0), M_PI },
+        { AcGePoint3d(0, 200, 0), 3 * M_PI_2 }
+    };
+
+    for (size_t i = 0; i < baseBlockNames.size(); ++i) {
+        AcDbObjectId baseBlockId = baseBlockIds[i];
+        const wchar_t* baseBlockName = baseBlockNames[i];
+        for (const auto& placement : placements) {
+            AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+            pBlockRef->setPosition(placement.position);
+            pBlockRef->setBlockTableRecord(baseBlockId);
+            pBlockRef->setRotation(placement.rotation);
+
+            es = pNewBlockDef->appendAcDbEntity(pBlockRef);
+            if (es != Acad::eOk) {
+                acutPrintf(_T("\nFailed to append block reference %s at position (%f, %f, %f) with rotation %f. Error: %s"),
+                    baseBlockName, placement.position.x, placement.position.y, placement.position.z, placement.rotation, acadErrorStatusText(es));
+                pBlockRef->close();
+                pNewBlockDef->close();
+                pBlockTable->close();
+                return AcDbObjectId::kNull;
+            }
+            pBlockRef->close();
+        }
+    }
+
+    pNewBlockDef->close();
+    pBlockTable->close();
+
+    return newBlockId;
 }
 
-void ColumnPlacer::insertCompositeBlock(AcDbDatabase* pDb, const wchar_t* blockName, const AcGePoint3d& insertPoint)
-{
-    AcDbBlockTable* pBlockTable = nullptr;
-    if (pDb->getSymbolTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table for read."));
-        return;
-    }
-
-    AcDbBlockTableRecord* pModelSpace = nullptr;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space for write."));
-        pBlockTable->close();
-        return;
-    }
-
-    // Create a block reference for the composite block
-    AcDbBlockReference* pBlockRef = new AcDbBlockReference(insertPoint, AcDbObjectId::kNull);
-    AcDbObjectId blockId;
-    if (pBlockTable->getAt(blockName, blockId) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block ID for composite block: %s"), blockName);
-        delete pBlockRef;
-        pModelSpace->close();
-        pBlockTable->close();
-        return;
-    }
-    pBlockRef->setBlockTableRecord(blockId);
-
-    // Add the block reference to model space
-    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append composite block reference to model space."));
-        delete pBlockRef;
-    }
-    else {
-        pBlockRef->close();
-    }
-
-    pModelSpace->close();
-    pBlockTable->close();
-}
-
-void insertCompositeBlockCmd()
-{
-    // Define the composite block name
-    const wchar_t* blockName = L"CompositePanelBlock";
-
-    // Define panel block names, positions, and rotations
-    std::vector<std::wstring> panelNames = { L"128282X", L"128282X", L"128282X", L"128282X" };
-    std::vector<AcGePoint3d> positions = { AcGePoint3d(0, 0, 0), AcGePoint3d(200, 0, 0), AcGePoint3d(200, 200, 0), AcGePoint3d(0, 200, 0) };
-    std::vector<double> rotations = { 0, M_PI_2, M_PI, 3 * M_PI_2 };
-
+void ColumnPlacer::placeColumns() {
     // Create the composite block
-    acutPrintf(_T("\nCreating composite block..."));
-    ColumnPlacer::createCompositeBlock(acdbHostApplicationServices()->workingDatabase(), blockName, panelNames, positions, rotations);
-    acutPrintf(_T("Composite block created."));
-
-    // Ask user for the insertion point
-    ads_point pt;
-    if (acedGetPoint(NULL, L"\nSpecify insertion point: ", pt) == RTNORM) {
-        AcGePoint3d insertPoint(pt[X], pt[Y], pt[Z]);
-
-        // Insert the composite block
-        acutPrintf(_T("\nInserting composite block..."));
-        ColumnPlacer::insertCompositeBlock(acdbHostApplicationServices()->workingDatabase(), blockName, insertPoint);
-        acutPrintf(_T("Composite block inserted."));
+    AcDbObjectId compositeBlockId = createCompositeBlock(L"Column200*200");
+    if (compositeBlockId == AcDbObjectId::kNull) {
+        acutPrintf(_T("\nFailed to create composite block."));
+        return;
     }
-}
 
-void placeColumnsCmd() {
-    acutPrintf(_T("\nPlacing columns..."));
-    ColumnPlacer::placeColumns();
-    acutPrintf(_T("Columns placed."));
+    // Get the insertion point from the user
+    ads_point insertionPoint;
+    int result = acedGetPoint(nullptr, _T("\nSelect insertion point: "), insertionPoint);
+    if (result != RTNORM) {
+        acutPrintf(_T("\nPoint selection canceled or failed."));
+        return;
+    }
+
+    AcGePoint3d position(insertionPoint[X], insertionPoint[Y], insertionPoint[Z]);
+
+    // Insert the composite block at the selected position
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table: %s"), acadErrorStatusText(es));
+        return;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space: %s"), acadErrorStatusText(es));
+        pBlockTable->close();
+        return;
+    }
+
+    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+    pBlockRef->setPosition(position);
+    pBlockRef->setBlockTableRecord(compositeBlockId);
+    pBlockRef->setScaleFactors(AcGeScale3d(1.0));  // Adjust scale as needed
+
+    es = pModelSpace->appendAcDbEntity(pBlockRef);
+    if (es == Acad::eOk) {
+        acutPrintf(_T("\nComposite block placed successfully."));
+    }
+    else {
+        acutPrintf(_T("\nFailed to place composite block: %s"), acadErrorStatusText(es));
+    }
+
+    pBlockRef->close();
+    pModelSpace->close();
+    pBlockTable->close();
 }
