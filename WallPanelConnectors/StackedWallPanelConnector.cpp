@@ -198,6 +198,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> StackedWall
 
         switch (static_cast<int>(round(panelRotation / M_PI_2))) {
         case 0: // 0 degrees
+        case 4: // Normalize 360 degrees to 0 degrees
             connectorPos1.x += yOffset;
             connectorPos1.y -= xOffset;
             connectorPos2.y -= xOffset;

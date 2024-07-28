@@ -130,6 +130,7 @@ std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calcu
                 // Adjust positions based on the rotation and apply the X and Y axis offset
                 switch (static_cast<int>(round(panelRotation / M_PI_2))) {
                 case 0: // 0 degrees
+                case 4: // Normalize 360 degrees to 0 degrees
                     connectorPos.x += xOffset;
                     connectorPos.y += yOffset;
                     break;
