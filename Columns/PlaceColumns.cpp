@@ -10,6 +10,7 @@
 #include "dbents.h"             // For AcDbBlockReference
 #include "dbsymtb.h"            // For block table record definitions
 #include "AcDb.h"               // General database definitions
+#include "Windows.h"            // For Sleep function
 
 AcDbObjectId ColumnPlacer::loadAsset(const wchar_t* blockName) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -38,6 +39,8 @@ AcDbObjectId ColumnPlacer::loadAsset(const wchar_t* blockName) {
 }
 
 AcDbObjectId ColumnPlacer::createCompositeBlock(const wchar_t* newBlockName) {
+    acutPrintf(_T("\nStarting creation of composite block: %s"), newBlockName);
+
     std::vector<const wchar_t*> baseBlockNames = {
         L"128281X", L"128295X", L"128265X", L"030110X"
     };
@@ -65,8 +68,11 @@ AcDbObjectId ColumnPlacer::createCompositeBlock(const wchar_t* newBlockName) {
             return AcDbObjectId::kNull;
         }
         baseBlockIds.push_back(baseBlockId);
+        acutPrintf(_T("\nLoaded base block: %s"), baseBlockName);
     }
     pBlockTable->close();
+
+    acutPrintf(_T("\nFinished loading base blocks."));
 
     // Now open the block table for writing to add the new block
     es = pDb->getBlockTable(pBlockTable, AcDb::kForWrite);
@@ -101,22 +107,46 @@ AcDbObjectId ColumnPlacer::createCompositeBlock(const wchar_t* newBlockName) {
         return AcDbObjectId::kNull;
     }
 
-    // Define positions and rotations for the blocks
+    acutPrintf(_T("\nAdded new block definition: %s"), newBlockName);
+
+    // Define positions and rotations for each type of block
     struct BlockPlacement {
         AcGePoint3d position;
         double rotation;
     };
 
-    std::vector<BlockPlacement> placements = {
-        { AcGePoint3d(0, 0, 0), 0.0 },
-        { AcGePoint3d(200, 0, 0), M_PI_2 },
-        { AcGePoint3d(200, 200, 0), M_PI },
-        { AcGePoint3d(0, 200, 0), 3 * M_PI_2 }
+    std::vector<std::vector<BlockPlacement>> allPlacements = {
+        { // Placements for Block 128281X
+            { AcGePoint3d(0, 0, 0), 0.0 },
+            { AcGePoint3d(200, 0, 0), M_PI_2 },
+            { AcGePoint3d(200, 200, 0), M_PI },
+            { AcGePoint3d(0, 200, 0), 3 * M_PI_2 }
+        },
+        { // Placements for Block 128295X
+            { AcGePoint3d(0, -100, 1050), 0.0 },
+            { AcGePoint3d(300, 0, 1050), M_PI_2 },
+            { AcGePoint3d(200, 300, 1050), M_PI },
+            { AcGePoint3d(-100, 200, 1050), 3 * M_PI_2 }
+        },
+        { // Placements for Block 128265X
+            { AcGePoint3d(100, 325, 1050), 0.0 },
+            { AcGePoint3d(-125, 100, 1050), M_PI_2 },
+            { AcGePoint3d(100, -125, 1050), M_PI },
+            { AcGePoint3d(325, 100, 1050), 3 * M_PI_2 }
+        },
+        { // Placements for Block 030110X
+            { AcGePoint3d(325, -100, 1050), 0.0 },
+            { AcGePoint3d(300, 325, 1050), M_PI_2 },
+            { AcGePoint3d(-125, 300, 1050), M_PI },
+            { AcGePoint3d(-100, -125, 1050), 3 * M_PI_2 }
+        }
     };
 
     for (size_t i = 0; i < baseBlockNames.size(); ++i) {
         AcDbObjectId baseBlockId = baseBlockIds[i];
         const wchar_t* baseBlockName = baseBlockNames[i];
+        const auto& placements = allPlacements[i];
+        acutPrintf(_T("\nAdding placements for base block: %s"), baseBlockName);
         for (const auto& placement : placements) {
             AcDbBlockReference* pBlockRef = new AcDbBlockReference();
             pBlockRef->setPosition(placement.position);
@@ -133,22 +163,31 @@ AcDbObjectId ColumnPlacer::createCompositeBlock(const wchar_t* newBlockName) {
                 return AcDbObjectId::kNull;
             }
             pBlockRef->close();
+            acutPrintf(_T("\nAppended block reference for base block: %s"), baseBlockName);
         }
     }
 
     pNewBlockDef->close();
     pBlockTable->close();
 
+    acutPrintf(_T("\nFinished creating composite block: %s"), newBlockName);
     return newBlockId;
 }
 
 void ColumnPlacer::placeColumns() {
+    acutPrintf(_T("\nStarting to place columns."));
+
     // Create the composite block
-    AcDbObjectId compositeBlockId = createCompositeBlock(L"Column200*200");
+    AcDbObjectId compositeBlockId = createCompositeBlock(L"Column200x200");
     if (compositeBlockId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to create composite block."));
         return;
     }
+
+    acutPrintf(_T("\nComposite block created: Column200x200"));
+
+    // Introduce a short delay to ensure block creation is finalized
+    Sleep(100);
 
     // Get the insertion point from the user
     ads_point insertionPoint;
@@ -159,6 +198,8 @@ void ColumnPlacer::placeColumns() {
     }
 
     AcGePoint3d position(insertionPoint[X], insertionPoint[Y], insertionPoint[Z]);
+
+    acutPrintf(_T("\nInsertion point selected: (%f, %f, %f)"), position.x, position.y, position.z);
 
     // Insert the composite block at the selected position
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -185,7 +226,7 @@ void ColumnPlacer::placeColumns() {
     AcDbBlockReference* pBlockRef = new AcDbBlockReference();
     pBlockRef->setPosition(position);
     pBlockRef->setBlockTableRecord(compositeBlockId);
-    pBlockRef->setScaleFactors(AcGeScale3d(1.0));  // Adjust scale as needed
+    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Adjust scale as needed
 
     es = pModelSpace->appendAcDbEntity(pBlockRef);
     if (es == Acad::eOk) {
