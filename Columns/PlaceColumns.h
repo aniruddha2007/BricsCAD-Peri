@@ -19,4 +19,5 @@ public:
     static AcDbObjectId loadAsset(const wchar_t* blockName);
     static void placeColumns();
     static AcDbObjectId createCompositeBlock(const wchar_t* newBlockName);
+    static AcDbObjectId createCompositeBlockWithTies(const wchar_t* newBlockName);
 };
