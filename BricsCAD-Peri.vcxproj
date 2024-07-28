@@ -31,6 +31,7 @@
     <ClCompile Include="Timber\TimberAssetCreator.cpp" />
     <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -50,6 +51,7 @@
     <ClInclude Include="Timber\TimberAssetCreator.h" />
     <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
     <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
+    <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
     <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>

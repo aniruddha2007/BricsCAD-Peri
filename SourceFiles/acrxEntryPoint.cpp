@@ -24,6 +24,7 @@
 #include "WallPanelConnectors/WallPanelConnector.h" // Include the header for the WallPanelConnector class
 #include "WallPanelConnectors/StackedWallPanelConnector.h" // Include the header for the StackedWallPanelConnector class
 #include "WallPanelConnectors/Stacked15PanelConnector.h"   // Include the header for the Stacked15PanelConnector class
+#include "WallPanelConnectors/WalerConnector.h"     // Include the header for the WalerConnector class
 #include "Tie/TiePlacer.h" 				            // Include the header for the TiePlacer class
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
@@ -134,6 +135,7 @@ public:
         WallPanelConnector::placeConnectors();
         StackedWallPanelConnectors::placeStackedWallConnectors();
         Stacked15PanelConnector::place15panelConnectors();
+        WalerConnector::placeConnectors();
     }
 
     // PlaceTies command
@@ -182,9 +184,9 @@ public:
         std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
         WallPanelConnector::placeConnectors();
-        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
-
         StackedWallPanelConnectors::placeStackedWallConnectors();
+        Stacked15PanelConnector::place15panelConnectors();
+        WalerConnector::placeConnectors();
         std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
         TiePlacer::placeTies();

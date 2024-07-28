@@ -19,6 +19,7 @@
     <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
     <ClCompile Include="Timber\TimberAssetCreator.cpp" />
     <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
+    <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -38,6 +39,7 @@
     <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
     <ClInclude Include="Timber\TimberAssetCreator.h" />
     <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
+    <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />
