@@ -49,7 +49,7 @@ AcDbObjectId ColumnPlacer::createCompositeBlock(int newBlockDimension) {
 
     acutPrintf(_T("\nStarting creation of composite block: %s"), newBlockName);
 
-    std::vector<const wchar_t*> baseBlockNames = {
+    std::vector<const wchar_t*> baseBlockNames = { // 75 ,connector, nut , wingnut
         L"128281X", L"128295X", L"128265X", L"030110X"
     };
 
@@ -244,9 +244,13 @@ AcDbObjectId ColumnPlacer::createCompositeBlockWithTies(int newBlockDimension) {
     // Create the block name using swprintf
     swprintf(newBlockName, 50, L"Column%dX%dWithoutTies", newBlockDimension, newBlockDimension);
 
-    //030490X tie is used for columns750-1050
-    std::vector<const wchar_t*> baseBlockNames = {
-        L"128281X", L"128295X", L"128265X", L"030110X", L"030490X"
+    //030490X tie is used for columns600-750
+    std::vector<const wchar_t*> baseBlockNames = { // 45, 75, connector, nut+tie, wingnut, tie120
+        L"128283X", L"128281X", L"128295X", L"128265X", L"030110X", L"030490X", L"128255X"
+    };
+
+    std::vector<const wchar_t*> TieNames = { // wingnut, tie 120, tie 150, tie 170, tie 200, tie 250, tie 300
+        L"128283X", L"128281X", L"128295X", L"128265X", L"030110X"
     };
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
@@ -319,48 +323,72 @@ AcDbObjectId ColumnPlacer::createCompositeBlockWithTies(int newBlockDimension) {
         double rotation;
     };
 
-    std::vector<std::vector<BlockPlacement>> dynamicPlacements750 = { // 750 to 1000
-        { // Placements for Block 128281X(75cm panel)
+    std::vector<std::vector<BlockPlacement>> dynamicPlacements600 = { // 600 to 700
+        { // Placements for Block 128283X (45cm panel)
             { AcGePoint3d(0, 0, 0), 0.0 },
-            { AcGePoint3d(200, 0, 0), M_PI_2 },
-            { AcGePoint3d(200, 200, 0), M_PI },
-            { AcGePoint3d(0, 200, 0), 3 * M_PI_2 }
+            { AcGePoint3d(450, 0, 0), 0.0 },
+            { AcGePoint3d(newBlockDimension, 0, 0), M_PI_2 },
+            { AcGePoint3d(newBlockDimension, 450, 0), M_PI_2 },
+            { AcGePoint3d(newBlockDimension, newBlockDimension, 0), M_PI },
+            { AcGePoint3d(newBlockDimension-450, newBlockDimension, 0), M_PI },
+            { AcGePoint3d(0, newBlockDimension, 0), 3 * M_PI_2 },
+            { AcGePoint3d(0, newBlockDimension-450, 0), 3 * M_PI_2 }
         },
-        { // Placements for Block 128295X
-            { AcGePoint3d(0, -100, 1050), 0.0 },
-            { AcGePoint3d(300, 0, 1050), M_PI_2 },
-            { AcGePoint3d(200, 300, 1050), M_PI },
-            { AcGePoint3d(-100, 200, 1050), 3 * M_PI_2 },
+        { // Placements for Block 128281X (75cm panel)
+
+        },{ // Placements for Block 128295X (connector)
+            { AcGePoint3d(0, -100, 1050), 0.0 },// always same
+            { AcGePoint3d(newBlockDimension + 100, 0, 1050), M_PI_2 },// 100+dim x 0
+            { AcGePoint3d(newBlockDimension, newBlockDimension + 100, 1050), M_PI },// dim x 100+dim
+            { AcGePoint3d(-100, newBlockDimension, 1050), 3 * M_PI_2 },// -100 x dim
             { AcGePoint3d(0, -100, 300), 0.0 },
-            { AcGePoint3d(300, 0, 300), M_PI_2 },
-            { AcGePoint3d(200, 300, 300), M_PI },
-            { AcGePoint3d(-100, 200, 300), 3 * M_PI_2 }
+            { AcGePoint3d(newBlockDimension + 100, 0, 300), M_PI_2 },
+            { AcGePoint3d(newBlockDimension, newBlockDimension + 100, 300), M_PI },
+            { AcGePoint3d(-100, newBlockDimension, 300), 3 * M_PI_2 }
         },
-        { // Placements for Block 128265X
-            { AcGePoint3d(100, 325, 1050), 0.0 },
-            { AcGePoint3d(-125, 100, 1050), M_PI_2 },
-            { AcGePoint3d(100, -125, 1050), M_PI },
-            { AcGePoint3d(325, 100, 1050), 3 * M_PI_2 },
-            { AcGePoint3d(100, 325, 300), 0.0 },
-            { AcGePoint3d(-125, 100, 300), M_PI_2 },
+        { // Placements for Block 128265X (nut+tie)
+            { AcGePoint3d(newBlockDimension - 100, newBlockDimension + 125, 1050), 0.0 },// dim-100 x dim+125
+            { AcGePoint3d(-125, newBlockDimension - 100, 1050), M_PI_2 },//same x dim-100
+            { AcGePoint3d(100, -125, 1050), M_PI },//same
+            { AcGePoint3d(newBlockDimension + 125, 100, 1050), 3 * M_PI_2 },//dim+125 x 100
+            { AcGePoint3d(newBlockDimension - 100, newBlockDimension + 125, 300), 0.0 },
+            { AcGePoint3d(-125, newBlockDimension - 100, 300), M_PI_2 },
             { AcGePoint3d(100, -125, 300), M_PI },
-            { AcGePoint3d(325, 100, 300), 3 * M_PI_2 }
+            { AcGePoint3d(newBlockDimension + 125, 100, 300), 3 * M_PI_2 }
         },
-        { // Placements for Block 030110X
-            { AcGePoint3d(325, -100, 1050), 0.0 },
-            { AcGePoint3d(300, 325, 1050), M_PI_2 },
-            { AcGePoint3d(-125, 300, 1050), M_PI },
-            { AcGePoint3d(-100, -125, 1050), 3 * M_PI_2 },
-            { AcGePoint3d(325, -100, 300), 0.0 },
-            { AcGePoint3d(300, 325, 300), M_PI_2 },
-            { AcGePoint3d(-125, 300, 300), M_PI },
-            { AcGePoint3d(-100, -125, 300), 3 * M_PI_2 }
+        { // Placements for Block 030110X (wingnut)
+            { AcGePoint3d(newBlockDimension + 125, -145, 1050), 0.0 },// dim+125 x -100
+            { AcGePoint3d(newBlockDimension + 145, newBlockDimension + 125, 1050), M_PI_2 },// dim+100 x dim+125
+            { AcGePoint3d(-125, newBlockDimension + 145, 1050), M_PI },//same x dim+100
+            { AcGePoint3d(-145, -125, 1050), 3 * M_PI_2 },//same
+            { AcGePoint3d(newBlockDimension + 125, -145, 300), 0.0 },
+            { AcGePoint3d(newBlockDimension + 145, newBlockDimension + 125, 300), M_PI_2 },
+            { AcGePoint3d(-125, newBlockDimension + 145, 300), M_PI },
+            { AcGePoint3d(-145, -125, 300), 3 * M_PI_2 },
+            { AcGePoint3d((newBlockDimension / 2) + 25, newBlockDimension + 145, 1050), M_PI },
+            { AcGePoint3d((newBlockDimension / 2) + 25, -145, 1050), 0.0 },
+            { AcGePoint3d(newBlockDimension + 145, (newBlockDimension / 2) + 25, 1050), M_PI_2 },
+            { AcGePoint3d(-145, (newBlockDimension / 2) + 25, 1050), 3 * M_PI_2 },
+            { AcGePoint3d((newBlockDimension / 2) + 25, newBlockDimension + 145, 300), M_PI },
+            { AcGePoint3d((newBlockDimension / 2) + 25, -145, 300), 0.0 },
+            { AcGePoint3d(newBlockDimension + 145, (newBlockDimension / 2) + 25, 300), M_PI_2 },
+            { AcGePoint3d(-145, (newBlockDimension / 2) + 25, 300), 3 * M_PI_2 }
         },
         { // Placements for Block 030490X (120cm tie)
-            { AcGePoint3d(0, 0, 0), 0.0 },
-            { AcGePoint3d(200, 0, 0), M_PI_2 },
-            { AcGePoint3d(200, 200, 0), M_PI },
-            { AcGePoint3d(0, 200, 0), 3 * M_PI_2 }
+            { AcGePoint3d(newBlockDimension / 2, (newBlockDimension / 2) + 25, 1050), 0.0 },
+            { AcGePoint3d((newBlockDimension / 2) + 25, newBlockDimension / 2, 1050), M_PI_2 },
+            { AcGePoint3d(newBlockDimension / 2, (newBlockDimension / 2) + 25, 300), 0.0 },
+            { AcGePoint3d((newBlockDimension / 2) + 25, newBlockDimension / 2, 300), M_PI_2 },
+        },
+        { // Placements for Block 128255X (waler)
+            { AcGePoint3d(525, -100, 1050), 0.0 },
+            { AcGePoint3d(525, -100, 300), 0.0 },
+            { AcGePoint3d(newBlockDimension + 100, 525, 1050), M_PI_2 },
+            { AcGePoint3d(newBlockDimension + 100, 525, 300), M_PI_2 },
+            { AcGePoint3d(newBlockDimension - 525, newBlockDimension + 100, 1050), M_PI },
+            { AcGePoint3d(newBlockDimension - 525, newBlockDimension + 100, 300), M_PI },
+            { AcGePoint3d(-100, newBlockDimension - 525, 1050), 3 * M_PI_2 },
+            { AcGePoint3d(-100, newBlockDimension - 525, 300), 3 * M_PI_2 }
         }
     };
 
@@ -409,10 +437,13 @@ AcDbObjectId ColumnPlacer::createCompositeBlockWithTies(int newBlockDimension) {
         }
     };
 
+    std::vector<std::vector<BlockPlacement>> selectedPlacements;
+    selectedPlacements = dynamicPlacements600;
+
     for (size_t i = 0; i < baseBlockNames.size(); ++i) {
         AcDbObjectId baseBlockId = baseBlockIds[i];
         const wchar_t* baseBlockName = baseBlockNames[i];
-        const auto& placements = allPlacements[i];
+        const auto& placements = selectedPlacements[i];
         acutPrintf(_T("\nAdding placements for base block: %s"), baseBlockName);
         for (const auto& placement : placements) {
             AcDbBlockReference* pBlockRef = new AcDbBlockReference();
