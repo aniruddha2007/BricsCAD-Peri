@@ -576,7 +576,7 @@ void WallPlacer::placeWalls() {
         loopIndex = loopIndexLastPanel;
     }
 
-    // Forth Pass: Adjust positions for specific asset IDs
+    // Forth Pass: Adjust positions for specific asset IDs(compensators)
     std::vector<AcDbObjectId> centerAssets = {
         loadAsset(L"128285X"),
         loadAsset(L"129842X"),
@@ -637,20 +637,20 @@ void WallPlacer::placeWalls() {
             // Calculate the center index in wallPanels
             int centerIndex = (startCornerIndex + endCornerIndex) / 2;
 
-            // Get positions of centerIndex and detectedPanel
+            // Get positions of centerIndex and detectedPanel(compensator)
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;
 
             AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
 
-            // Adjust the position of the detected panel
+            // Adjust the position of the detected compensator panel
             wallPanels[panelNum].position = centerPanelPosition;
             if (wallPanels[panelNum].isOuterLoop && loopIsClockwise[wallPanels[panelNum].loopIndex]) {
                 wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
                 wallPanels[panelNum].position += direction * panelLength;
             }
-            if (!loopIsClockwise[wallPanels[panelNum].loopIndex]) {
-                //wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
-                //wallPanels[panelNum].position += direction * panelLength;
+            if (wallPanels[panelNum].isOuterLoop && !loopIsClockwise[wallPanels[panelNum].loopIndex]) {
+                wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
+                wallPanels[panelNum].position += direction * panelLength;
             }
 
 
