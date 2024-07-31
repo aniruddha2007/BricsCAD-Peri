@@ -328,6 +328,7 @@ void TiePlacer::placeTies() {
     };
 
     AcDbObjectId tieAssetId;
+    AcDbObjectId tieAssetWalerId;
     const std::wstring wingnut = L"030110X";
     AcDbObjectId assetIdWingnut = LoadTieAsset(wingnut.c_str());
 
@@ -337,6 +338,14 @@ void TiePlacer::placeTies() {
         if (tie.length >= ((int)distanceBetweenPoly + 30)) {
             acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
             tieAssetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
+            break;
+        }
+    }
+
+    for (const auto& tie : tieSizes) {
+        if (tie.length >= ((int)distanceBetweenPoly + 30 + 9)) {
+            acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
+            tieAssetWalerId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
             break;
         }
     }
@@ -403,6 +412,7 @@ void TiePlacer::placeTies() {
         int loopIndex;
         bool isOuterLoop;
         bool firstOrLast;
+        bool waler;
     };
     struct CornerTie {
         AcGePoint3d position;
@@ -562,7 +572,7 @@ void TiePlacer::placeTies() {
 
                                     panelLength = panel.length;
                                     prevHeight = panelHeights[panelNum];
-                                    wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter, firstOrLast });
+                                    wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter, firstOrLast, false });
                                     
                                     totalPanelsPlaced++;
                                     currentPoint += direction * panelLength;
@@ -669,6 +679,20 @@ void TiePlacer::placeTies() {
             if (prevStartCornerIndex == startCornerIndex) {
                 movedCompensators++;
             }
+            if ((loopIsClockwise[0] && outerLoopIndexValue == 1) || (loopIsClockwise[1] && outerLoopIndexValue == 0))
+            {
+                if (wallPanels[panelNum].length != 5) {
+                    wallPanels[centerIndex].position -= direction * 5;
+                    wallPanels[centerIndex].waler = true;
+                }
+            }
+            else {
+                if (wallPanels[panelNum].length != 5) {
+                    wallPanels[centerIndex - 1].position += direction * 5;
+                    wallPanels[centerIndex - 1].waler = true;
+                }
+            }
+            
         }
     }
 
@@ -705,6 +729,7 @@ void TiePlacer::placeTies() {
     }
     double yOffset = 2.5; // Y offset for the tie
     double wingtieOffset = (distanceBetweenPoly + 20) / 2;
+    double walerOffset = 4.5;
     AcGePoint3d wingnutPosition;
     double wingnutRotation;
     AcGePoint3d currentPointWithHeight;
@@ -719,7 +744,7 @@ void TiePlacer::placeTies() {
                 // Place the tie without scaling
                 currentPointWithHeight = panel.position;
                 currentPointWithHeight.z += tieOffsetHeight[tiePlaced];
-
+                
                 switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
                 case 0: // 0 degrees TOP
                     currentPointWithHeight.x += yOffset;
@@ -741,7 +766,12 @@ void TiePlacer::placeTies() {
 
                 AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                 pBlockRef->setPosition(currentPointWithHeight);
-                pBlockRef->setBlockTableRecord(tieAssetId);
+                if (panel.waler) {
+                    pBlockRef->setBlockTableRecord(tieAssetWalerId);
+                }
+                else {
+                    pBlockRef->setBlockTableRecord(tieAssetId);
+                }
                 pBlockRef->setRotation(panel.rotation + M_PI_2);
                 pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
@@ -753,25 +783,49 @@ void TiePlacer::placeTies() {
                     AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
                     wingnutPosition = currentPointWithHeight;
                     wingtieOffset = -wingtieOffset;
+                    walerOffset = -walerOffset;
                     wingnutRotation = panel.rotation;
-                    switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                    case 0: // 0 degrees TOP
-                        wingnutPosition.y += wingtieOffset;
-                        wingnutRotation += M_PI;
-                        break;
-                    case 1: // 90 degrees LEFT
-                        wingnutPosition.x += wingtieOffset;
-                        break;
-                    case 2: // 180 degrees BOTTOM
-                        wingnutPosition.y -= wingtieOffset;
-                        wingnutRotation += M_PI;
-                        break;
-                    case 3: // 270 degrees RIGHT
-                        wingnutPosition.x -= wingtieOffset;
-                        break;
-                    case -1:
-                        break;
+                    if (panel.waler) {
+                        switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                        case 0: // 0 degrees TOP
+                            wingnutPosition.y += (wingtieOffset + walerOffset);
+                            wingnutRotation += M_PI;
+                            break;
+                        case 1: // 90 degrees LEFT
+                            wingnutPosition.x += (wingtieOffset + walerOffset);
+                            break;
+                        case 2: // 180 degrees BOTTOM
+                            wingnutPosition.y -= (wingtieOffset + walerOffset);
+                            wingnutRotation += M_PI;
+                            break;
+                        case 3: // 270 degrees RIGHT
+                            wingnutPosition.x -= (wingtieOffset + walerOffset);
+                            break;
+                        case -1:
+                            break;
+                        }
                     }
+                    else {
+                        switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                        case 0: // 0 degrees TOP
+                            wingnutPosition.y += wingtieOffset;
+                            wingnutRotation += M_PI;
+                            break;
+                        case 1: // 90 degrees LEFT
+                            wingnutPosition.x += wingtieOffset;
+                            break;
+                        case 2: // 180 degrees BOTTOM
+                            wingnutPosition.y -= wingtieOffset;
+                            wingnutRotation += M_PI;
+                            break;
+                        case 3: // 270 degrees RIGHT
+                            wingnutPosition.x -= wingtieOffset;
+                            break;
+                        case -1:
+                            break;
+                        }
+                    }
+                    
 
                     pWingnutRef->setPosition(wingnutPosition);
                     pWingnutRef->setBlockTableRecord(assetIdWingnut);
@@ -810,7 +864,12 @@ void TiePlacer::placeTies() {
 
                                     AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                                     pBlockRef->setPosition(currentPointWithHeight);
-                                    pBlockRef->setBlockTableRecord(tieAssetId);
+                                    if (panel.waler) {
+                                        pBlockRef->setBlockTableRecord(tieAssetWalerId);
+                                    }
+                                    else {
+                                        pBlockRef->setBlockTableRecord(tieAssetId);
+                                    }
                                     pBlockRef->setRotation(panel.rotation + M_PI_2);
                                     pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
@@ -823,24 +882,47 @@ void TiePlacer::placeTies() {
                                         AcDbBlockReference* pWingnutRef = new AcDbBlockReference();
                                         wingnutPosition = currentPointWithHeight;
                                         wingtieOffset = -wingtieOffset;
+                                        walerOffset = -walerOffset;
                                         wingnutRotation = panel.rotation;
-                                        switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                                        case 0: // 0 degrees TOP
-                                            wingnutPosition.y += wingtieOffset;
-                                            wingnutRotation += M_PI;
-                                            break;
-                                        case 1: // 90 degrees LEFT
-                                            wingnutPosition.x += wingtieOffset;
-                                            break;
-                                        case 2: // 180 degrees BOTTOM
-                                            wingnutPosition.y -= wingtieOffset;
-                                            wingnutRotation += M_PI;
-                                            break;
-                                        case 3: // 270 degrees RIGHT
-                                            wingnutPosition.x -= wingtieOffset;
-                                            break;
-                                        case -1:
-                                            break;
+                                        if (panel.waler) {
+                                            switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                                            case 0: // 0 degrees TOP
+                                                wingnutPosition.y += (wingtieOffset + walerOffset);
+                                                wingnutRotation += M_PI;
+                                                break;
+                                            case 1: // 90 degrees LEFT
+                                                wingnutPosition.x += (wingtieOffset + walerOffset);
+                                                break;
+                                            case 2: // 180 degrees BOTTOM
+                                                wingnutPosition.y -= (wingtieOffset + walerOffset);
+                                                wingnutRotation += M_PI;
+                                                break;
+                                            case 3: // 270 degrees RIGHT
+                                                wingnutPosition.x -= (wingtieOffset + walerOffset);
+                                                break;
+                                            case -1:
+                                                break;
+                                            }
+                                        }
+                                        else {
+                                            switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
+                                            case 0: // 0 degrees TOP
+                                                wingnutPosition.y += wingtieOffset;
+                                                wingnutRotation += M_PI;
+                                                break;
+                                            case 1: // 90 degrees LEFT
+                                                wingnutPosition.x += wingtieOffset;
+                                                break;
+                                            case 2: // 180 degrees BOTTOM
+                                                wingnutPosition.y -= wingtieOffset;
+                                                wingnutRotation += M_PI;
+                                                break;
+                                            case 3: // 270 degrees RIGHT
+                                                wingnutPosition.x -= wingtieOffset;
+                                                break;
+                                            case -1:
+                                                break;
+                                            }
                                         }
                                         pWingnutRef->setPosition(wingnutPosition);
                                         pWingnutRef->setBlockTableRecord(assetIdWingnut);
@@ -878,6 +960,8 @@ void TiePlacer::placeTies() {
 
     prevStartCornerIndex = -1;
     movedCompensators = 0;
+
+
 
     // Place corner ties
     for (const auto& panel : cornerTie) {
