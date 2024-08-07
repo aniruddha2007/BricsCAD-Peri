@@ -112,7 +112,7 @@ void BlockLoader::loadBlockIntoBricsCAD(const char* blockName, const char* block
         acutPrintf(L"Failed to insert block: %s. Error: %s\n", blockName, acadErrorStatusText(es));
     }
     else {
-        acutPrintf(L"Block %s inserted successfully.\n", blockName);
+        //acutPrintf(L"Block %s inserted successfully.\n", blockName); // Debug
     }
 
     delete pSourceDb; // Clean up

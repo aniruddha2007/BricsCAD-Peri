@@ -102,12 +102,12 @@
         <Macro type="Any">
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_007" xlate="true">Settings</Name>
-          <Command>^C^Cperisettings</Command>
-          <HelpString UID="XLS_007_HELP" xlate="true">Settings</HelpString>
-          <SmallImage Name="Settings.png"/>
-          <LargeImage Name="Settings.png"/>
-          <CLICommand UID="XLS_007_CLI" xlate="true">Settings</CLICommand>
+          <Name UID="XLS_007" xlate="true">Height</Name>
+          <Command>^C^CDefineHeight</Command>
+          <HelpString UID="XLS_007_HELP" xlate="true">Height</HelpString>
+          <SmallImage Name="Height.png"/>
+          <LargeImage Name="Height.png"/>
+          <CLICommand UID="XLS_007_CLI" xlate="true">Height</CLICommand>
         </Macro>
       </MenuMacro>
     </MacroGroup>
@@ -148,7 +148,7 @@
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_014"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_007" UID="RBNU_015">
-                <TooltipTitle UID="XLS_007_TOOLTIP" xlate="true">Settings</TooltipTitle>
+                <TooltipTitle UID="XLS_007_TOOLTIP" xlate="true">Height</TooltipTitle>
               </RibbonCommandButton>
             </RibbonRow>
             <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_018"/>

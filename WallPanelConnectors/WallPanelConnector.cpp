@@ -102,8 +102,8 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
 std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double>> connectorPositions;
 
-    double zOffsets[] = { 22.5, 52.5, 97.5 }; // Predefined Z-axis positions for connectors
-    double yOffset = 5.0;
+    double zOffsets[] = { 225.0, 525.0, 975.0 }; // Predefined Z-axis positions for connectors
+    double yOffset = 50.0;
 
     for (const auto& panelPosition : panelPositions) {
         AcGePoint3d pos = std::get<0>(panelPosition);

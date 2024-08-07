@@ -66,7 +66,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
 
-        loadCustomMenu();   // Load the custom menu
+        //loadCustomMenu();   // Load the custom menu
         BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
         return result;
@@ -137,6 +137,7 @@ public:
         StackedWallPanelConnectors::placeStackedWallConnectors();
         Stacked15PanelConnector::place15panelConnectors();
         WalerConnector::placeConnectors();
+        acutPrintf(_T("\nConnectors placed."));
     }
 
     // PlaceTies command
@@ -156,14 +157,14 @@ public:
     // LoadBlocks command
     static void BrxAppLoadBlocks(void)
     {
-        acutPrintf(_T("\nRunning LoadBlocks."));
+        acutPrintf(_T("\n Loading Blocks....."));
         BlockLoader::loadBlocksFromJson();
     }
 
     // DefineHeight command
     static void BrxAppDefineHeight(void)
     {
-        acutPrintf(_T("\nRunning DefineHeight."));
+        acutPrintf(_T("\nDefining Height....."));
         DefineHeight::defineHeight();
     }
 
@@ -223,13 +224,13 @@ public:
         // Append the CUI file name to the directory path
         std::wstring cuiFilePath = std::wstring(modulePath) + L"\\CustomMenu.cui";
 
-        acutPrintf(L"Loading CUI file from: %s\n", cuiFilePath.c_str());  // Debug output
+        //acutPrintf(L"Loading CUI file from: %s\n", cuiFilePath.c_str());  // Debug output
 
         if (acedCommandS(RTSTR, L"_.CUILOAD", RTSTR, cuiFilePath.c_str(), RTNONE) != RTNORM) {
-            acutPrintf(L"Failed to load CUI file from: %s\n", cuiFilePath.c_str());  // Error message
+            //acutPrintf(L"Failed to load CUI file from: %s\n", cuiFilePath.c_str());  // Error message
         }
         else {
-            acutPrintf(L"Successfully loaded CUI file from: %s\n", cuiFilePath.c_str());  // Success message
+            //acutPrintf(L"Successfully loaded CUI file from: %s\n", cuiFilePath.c_str());  // Success message
         }
     }
 };

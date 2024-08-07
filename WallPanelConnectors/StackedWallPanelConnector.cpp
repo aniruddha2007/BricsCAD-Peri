@@ -49,17 +49,17 @@ const std::vector<std::wstring> panelNames = {
 // Define the function to get the width of the panel based on its name
 double getPanelWidth(const std::wstring& panelName) {
     static std::map<std::wstring, double> panelWidthMap = {
-        {ASSET_128280, 90.0},
-        {ASSET_129840, 45.0},
-        {ASSET_129838, 75.0},
-        {ASSET_128283, 45.0},
-        {ASSET_128281, 75.0},
-        {ASSET_129841, 30.0},
-        {ASSET_129839, 60.0},
-        {ASSET_129837, 90.0},
-        {ASSET_128284, 30.0},
-        {ASSET_128282, 60.0},
-        {ASSET_136096, 60.0},
+        {ASSET_128280, 900.0},
+        {ASSET_129840, 450.0},
+        {ASSET_129838, 750.0},
+        {ASSET_128283, 450.0},
+        {ASSET_128281, 750.0},
+        {ASSET_129841, 300.0},
+        {ASSET_129839, 600.0},
+        {ASSET_129837, 900.0},
+        {ASSET_128284, 300.0},
+        {ASSET_128282, 600.0},
+        {ASSET_136096, 600.0},
     };
 
     auto it = panelWidthMap.find(panelName);
@@ -166,8 +166,8 @@ AcDbObjectId StackedWallPanelConnectors::loadConnectorAsset(const wchar_t* block
 std::vector<std::tuple<AcGePoint3d, double, double, double, double>> StackedWallPanelConnectors::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double, double, double, double>> connectorPositions;
 
-    double xOffset = 5.0; // X offset for the connectors
-    double yOffset = 7.5; // Y offset for the connectors
+    double xOffset = 50.0; // X offset for the connectors
+    double yOffset = 75.0; // Y offset for the connectors
     double connectorRotation = M_PI_2; // Rotation for the connectors
 
 

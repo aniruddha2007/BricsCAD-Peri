@@ -4,14 +4,14 @@
 #include "aced.h"
 
 //Default to 135
-int globalVarHeight = 135;
+int globalVarHeight = 1350;
 
 void DefineHeight::defineHeight() {
     ads_real height;
     ads_printf(_T("\nEnter the height of the structure (mm): "));
     if (acedGetReal(NULL, &height) == RTNORM) {
         acutPrintf(_T("\nHeight defined as: %lfmm"), height);
-        globalVarHeight = height/10; // Convert 
+        globalVarHeight = height; // Convert 
         // Store or use the height as needed in your application
         // For example, save it to a global variable or use it directly
     }

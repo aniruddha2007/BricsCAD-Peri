@@ -89,13 +89,13 @@ std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calcu
     std::vector<std::tuple<AcGePoint3d, double, std::wstring>> connectorPositions;
 
     // Offsets for connectors
-    double zOffsets[] = { 30.0, 105.0 }; // Predefined Z-axis positions for connectors
-    double xOffset_128255 = 2.5;
-    double yOffset_128255 = -10.0;
-    double xOffset_128293A = -15.0;
-    double yOffset_128293A = -10.0;
-    double xOffset_128293B = 25.0;
-    double yOffset_128293B = -10.0;
+    double zOffsets[] = { 300.0, 1050.0 }; // Predefined Z-axis positions for connectors
+    double xOffset_128255 = 25.0;
+    double yOffset_128255 = -100.0;
+    double xOffset_128293A = -150.0;
+    double yOffset_128293A = -100.0;
+    double xOffset_128293B = 250.0;
+    double yOffset_128293B = -100.0;
 
     for (const auto& panelPosition : panelPositions) {
         AcGePoint3d pos = std::get<0>(panelPosition);
@@ -233,7 +233,7 @@ void WalerConnector::placeConnectorAtPosition(const AcGePoint3d& position, doubl
     pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure scaling
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        //acutPrintf(_T("\nConnector placed successfully.")); // Debug information
+        //acutPrintf(_T("\All Panel Connectors placed successfully.")); // Debug information
     }
     else {
         acutPrintf(_T("\nFailed to place connector."));
@@ -242,4 +242,7 @@ void WalerConnector::placeConnectorAtPosition(const AcGePoint3d& position, doubl
     pBlockRef->close();
     pModelSpace->close();
     pBlockTable->close();
+
+    //acutPrintf(_T("\nConnector placed at: %f, %f, %f"), position.x, position.y, position.z); // Debug information
+    //acutPrintf(_T("\n All Panel Connectors placed successfully.")); // Debug information
 }

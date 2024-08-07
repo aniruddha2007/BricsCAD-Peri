@@ -315,16 +315,16 @@ void TiePlacer::placeTies() {
     }
     // List of available Tieswith their sizes
     std::vector<Tie> tieSizes = {
-        {50, L"030005X"},
-        {85, L"030010X"},
-        {100, L"030480X"},
-        {120, L"030490X"},
-        {150, L"030170X"},
-        {170, L"030020X"},
-        {250, L"030710X"},
-        {300, L"030720X"},
-        {350, L"030730X"},
-        {600, L"030160X"}
+        {500, L"030005X"},
+        {850, L"030010X"},
+        {1000, L"030480X"},
+        {1200, L"030490X"},
+        {1500, L"030170X"},
+        {1700, L"030020X"},
+        {2500, L"030710X"},
+        {3000, L"030720X"},
+        {3500, L"030730X"},
+        {6000, L"030160X"}
     };
 
     AcDbObjectId tieAssetId;
@@ -448,7 +448,7 @@ void TiePlacer::placeTies() {
 
     int wallHeight = globalVarHeight;
     int currentHeight = 0;
-    int panelHeights[] = { 135, 120, 60 };
+    int panelHeights[] = { 1350, 1200, 600 };
 
     // Structure to hold panel information
     struct Panel {
@@ -457,12 +457,12 @@ void TiePlacer::placeTies() {
     };
 
     std::vector<Panel> panelSizes = {
-        {60, {L"128282X", L"136096X", L"129839X"}},
-        {45, {L"128283X", L"Null", L"129840X"}},
-        {30, {L"128284X", L"Null", L"129841X"}},
-        {15, {L"128285X", L"Null", L"129842X"}},
-        {10, {L"128292X", L"Null", L"129884X"}},
-        {5, {L"128287X", L"Null", L"129879X"}}
+        {600, {L"128282X", L"136096X", L"129839X"}},
+        {450, {L"128283X", L"Null", L"129840X"}},
+        {300, {L"128284X", L"Null", L"129841X"}},
+        {150, {L"128285X", L"Null", L"129842X"}},
+        {100, {L"128292X", L"Null", L"129884X"}},
+        {50, {L"128287X", L"Null", L"129879X"}}
     };
 
 
@@ -521,25 +521,25 @@ void TiePlacer::placeTies() {
             // Adjust start point
             if (loopIsClockwise[loopIndex]) {
                 if (!prevClockwise && isInner) {
-                    start += direction * 50;
+                    start += direction * 500;
                 }
                 // Adjust end point
                 if (!nextClockwise && isInner) {
-                    end -= direction * 50;
+                    end -= direction * 500;
                 }
             }
             else {
                 if (prevClockwise && isInner) {
-                    start += direction * 50;
+                    start += direction * 500;
                 }
                 // Adjust end point
                 if (nextClockwise && isInner) {
-                    end -= direction * 50;
+                    end -= direction * 500;
                 }
             }
 
-            double distance = start.distanceTo(end) - 50;
-            AcGePoint3d currentPoint = start + direction * 25;
+            double distance = start.distanceTo(end) - 500;
+            AcGePoint3d currentPoint = start + direction * 250;
             rotation = atan2(direction.y, direction.x);
             double panelLength;
 
@@ -599,10 +599,10 @@ void TiePlacer::placeTies() {
             cornerTie.back().assetId = LoadTieAsset(panelSizes[3].id[0].c_str());
             cornerTie.back().length = panelSizes[3].length;
             if (outerLoopIndexValue == 0 && !loopIsClockwise[0]) {
-                cornerTie.back().position -= direction * (start.distanceTo(end) - 50);
+                cornerTie.back().position -= direction * (start.distanceTo(end) - 500);
             }
             else if(!loopIsClockwise[1]){
-                cornerTie.back().position -= direction * (start.distanceTo(end) - 50);
+                cornerTie.back().position -= direction * (start.distanceTo(end) - 500);
             }
             else {
                 cornerTie.back().position += direction * wallPanels.back().length;
@@ -681,14 +681,14 @@ void TiePlacer::placeTies() {
             }
             if ((loopIsClockwise[0] && outerLoopIndexValue == 1) || (loopIsClockwise[1] && outerLoopIndexValue == 0))
             {
-                if (wallPanels[panelNum].length != 5) {
-                    wallPanels[centerIndex].position -= direction * 5;
+                if (wallPanels[panelNum].length != 50) {
+                    wallPanels[centerIndex].position -= direction * 50;
                     wallPanels[centerIndex].waler = true;
                 }
             }
             else {
-                if (wallPanels[panelNum].length != 5) {
-                    wallPanels[centerIndex - 1].position += direction * 5;
+                if (wallPanels[panelNum].length != 50) {
+                    wallPanels[centerIndex - 1].position += direction * 50;
                     wallPanels[centerIndex - 1].waler = true;
                 }
             }
@@ -719,7 +719,7 @@ void TiePlacer::placeTies() {
         return;
     }
 
-    int tieOffsetHeight[] = { 30, 105 };
+    int tieOffsetHeight[] = { 300, 1050 };
     double xOffset;
     if (loopIsClockwise[outerLoopIndexValue]) {
         xOffset = distanceBetweenPoly / 2; // X offset for the tie
@@ -727,17 +727,17 @@ void TiePlacer::placeTies() {
     else {
         xOffset = distanceBetweenPoly / 2; // X offset for the tie
     }
-    double yOffset = 2.5; // Y offset for the tie
-    double wingtieOffset = (distanceBetweenPoly + 20) / 2;
-    double walerOffset = 4.5;
+    double yOffset = 25; // Y offset for the tie
+    double wingtieOffset = (distanceBetweenPoly + 200) / 2;
+    double walerOffset = 45;
     AcGePoint3d wingnutPosition;
     double wingnutRotation;
     AcGePoint3d currentPointWithHeight;
 
     for (const auto& panel : wallPanels) {
-        if (panel.length > 10 && !panel.firstOrLast) {
+        if (panel.length > 100 && !panel.firstOrLast) {
             int tiesToPlace = 2;
-            if (panel.height == 60) {
+            if (panel.height == 600) {
                 tiesToPlace = 1;
             }
             for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
@@ -848,7 +848,7 @@ void TiePlacer::placeTies() {
             }
             currentHeight = panel.height;
             currentPointWithHeight.z += tieOffsetHeight[0];
-            int tieOffsetHeight2[] = { 30, 75 };
+            int tieOffsetHeight2[] = { 300, 750 };
             for (const auto& panel2 : panelSizes) {
                 if (panel2.length == panel.length) {
                     for (int panelNum = 0; panelNum < 3; panelNum++) {
@@ -965,9 +965,9 @@ void TiePlacer::placeTies() {
 
     // Place corner ties
     for (const auto& panel : cornerTie) {
-        if (panel.length > 10 && !panel.firstOrLast) {
+        if (panel.length > 100 && !panel.firstOrLast) {
             int tiesToPlace = 2;
-            if (panel.height == 60) {
+            if (panel.height == 600) {
                 tiesToPlace = 1;
             }
             for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
@@ -1048,7 +1048,7 @@ void TiePlacer::placeTies() {
             }
             currentHeight = panel.height;
             currentPointWithHeight.z += tieOffsetHeight[0];
-            int tieOffsetHeight2[] = { 30, 75 };
+            int tieOffsetHeight2[] = { 300, 750 };
             for (const auto& panel2 : panelSizes) {
                 if (panel2.length == panel.length) {
                     for (int panelNum = 0; panelNum < 3; panelNum++) {

@@ -29,8 +29,8 @@ const std::vector<std::wstring> panelNames = {
 // Define the function to get the width of the panel based on its name
 double get15Panel(const std::wstring& panelName) {
     static const std::map<std::wstring, double> panelWidthMap = {
-        {ASSET_129842, 15.0},
-        {ASSET_128285, 15.0}
+        {ASSET_129842, 150.0},
+        {ASSET_128285, 150.0}
     };
     auto it = panelWidthMap.find(panelName);
     if (it != panelWidthMap.end()) {
@@ -135,8 +135,8 @@ AcDbObjectId Stacked15PanelConnector::loadConnectorAsset(const wchar_t* blockNam
 std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15PanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double, double, double, double>> connectorPositions;
 
-    double xOffset = 7.5; // Offset in X direction
-    double yOffset = 5.0; // Offset in Y direction
+    double xOffset = 75.0; // Offset in X direction
+    double yOffset = 50.0; // Offset in Y direction
     double connectorRotation = M_PI_2; // Rotation of the connector
 
     for (const auto& panelPosition : panelPositions) {

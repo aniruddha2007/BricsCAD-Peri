@@ -1,7 +1,6 @@
 // Created by:Ani  (2024-05-31)
 // Modified by:Ani (2024-06-01)
 // TODO:
-// Move the *10 Compensator to the middle of the panel
 // WallAssetPlacer.cpp
 // This file contains the implementation of the WallPlacer class.
 // The WallPlacer class is used to place wall segments in BricsCAD.
@@ -240,7 +239,7 @@ void WallPlacer::placeWalls() {
     std::vector<AcGePoint3d> corners = detectPolylines();
 
     if (corners.empty()) {
-        acutPrintf(_T("\nNo polylines detected."));
+        acutPrintf(_T("\nNo polylines detected.")); // Debug
         return;
     }
 
@@ -338,15 +337,15 @@ void WallPlacer::placeWalls() {
 
     int wallHeight = globalVarHeight;
     int currentHeight = 0;
-    int panelHeights[] = { 135, 120, 60 };
+    int panelHeights[] = { 1350, 1200, 600 };
 
     std::vector<Panel> panelSizes = {
-        {60, {L"128282X", L"136096X", L"129839X"}},
-        {45, {L"128283X", L"Null", L"129840X"}},
-        {30, {L"128284X", L"Null", L"129841X"}},
-        {15, {L"128285X", L"Null", L"129842X"}},
-        {10, {L"128292X", L"Null", L"129884X"}},
-        {5, {L"128287X", L"Null", L"129879X"}}
+        {600, {L"128282X", L"136096X", L"129839X"}},
+        {450, {L"128283X", L"Null", L"129840X"}},
+        {300, {L"128284X", L"Null", L"129841X"}},
+        {150, {L"128285X", L"Null", L"129842X"}},
+        {100, {L"128292X", L"Null", L"129884X"}},
+        {50, {L"128287X", L"Null", L"129879X"}}
     };
 
 
@@ -404,7 +403,7 @@ void WallPlacer::placeWalls() {
         else if (tempSawToothIndex.size() == 6)
         {
             if (loopIndex != outerLoopIndexValue) {
-                acutPrintf(_T("\nFound a tooth?"));
+                //acutPrintf(_T("\nFound a tooth?")); // Debug
                 AcGeVector3d rotatedDirection = rotateVector(direction, -M_PI_2);
                 corners[tempSawToothIndex[2]] -= rotatedDirection * 35;
                 corners[tempSawToothIndex[3]] -= rotatedDirection * 35;
@@ -484,19 +483,19 @@ void WallPlacer::placeWalls() {
             AcGePoint3d currentPoint;
 
             if (isInner) {
-                distance = start.distanceTo(end) - 50;
-                currentPoint = start + direction * 25;
+                distance = start.distanceTo(end) - 500;
+                currentPoint = start + direction * 250;
             }
             else {
-                distance = start.distanceTo(end) - 170;
-                currentPoint = start + direction * 85;
+                distance = start.distanceTo(end) - 1700;
+                currentPoint = start + direction * 850;
             }
 
             double rotation = atan2(direction.y, direction.x);
             double panelLength;
 
             if (isOuter) {
-                distance += 20;
+                distance += 200;
                 currentPoint -= direction * 10;
                 rotation += M_PI;
             }
@@ -537,15 +536,45 @@ void WallPlacer::placeWalls() {
                                 distance -= panelLength;
                             }
                             // Place timber for remaining distance
-                            if (distance > 0 && distance < 5) {
+                            if (distance > 0 && distance < 50) {
                                 //acutPrintf(_T("\nPlacing timber at distance: %f, height: %d"), distance, panelHeights[panelNum]);
                                 AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
                                 if (timberAssetId == AcDbObjectId::kNull) {
-                                    acutPrintf(_T("\nFailed to create timber asset."));
+                                    acutPrintf(_T("\nFailed to place timber."));
                                 }
                                 else {
-                                    rotation = rotation + M_PI;
-                                    timber.push_back({ currentPoint, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
+                                    rotation = normalizeAngle(rotation);
+
+                                    // Calculate the new position with the appropriate offsets based on rotation
+                                    AcGePoint3d timberPosition = currentPoint;
+                                    timberPosition.z += static_cast<double>(panelHeights[panelNum]) / 2.0;  // Z offset
+
+                                    // Apply offsets based on the rotation to snap to neighboring base point
+                                    switch (static_cast<int>(round(rotation / M_PI_2))) {
+                                    case 0: // 0 degrees
+                                    case 4: // Normalize 360 degrees to 0 degrees
+                                        timberPosition.y += 50;  // Offset in the y direction
+                                        break;
+                                    case 1: // 90 degrees
+                                        timberPosition.x += 50;  // Offset in the x direction
+                                        break;
+                                    case 2: // 180 degrees
+                                        timberPosition.y -= 50;  // Offset in the y direction
+                                        break;
+                                    case 3: // 270 degrees
+                                    case -1: // Normalize -90 degrees to 270 degrees
+                                        timberPosition.x -= 50;  // Offset in the x direction
+                                        break;
+                                    default:
+                                        acutPrintf(_T("\nInvalid rotation angle detected: %f "), rotation);
+                                        continue;
+                                    }
+
+                                    // Ensure that the timber connects correctly with the neighboring panel base point
+                                    timberPosition += AcGeVector3d(50 * cos(rotation), 50 * sin(rotation), 0);  // Apply offset considering rotation
+
+                                    // Add the timber panel with the calculated position and rotation
+                                    timber.push_back({ timberPosition, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
                                     distance = 0;
                                     /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
                                     AcGePoint3d timberPosition = currentPoint;
@@ -741,7 +770,7 @@ void WallPlacer::placeWalls() {
 
     pModelSpace->close();
     pBlockTable->close();
-    acutPrintf(_T("\nCompleted placing walls."));
+    //acutPrintf(_T("\nCompleted placing walls."));
 
     // Sixth Pass: Place all timber
     if (!pDb) {
