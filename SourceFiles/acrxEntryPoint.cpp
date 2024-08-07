@@ -31,6 +31,9 @@
 #include "SettingsCommands.h"
 #include "Columns/PlaceColumns.h"
 #include "AssetPlacer/SpecialCaseCorners.h"
+#include "Scafold/PlaceBracket-PP.h"
+//Only for debug
+//#include "Test-only/TestCol.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -62,6 +65,8 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
+        //acedRegCmds->addCommand(_T("BRXAPP"), _T("Test-Peri"), _T("Test-Peri"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppTestPeri(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
@@ -99,6 +104,23 @@ public:
     {
         acutPrintf(_T("\nRunning MySandboxCommand."));
     }
+
+ //   //Test-Peri command
+ //   static void BrxAppTestPeri(void)
+	//{
+	//	acutPrintf(_T("\nRunning Test-Peri."));
+	//	ColumnExtractor Extractor;
+	//	Extractor.placeColumnsFromJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
+ //       acutPrintf(_T("\nColumns placed."));
+	//	//colExtractor.saveColumnDataToJson(columns, "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
+	//}
+
+    // PlaceBrackets command
+    static void BrxAppPlaceBrackets(void)
+	{
+		acutPrintf(_T("\nRunning PlaceBrackets."));
+        PlaceBracket::placeBrackets();
+	}
 
     // PlaceCorners command
     static void BrxAppPlaceCorners(void)
