@@ -515,7 +515,7 @@ void PlaceBracket::placeBrackets() {
             currentPointPP.x += bracketXOffset;
             currentPointPP.y -= ppYOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
-            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kYAxis, currentPoint);
+            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2*3, AcGeVector3d::kYAxis, currentPoint);
             break;
         case 1: // 90 degrees LEFT
             currentPoint.x += bracketYOffset;
@@ -523,7 +523,6 @@ void PlaceBracket::placeBrackets() {
             currentPointPP.x += ppYOffset;
             currentPointPP.y += bracketXOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
-            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI, AcGeVector3d::kYAxis, currentPoint);
             break;
         case 2: // 180 degrees BOTTOM
             currentPoint.x -= bracketXOffset;
@@ -531,7 +530,7 @@ void PlaceBracket::placeBrackets() {
             currentPointPP.x -= bracketXOffset;
             currentPointPP.y += ppYOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
-            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2*3, AcGeVector3d::kYAxis, currentPoint);
+            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kYAxis, currentPoint);
             break;
             break;
         case 3: // 270 degrees RIGHT
@@ -540,6 +539,7 @@ void PlaceBracket::placeBrackets() {
             currentPointPP.x -= ppYOffset;
             currentPointPP.y -= bracketXOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
+            rotationMatrixZ = AcGeMatrix3d::rotation(M_PI, AcGeVector3d::kYAxis, currentPoint);
             break;
         case -1:
             break;
