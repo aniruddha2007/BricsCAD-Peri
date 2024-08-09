@@ -407,6 +407,92 @@ AcDbObjectId ColumnPlacer::createCompositeBlockWithTies(int newBlockDimension) {
     }
     };
 
+    std::vector<std::vector<BlockPlacement>> placements1234 = { // 50x30
+    { // Placements for Block 128283X (45cm panel)
+        { AcGePoint3d(0, 0, 0), 0.0 },
+        { AcGePoint3d(450, 0, 0), 0.0 },
+        { AcGePoint3d(50, 0, 0), M_PI_2 },
+        { AcGePoint3d(50, 450, 0), M_PI_2 },
+        { AcGePoint3d(50, 30, 0), M_PI },
+        { AcGePoint3d(0, 30, 0), 3 * M_PI_2 }
+    },
+    { // Placements for Block 128281X (75cm panel)
+        { AcGePoint3d(450, 0, 0), 0.0 },
+        { AcGePoint3d(50, 450, 0), M_PI_2 },
+        { AcGePoint3d(50, 30, 0), M_PI },
+        { AcGePoint3d(0, 30, 0), 3 * M_PI_2 }
+    },
+    { // Placements for Block 128295X (connector)
+        { AcGePoint3d(0, -100, 1050), 0.0 },
+        { AcGePoint3d(150, 0, 1050), M_PI_2 },
+        { AcGePoint3d(50, 130, 1050), M_PI },
+        { AcGePoint3d(-100, 30, 1050), 3 * M_PI_2 },
+        { AcGePoint3d(0, -100, 300), 0.0 },
+        { AcGePoint3d(150, 0, 300), M_PI_2 },
+        { AcGePoint3d(50, 130, 300), M_PI },
+        { AcGePoint3d(-100, 30, 300), 3 * M_PI_2 }
+    },
+    { // Placements for Block 128265X (nut+tie)
+        { AcGePoint3d(50 - 100, 30 + 125, 1050), 0.0 },
+        { AcGePoint3d(-125, 30 - 100, 1050), M_PI_2 },
+        { AcGePoint3d(100, -125, 1050), M_PI },
+        { AcGePoint3d(50 + 125, 100, 1050), 3 * M_PI_2 },
+        { AcGePoint3d(50 - 100, 30 + 125, 300), 0.0 },
+        { AcGePoint3d(-125, 30 - 100, 300), M_PI_2 },
+        { AcGePoint3d(100, -125, 300), M_PI },
+        { AcGePoint3d(50 + 125, 100, 300), 3 * M_PI_2 }
+    },
+    { // Placements for Block 030110X (wingnut)
+        { AcGePoint3d(50 + 125, -145, 1050), 0.0 },
+        { AcGePoint3d(50 + 145, 30 + 125, 1050), M_PI_2 },
+        { AcGePoint3d(-125, 30 + 145, 1050), M_PI },
+        { AcGePoint3d(-145, -125, 1050), 3 * M_PI_2 },
+        { AcGePoint3d(50 + 125, -145, 300), 0.0 },
+        { AcGePoint3d(50 + 145, 30 + 125, 300), M_PI_2 },
+        { AcGePoint3d(-125, 30 + 145, 300), M_PI },
+        { AcGePoint3d(-145, -125, 300), 3 * M_PI_2 },
+        { AcGePoint3d((50 / 2) + 25, 30 + 145, 1050), M_PI },
+        { AcGePoint3d((50 / 2) + 25, -145, 1050), 0.0 },
+        { AcGePoint3d(50 + 145, (30 / 2) + 25, 1050), M_PI_2 },
+        { AcGePoint3d(-145, (30 / 2) + 25, 1050), 3 * M_PI_2 },
+        { AcGePoint3d((50 / 2) + 25, 30 + 145, 300), M_PI },
+        { AcGePoint3d((50 / 2) + 25, -145, 300), 0.0 },
+        { AcGePoint3d(50 + 145, (30 / 2) + 25, 300), M_PI_2 },
+        { AcGePoint3d(-145, (30 / 2) + 25, 300), 3 * M_PI_2 }
+    },
+    { // Placements for Block 030490X (120cm tie)
+        { AcGePoint3d(50 / 2, (30 / 2) + 25, 1050), 0.0 },
+        { AcGePoint3d((50 / 2) + 25, 30 / 2, 1050), M_PI_2 },
+        { AcGePoint3d(50 / 2, (30 / 2) + 25, 300), 0.0 },
+        { AcGePoint3d((50 / 2) + 25, 30 / 2, 300), M_PI_2 }
+    },
+    { // Placements for Block 128255X (waler)
+        { AcGePoint3d(525, -100, 1050), 0.0 },
+        { AcGePoint3d(525, -100, 300), 0.0 },
+        { AcGePoint3d(50 + 100, 525, 1050), M_PI_2 },
+        { AcGePoint3d(50 + 100, 525, 300), M_PI_2 },
+        { AcGePoint3d(50 - 525, 30 + 100, 1050), M_PI },
+        { AcGePoint3d(50 - 525, 30 + 100, 300), M_PI },
+        { AcGePoint3d(-100, 30 - 525, 1050), 3 * M_PI_2 },
+        { AcGePoint3d(-100, 30 - 525, 300), 3 * M_PI_2 }
+    },
+    { // Placements for Block 030170X (150cm tie)
+
+    },
+    { // Placements for Block 030020X (170cm tie)
+
+    },
+    { // Placements for Block 030180X (200cm tie)
+
+    },
+    { // Placements for Block 030710X (250cm tie)
+
+    },
+    { // Placements for Block 030720X (300cm tie)
+
+    }
+    };
+
     std::vector<std::vector<BlockPlacement>> placements650 = { // 650
         { // Placements for Block 128283X (45cm panel)
             { AcGePoint3d(0, 0, 0), 0.0 },
@@ -3248,6 +3334,9 @@ AcDbObjectId ColumnPlacer::createCompositeBlockWithTies(int newBlockDimension) {
         case 2000:
             selectedPlacements = placements2000;
             break;
+        case 1234:
+            selectedPlacements = placements1234;
+			break;
     }
     
 
