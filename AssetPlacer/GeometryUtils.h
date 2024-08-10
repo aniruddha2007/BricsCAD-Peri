@@ -14,3 +14,5 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
 void rotateAroundXAxis(AcDbBlockReference* pBlockRef, double angle);
 void rotateAroundYAxis(AcDbBlockReference* pBlockRef, double angle);
 void rotateAroundZAxis(AcDbBlockReference* pBlockRef, double angle);
+std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline);
+double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2);

@@ -33,7 +33,8 @@
 #include "AssetPlacer/SpecialCaseCorners.h"
 #include "Scafold/PlaceBracket-PP.h"
 //Only for debug
-//#include "Test-only/TestCol.h"
+#include "Test-only/TestCol.h"
+#include "Test-only/extractCol.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -65,7 +66,8 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("Test-Peri"), _T("Test-Peri"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppTestPeri(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("ExtractColumn"), _T("ExtractColumn"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppExtractColumn(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("TestCol"), _T("TestCol"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppTestCol(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
@@ -105,15 +107,26 @@ public:
         acutPrintf(_T("\nRunning MySandboxCommand."));
     }
 
- //   //Test-Peri command
- //   static void BrxAppTestPeri(void)
-	//{
-	//	acutPrintf(_T("\nRunning Test-Peri."));
-	//	ColumnExtractor Extractor;
-	//	Extractor.placeColumnsFromJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
- //       acutPrintf(_T("\nColumns placed."));
-	//	//colExtractor.saveColumnDataToJson(columns, "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
-	//}
+    //Test-Peri command
+    static void BrxAppExtractColumn(void)
+    {
+        acutPrintf(_T("\nRunning Extract Block."));
+        ColumnExtractor colExtractor;
+
+        // Extract column data and create a block, saving data to JSON
+        colExtractor.extractAndCreateBlock("ColumnBlock200*200", "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
+        acutPrintf(_T("\nColumn data stored in JSON."));
+    }
+
+    //Test-Peri command
+    static void BrxAppTestCol(void)
+	{
+		acutPrintf(_T("\nRunning Test Column."));
+		
+        ColumnPlacermain colPlacer;
+        colPlacer.placeColumnsFromJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
+        acutPrintf(_T("\nColumns placed."));
+	}
 
     // PlaceBrackets command
     static void BrxAppPlaceBrackets(void)

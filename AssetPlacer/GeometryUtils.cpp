@@ -247,3 +247,37 @@ void rotateAroundZAxis(AcDbBlockReference* pBlockRef, double angle) {
     // Apply the final transformation
     pBlockRef->transformBy(finalTransform);
 }
+
+// Function to get the vertices of an AcDbPolyline
+std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {
+    std::vector<AcGePoint3d> vertices;
+    int numVerts = pPolyline->numVerts();
+    for (int i = 0; i < numVerts; ++i) {
+        AcGePoint3d point;
+        pPolyline->getPointAt(i, point);
+        vertices.push_back(point);
+    }
+    return vertices;
+}
+
+// Function to calculate the distance between corresponding vertices of two polylines
+double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
+    std::vector<AcGePoint3d> vertices1 = getPolylineVertices(pPolyline1);
+    std::vector<AcGePoint3d> vertices2 = getPolylineVertices(pPolyline2);
+
+    if (vertices1.size() != vertices2.size()) {
+        acutPrintf(_T("\nThe polylines have different numbers of vertices."));
+        return -1.0;
+    }
+
+    for (size_t i = 0; i < vertices1.size(); ++i) {
+        double deltaX = vertices2[i].x - vertices1[i].x;
+        double deltaY = vertices2[i].y - vertices1[i].y;
+
+        if (std::abs(deltaX) == std::abs(deltaY)) {
+            return std::abs(deltaX); // Return the positive distance value
+        }
+    }
+
+    return -1.0; // Return -1 if no matching deltas are found
+}
