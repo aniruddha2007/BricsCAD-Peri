@@ -1,7 +1,3 @@
-// Created by:Ani  (2024-05-31)
-// Modified by:Ani (2024-07-04)
-//
-/////////////////////////////////////////////////////////////////////////
 #include "StdAfx.h"
 #include "TimberAssetCreator.h"
 #include "AcDb/AcDb3dSolid.h"
@@ -10,6 +6,7 @@
 #include "dbsymtb.h"
 #include "aced.h"
 #include "geassign.h"
+#include <sstream>
 
 AcDbObjectId TimberAssetCreator::createTimberAsset(double length, double height) {
     acutPrintf(_T("\nCreating timber asset with length: %f and height: %f"), length, height); // Debug output
@@ -27,10 +24,14 @@ AcDbObjectId TimberAssetCreator::createTimberAsset(double length, double height)
         return AcDbObjectId::kNull;
     }
 
-    AcDbObjectId blockId;
+    // Create a unique name for the timber block based on its dimensions
+    std::wstringstream ss;
+    ss << L"Timber_" << length << L"x" << height;
+    std::wstring blockName = ss.str();
 
-    if (pBlockTable->has(L"Timber")) {
-        if (pBlockTable->getAt(L"Timber", blockId) != Acad::eOk) {
+    AcDbObjectId blockId;
+    if (pBlockTable->has(blockName.c_str())) {
+        if (pBlockTable->getAt(blockName.c_str(), blockId) != Acad::eOk) {
             acutPrintf(_T("\nFailed to get existing timber block."));
             pBlockTable->close();
             return AcDbObjectId::kNull;
@@ -51,7 +52,7 @@ AcDbObjectId TimberAssetCreator::createTimberAsset(double length, double height)
 
     // Create a new block table record for the timber block
     AcDbBlockTableRecord* pBlockTableRecord = new AcDbBlockTableRecord();
-    pBlockTableRecord->setName(L"Timber");
+    pBlockTableRecord->setName(blockName.c_str());
 
     es = pBlockTable->add(pBlockTableRecord);
     if (es != Acad::eOk) {
@@ -61,68 +62,38 @@ AcDbObjectId TimberAssetCreator::createTimberAsset(double length, double height)
         return AcDbObjectId::kNull;
     }
 
+    pBlockTable->close(); // Close the block table opened for write
 
-    pBlockTable->close(); // Close the block table opened for read
-
-    // Define the points for the rectangular timber
-    AcGePoint3d p1(0, 0, 0);
-    AcGePoint3d p2(length, 0, 0);
-    AcGePoint3d p3(length, height, 0);
-    AcGePoint3d p4(0, height, 0);
-
-    // Create the lines
-    AcDbLine* pLine1 = new AcDbLine(p1, p2);
-    AcDbLine* pLine2 = new AcDbLine(p2, p3);
-    AcDbLine* pLine3 = new AcDbLine(p3, p4);
-    AcDbLine* pLine4 = new AcDbLine(p4, p1);
-
-    // Append the lines to the block table record
-    es = pBlockTableRecord->appendAcDbEntity(pLine1);
+    // Define the 3D solid box for the timber
+    AcDb3dSolid* pSolid = new AcDb3dSolid();
+    es = pSolid->createBox(length, 10.0, height); // length, width, height (assuming a fixed width of 10.0 units)
     if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append line 1 to block table record. Error: %d"), es);
-        pLine1->close();
+        acutPrintf(_T("\nFailed to create 3D solid box. Error: %d"), es);
+        delete pSolid;
         pBlockTableRecord->close();
-        pBlockTable->close();
         return AcDbObjectId::kNull;
     }
 
-    es = pBlockTableRecord->appendAcDbEntity(pLine2);
+    // Move the base point to the center
+    AcGeMatrix3d moveMatrix;
+    moveMatrix.setTranslation(AcGeVector3d(-length / 2.0, -5.0, -height / 2.0));
+    pSolid->transformBy(moveMatrix);
+
+    // Append the 3D solid to the block table record
+    es = pBlockTableRecord->appendAcDbEntity(pSolid);
     if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append line 2 to block table record. Error: %d"), es);
-        pLine2->close();
+        acutPrintf(_T("\nFailed to append 3D solid to block table record. Error: %d"), es);
+        pSolid->close();
         pBlockTableRecord->close();
-        pBlockTable->close();
         return AcDbObjectId::kNull;
     }
 
-    es = pBlockTableRecord->appendAcDbEntity(pLine3);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append line 3 to block table record. Error: %d"), es);
-        pLine3->close();
-        pBlockTableRecord->close();
-        pBlockTable->close();
-        return AcDbObjectId::kNull;
-    }
-
-    es = pBlockTableRecord->appendAcDbEntity(pLine4);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append line 4 to block table record. Error: %d"), es);
-        pLine4->close();
-        pBlockTableRecord->close();
-        pBlockTable->close();
-        return AcDbObjectId::kNull;
-    }
-
-    // Close the lines
-    pLine1->close();
-    pLine2->close();
-    pLine3->close();
-    pLine4->close();
+    // Close the 3D solid
+    pSolid->close();
 
     // Close the block table record
     blockId = pBlockTableRecord->objectId();
     pBlockTableRecord->close();
-    pBlockTable->close();
 
     acutPrintf(_T("\nTimber asset created successfully."));
     return blockId;

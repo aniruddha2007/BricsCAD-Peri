@@ -233,86 +233,86 @@ void SpecialCaseCorners::determineAndPlacePanels(const std::vector<AcGePoint3d>&
         std::vector<std::pair<Panel, int>> setup;
 
         // Determine setup based on the calculated distance
-        if (distance >= 0 && distance <= 44) {
+        if (distance >= 0 && distance <= 440) {
             setup.push_back({ Panel{static_cast<int>(distance), L"Timber"}, 1 });
         }
-        else if (distance == 45) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
+        else if (distance == 450) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
         }
-        else if (distance >= 46 && distance <= 59) {
-            setup.push_back({ Panel{15, L"128285X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 30), L"Timber"}, 1 });
+        else if (distance >= 460 && distance <= 590) {
+            setup.push_back({ Panel{150, L"128285X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 300), L"Timber"}, 1 });
         }
-        else if (distance == 60) {
-            setup.push_back({ Panel{60, L"128282X"}, 1 });
+        else if (distance == 600) {
+            setup.push_back({ Panel{600, L"128282X"}, 1 });
         }
-        else if (distance >= 61 && distance <= 64) {
-            setup.push_back({ Panel{30, L"128284X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 60), L"Timber"}, 1 });
+        else if (distance >= 610 && distance <= 640) {
+            setup.push_back({ Panel{300, L"128284X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 600), L"Timber"}, 1 });
         }
-        else if (distance == 65) {
-            setup.push_back({ Panel{30, L"128284X"}, 2 });
-            setup.push_back({ Panel{5, L"128287X"}, 1 });
+        else if (distance == 650) {
+            setup.push_back({ Panel{300, L"128284X"}, 2 });
+            setup.push_back({ Panel{50, L"128287X"}, 1 });
         }
-        else if (distance >= 66 && distance <= 69) {
-            setup.push_back({ Panel{30, L"128284X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 60), L"Timber"}, 1 });
+        else if (distance >= 660 && distance <= 690) {
+            setup.push_back({ Panel{300, L"128284X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 600), L"Timber"}, 1 });
         }
-        else if (distance == 70) {
-            setup.push_back({ Panel{30, L"128284X"}, 2 });
-            setup.push_back({ Panel{10, L"128287X"}, 1 });
+        else if (distance == 700) {
+            setup.push_back({ Panel{300, L"128284X"}, 2 });
+            setup.push_back({ Panel{100, L"128292X"}, 1 });
         }
-        else if (distance >= 71 && distance <= 74) {
-            setup.push_back({ Panel{30, L"128284X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 60), L"Timber"}, 1 });
+        else if (distance >= 710 && distance <= 740) {
+            setup.push_back({ Panel{300, L"128284X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 600), L"Timber"}, 1 });
         }
-        else if (distance == 75) {
-            setup.push_back({ Panel{75, L"128281X"}, 1 });
+        else if (distance == 750) {
+            setup.push_back({ Panel{750, L"128281X"}, 1 });
         }
-        else if (distance >= 76 && distance <= 79) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{static_cast<int>(distance - 75), L"Timber"}, 1 });
-            setup.push_back({ Panel{30, L"128284X"}, 1 });
+        else if (distance >= 760 && distance <= 790) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{static_cast<int>(distance - 750), L"Timber"}, 1 });
+            setup.push_back({ Panel{300, L"128284X"}, 1 });
         }
-        else if (distance == 80) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{5, L"128287X"}, 1 });
-            setup.push_back({ Panel{30, L"128284X"}, 1 });
+        else if (distance == 800) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{50, L"128287X"}, 1 });
+            setup.push_back({ Panel{300, L"128284X"}, 1 });
         }
-        else if (distance >= 81 && distance <= 84) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{static_cast<int>(distance - 75), L"Timber"}, 1 });
-            setup.push_back({ Panel{30, L"128284X"}, 1 });
+        else if (distance >= 810 && distance <= 840) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{static_cast<int>(distance - 750), L"Timber"}, 1 });
+            setup.push_back({ Panel{300, L"128284X"}, 1 });
         }
-        else if (distance == 85) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{10, L"128287X"}, 1 });
-            setup.push_back({ Panel{30, L"128284X"}, 1 });
+        else if (distance == 850) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{100, L"128287X"}, 1 });
+            setup.push_back({ Panel{300, L"128284X"}, 1 });
         }
-        else if (distance >= 86 && distance <= 89) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{static_cast<int>(distance - 75), L"Timber"}, 1 });
-            setup.push_back({ Panel{30, L"128284X"}, 1 });
+        else if (distance >= 860 && distance <= 890) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{static_cast<int>(distance - 750), L"Timber"}, 1 });
+            setup.push_back({ Panel{300, L"128284X"}, 1 });
         }
-        else if (distance == 90) {
-            setup.push_back({ Panel{45, L"128283X"}, 2 });
+        else if (distance == 900) {
+            setup.push_back({ Panel{450, L"128283X"}, 2 });
         }
-        else if (distance >= 91 && distance <= 94) {
-            setup.push_back({ Panel{45, L"128283X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 90), L"Timber"}, 1 });
+        else if (distance >= 910 && distance <= 94) {
+            setup.push_back({ Panel{450, L"128283X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 900), L"Timber"}, 1 });
         }
-        else if (distance == 95) {
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
-            setup.push_back({ Panel{5, L"128287X"}, 1 });
-            setup.push_back({ Panel{45, L"128283X"}, 1 });
+        else if (distance == 950) {
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
+            setup.push_back({ Panel{50, L"128287X"}, 1 });
+            setup.push_back({ Panel{450, L"128283X"}, 1 });
         }
-        else if (distance >= 96 && distance <= 99) {
-            setup.push_back({ Panel{45, L"128283X"}, 2 });
-            setup.push_back({ Panel{static_cast<int>(distance - 90), L"Timber"}, 1 });
+        else if (distance >= 960 && distance <= 990) {
+            setup.push_back({ Panel{450, L"128283X"}, 2 });
+            setup.push_back({ Panel{static_cast<int>(distance - 900), L"Timber"}, 1 });
         }
-        else if (distance == 100) {
-            setup.push_back({ Panel{45, L"128283X"}, 2 });
-            setup.push_back({ Panel{10, L"128287X"}, 1 });
+        else if (distance == 1000) {
+            setup.push_back({ Panel{450, L"128283X"}, 2 });
+            setup.push_back({ Panel{100, L"128287X"}, 1 });
         }
         else {
             acutPrintf(_T("Error, case not recognized"));
