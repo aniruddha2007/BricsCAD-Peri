@@ -23,6 +23,110 @@
 #include "gepnt3d.h"
 #include "DefineHeight.h"
 #include "DefineScale.h" 
+#include <map>
+
+std::map<AcGePoint3d, std::vector<AcGePoint3d>, PlaceBracket::Point3dComparator> PlaceBracket::wallMap;
+
+const int BATCH_SIZE = 30; // Batch size for processing entities
+
+const double TOLERANCE = 0.1; // Tolerance for comparing angles
+
+bool isIntegerPp(double value, double tolerance = 1e-9) {
+    return std::abs(value - std::round(value)) < tolerance;
+}
+
+//Detect polylines
+std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
+    acutPrintf(_T("\nDetecting polylines..."));
+    std::vector<AcGePoint3d> corners;
+    wallMap.clear();  // Clear previous data
+
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        acutPrintf(_T("\nNo working database found."));
+        return corners;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+        return corners;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+        pBlockTable->close();
+        return corners;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    es = pModelSpace->newIterator(pIter);
+    if (es != Acad::eOk) {
+        acutPrintf(_T("\nFailed to create iterator. Error status: %d\n"), es);
+        pModelSpace->close();
+        pBlockTable->close();
+        return corners;
+    }
+
+    int entityCount = 0;
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        es = pIter->getEntity(pEnt, AcDb::kForRead);
+        if (es == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
+                if (pPolyline) {
+                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
+                }
+            }
+            pEnt->close();
+            entityCount++;
+
+            if (entityCount % BATCH_SIZE == 0) {
+                acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+            }
+        }
+        else {
+            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
+        }
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+
+    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    return corners;
+
+}
+
+double crossProductPp(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+
+bool directionOfDrawingPp(std::vector<AcGePoint3d>& points) {
+    // Ensure the shape is closed
+    if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
+        points.push_back(points.front());
+    }
+
+    double totalTurns = 0.0;
+
+    for (size_t i = 1; i < points.size() - 1; ++i) {
+        totalTurns += crossProductPp(points[i - 1], points[i], points[i + 1]);
+    }
+
+    if (totalTurns < 0) {
+        return true;
+    }
+    else if (totalTurns > 0) {
+        return false;
+    }
+}
 
 struct BlockInfo2 {
     AcGePoint3d position;
@@ -298,6 +402,53 @@ void PlaceBracket::placeAsset(const AcGePoint3d& position, const wchar_t* blockN
 
 // Function to place brackets
 void PlaceBracket::placeBrackets() {
+    std::vector<AcGePoint3d> corners = detectPolylines();
+
+    if (corners.empty()) {
+        acutPrintf(_T("\nNo polylines detected.")); // Debug
+        return;
+    }
+
+    int closeLoopCounter = -1;
+    int loopIndex = 0;
+    double outerPointCounter = corners[0].x;
+    int outerLoopIndexValue = 0;
+    int firstLoopEnd;
+
+    // First Pass: Determine inner and outer loops
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        closeLoopCounter++;
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  // Wrap around to the first point
+        AcGeVector3d direction = (end - start).normal();
+
+        if (start.x > outerPointCounter) {
+            outerPointCounter = start.x;
+            outerLoopIndexValue = loopIndex;
+        }
+
+        if (!isIntegerPp(direction.x) || !isIntegerPp(direction.y)) {
+            if (cornerNum < corners.size() - 1) {
+                closeLoopCounter = -1;
+                loopIndex = 1;
+                firstLoopEnd = cornerNum;
+            }
+        }
+    }
+
+    //Debug
+    //acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
+    //acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+    if (outerLoopIndexValue == 0) {
+        std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
+        bool firstLoopIsClockwise = directionOfDrawingPp(firstLoop);
+    }
+    else if (outerLoopIndexValue == 1) {
+        std::vector<AcGePoint3d> firstLoop(corners.begin() + firstLoopEnd + 1, corners.end());
+        bool firstLoopIsClockwise = directionOfDrawingPp(firstLoop);
+    }
+    
+
     std::vector<BlockInfo2> blocksInfo = getSelectedBlocksInfo();
     if (blocksInfo.empty()) {
         acutPrintf(_T("\nNo block references selected."));
@@ -510,24 +661,24 @@ void PlaceBracket::placeBrackets() {
         currentPointPP.z += maxHeight;
         switch (static_cast<int>(round(rotation / M_PI_2))) {
         case 0: // 0 degrees TOP
-            currentPoint.x += bracketXOffset;
+            currentPoint.x += (panel.length - bracketXOffset);
             currentPoint.y -= bracketYOffset;
-            currentPointPP.x += bracketXOffset;
+            currentPointPP.x += (panel.length - bracketXOffset);
             currentPointPP.y -= ppYOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2*3, AcGeVector3d::kYAxis, currentPoint);
             break;
         case 1: // 90 degrees LEFT
             currentPoint.x += bracketYOffset;
-            currentPoint.y += bracketXOffset;
+            currentPoint.y += (panel.length - bracketXOffset);
             currentPointPP.x += ppYOffset;
-            currentPointPP.y += bracketXOffset;
+            currentPointPP.y += (panel.length - bracketXOffset);
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             break;
         case 2: // 180 degrees BOTTOM
-            currentPoint.x -= bracketXOffset;
+            currentPoint.x -= (panel.length - bracketXOffset);
             currentPoint.y += bracketYOffset;
-            currentPointPP.x -= bracketXOffset;
+            currentPointPP.x -= (panel.length - bracketXOffset);
             currentPointPP.y += ppYOffset;
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kYAxis, currentPoint);
@@ -535,9 +686,9 @@ void PlaceBracket::placeBrackets() {
             break;
         case 3: // 270 degrees RIGHT
             currentPoint.x -= bracketYOffset;
-            currentPoint.y -= bracketXOffset;
+            currentPoint.y -= (panel.length - bracketXOffset);
             currentPointPP.x -= ppYOffset;
-            currentPointPP.y -= bracketXOffset;
+            currentPointPP.y -= (panel.length - bracketXOffset);
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             rotationMatrixZ = AcGeMatrix3d::rotation(M_PI, AcGeVector3d::kYAxis, currentPoint);
             break;

@@ -331,10 +331,10 @@ void TiePlacer::placeTies() {
     const std::wstring wingnut = L"030110X";
     AcDbObjectId assetIdWingnut = LoadTieAsset(wingnut.c_str());
 
-    acutPrintf(_T("\nDistance Between Polylines : %d"), ((int)distanceBetweenPoly + 30));
+    acutPrintf(_T("\nDistance Between Polylines : %d"), ((int)distanceBetweenPoly + 300));
 
     for (const auto& tie : tieSizes) {
-        if (tie.length >= ((int)distanceBetweenPoly + 30)) {
+        if (tie.length >= ((int)distanceBetweenPoly + 300)) {
             acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
             tieAssetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
             break;
@@ -342,7 +342,7 @@ void TiePlacer::placeTies() {
     }
 
     for (const auto& tie : tieSizes) {
-        if (tie.length >= ((int)distanceBetweenPoly + 30 + 9)) {
+        if (tie.length >= ((int)distanceBetweenPoly + 300 + 90)) {
             acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
             tieAssetWalerId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
             break;
@@ -680,13 +680,13 @@ void TiePlacer::placeTies() {
             }
             if ((loopIsClockwise[0] && outerLoopIndexValue == 1) || (loopIsClockwise[1] && outerLoopIndexValue == 0))
             {
-                if (wallPanels[panelNum].length != 50) {
+                if (wallPanels[panelNum].length == 100) {
                     wallPanels[centerIndex].position -= direction * 50;
                     wallPanels[centerIndex].waler = true;
                 }
             }
             else {
-                if (wallPanels[panelNum].length != 50) {
+                if (wallPanels[panelNum].length == 100) {
                     wallPanels[centerIndex - 1].position += direction * 50;
                     wallPanels[centerIndex - 1].waler = true;
                 }

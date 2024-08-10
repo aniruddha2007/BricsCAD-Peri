@@ -465,18 +465,18 @@ void WallPlacer::placeWalls() {
 
             // Adjust start point
             if (!prevClockwise && isInner) {
-                start += direction * 50;
+                start += direction * 500;
             }
             else if (!prevClockwise && isOuter) {
-                start -= direction * 50;
+                start -= direction * 500;
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
-                end -= direction * 50;
+                end -= direction * 500;
             }
             else if (!nextClockwise && isOuter) {
-                end += direction * 50;
+                end += direction * 500;
             }
 
             double distance;
@@ -495,8 +495,8 @@ void WallPlacer::placeWalls() {
             double panelLength;
 
             if (isOuter) {
-                distance += 200;
-                currentPoint -= direction * 10;
+                distance += 400;
+                currentPoint -= direction * 200;
                 rotation += M_PI;
             }
 
