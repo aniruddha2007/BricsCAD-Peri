@@ -23,6 +23,7 @@
 #include <set>
 #include <cmath>
 #include <limits>
+#include <string>
 #include <chrono>
 #include <thread>
 #include "dbapserv.h"
@@ -41,7 +42,605 @@ std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dCompar
 
 const int BATCH_SIZE = 10; // Process 10 entities at a time
 
-const double TOLERANCE = 0.1; // Tolerance for angle comparison
+const double TOLERANCE = 0.19; // Tolerance for angle comparison
+
+// ADD TEXT ANNOTATION TO DRAWING__ Only enable for debugging
+//void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
+//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+//    if (!pDb) {
+//        acutPrintf(_T("\nNo working database found."));
+//        return;
+//    }
+//
+//    AcDbBlockTable* pBlockTable;
+//    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+//    if (es != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+//        return;
+//    }
+//
+//    AcDbBlockTableRecord* pModelSpace;
+//    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
+//    if (es != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
+//    es = pModelSpace->appendAcDbEntity(pText);
+//    if (es == Acad::eOk) {
+//        acutPrintf(_T("| Added text annotation: %s"), text);
+//    }
+//    else {
+//        acutPrintf(_T("\nFailed to add text annotation. Error status: %d\n"), es);
+//    }
+//    pText->close();  // Decrement reference count
+//
+//    pModelSpace->close();  // Decrement reference count
+//    pBlockTable->close();  // Decrement reference count
+//}
+
+// LOAD ASSET FROM BLOCK TABLE
+AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
+    if (wcslen(blockName) == 0) {
+        return AcDbObjectId::kNull;
+    }
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) return AcDbObjectId::kNull;
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) return AcDbObjectId::kNull;
+
+    AcDbObjectId blockId;
+    if (pBlockTable->getAt(blockName, blockId) != Acad::eOk) {
+        pBlockTable->close();
+        acutPrintf(_T("\nFailed to get block ID for block name: %s"), blockName);
+        return AcDbObjectId::kNull;
+    }
+
+    pBlockTable->close();
+    return blockId;
+}
+
+//struct PanelDimensions {
+//    std::vector<Panel> panels;
+//
+//    PanelDimensions() {
+//        // Initialize with the given panel dimensions and block names
+//        panels.push_back(Panel(50, 100, 1350, L"128287X"));
+//        panels.push_back(Panel(100, 100, 1350, L"128292X"));
+//        panels.push_back(Panel(150, 100, 1350, L"128285X"));
+//        panels.push_back(Panel(300, 100, 1350, L"128284X"));
+//        panels.push_back(Panel(450, 100, 1350, L"128283X"));
+//        panels.push_back(Panel(600, 100, 1350, L"128282X"));
+//        panels.push_back(Panel(750, 100, 1350, L"128281X"));
+//    }
+//
+//    // Function to get panel by width (if needed)
+//    Panel* getPanelByWidth(double width) {
+//        for (auto& panel : panels) {
+//            if (panel.width == width) {
+//                return &panel;
+//            }
+//        }
+//        return nullptr;  // Return nullptr if no matching panel is found
+//    }
+//};
+
+PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& panelDims) {
+    PanelConfig config = {};
+
+    if (distance == 150) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+    }
+    else if (distance == 200) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+
+    }
+    else if (distance == 250) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+		config.compensatorIdA = panelDims.getPanelByWidth(50);
+		config.compensatorIdB = panelDims.getPanelByWidth(50);
+    }
+    else if (distance == 300) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+    }
+    else if (distance == 350) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+    }
+    else if (distance == 400) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+    }
+    else if (distance == 450) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+    }
+    else if (distance == 500) {
+		config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+		config.compensatorIdA = panelDims.getPanelByWidth(0);
+		config.compensatorIdB = panelDims.getPanelByWidth(0);
+	}
+	else if (distance == 550) {
+		config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+		config.compensatorIdA = panelDims.getPanelByWidth(50);
+		config.compensatorIdB = panelDims.getPanelByWidth(50);
+	}
+	else if (distance == 600) {
+		config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+		config.compensatorIdA = panelDims.getPanelByWidth(100);
+		config.compensatorIdB = panelDims.getPanelByWidth(100);
+	}
+	else if (distance == 650) {
+		config.panelIdA = panelDims.getPanelByWidth(150);
+		config.panelIdB = panelDims.getPanelByWidth(150);
+		config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+		config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+	}
+    else if (distance == 700) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+    }
+    else if (distance == 750) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+    }
+    else if (distance == 800) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+    }
+    else if (distance == 850) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 900) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(300);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 950) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1000) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1050) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1100) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1150) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1200) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1250) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1300) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1350) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(0);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(0);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1400) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1450) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1500) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1550) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1600) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1650) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1700) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+    }
+    else if (distance == 1750) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1800) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(450);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 1850) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 1900) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 1950) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(600);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+        }
+    else if (distance == 2000) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(0);
+        config.compensatorIdB = panelDims.getPanelByWidth(0);
+        }
+    else if (distance == 2050) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(50);
+        config.compensatorIdB = panelDims.getPanelByWidth(50);
+        }
+    else if (distance == 2100) {
+        config.panelIdA = panelDims.getPanelByWidth(150);
+        config.panelIdB = panelDims.getPanelByWidth(150);
+        config.outsidePanelIds[0] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[1] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[2] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[3] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[4] = panelDims.getPanelByWidth(750);
+        config.outsidePanelIds[5] = panelDims.getPanelByWidth(750);
+        config.compensatorIdA = panelDims.getPanelByWidth(100);
+        config.compensatorIdB = panelDims.getPanelByWidth(100);
+    }
+
+    // Continue adding other cases...
+
+
+        // Debug output to verify panel assignment
+        acutPrintf(_T("\nPanel Configuration for Distance %f:"), distance);
+        for (int i = 0; i < 6; ++i) {
+            if (config.outsidePanelIds[i]) {
+                acutPrintf(_T("\nOutside Panel %d: Block Name: %s, Width: %f"), i, config.outsidePanelIds[i]->blockName.c_str(), config.outsidePanelIds[i]->width);
+            }
+            else {
+                acutPrintf(_T("\nOutside Panel %d: Block not assigned or is null."), i);
+            }
+        }
+        if (config.compensatorIdA) {
+            acutPrintf(_T("\nCompensator A: Block Name: %s, Width: %f"), config.compensatorIdA->blockName.c_str(), config.compensatorIdA->width);
+        }
+        else {
+            acutPrintf(_T("\nCompensator A: Block not assigned or is null."));
+        }
+        if (config.compensatorIdB) {
+            acutPrintf(_T("\nCompensator B: Block Name: %s, Width: %f"), config.compensatorIdB->blockName.c_str(), config.compensatorIdB->width);
+        }
+        else {
+            acutPrintf(_T("\nCompensator B: Block not assigned or is null."));
+        }
+
+    return config;
+}
 
 bool isItInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
@@ -88,46 +687,42 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
     return true;
 }
 
-// DETECT POLYLINES FROM DRAWING
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
-    //acutPrintf(_T("\nDetecting polylines..."));
+    acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
     wallMap.clear();  // Clear previous data
 
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    auto pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
         return corners;
     }
 
     AcDbBlockTable* pBlockTable;
-    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get block table."));
         return corners;
     }
 
     AcDbBlockTableRecord* pModelSpace;
-    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to get model space."));
         pBlockTable->close();
         return corners;
     }
 
     AcDbBlockTableRecordIterator* pIter;
-    es = pModelSpace->newIterator(pIter);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to create iterator. Error status: %d\n"), es);
+    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
+        acutPrintf(_T("\nFailed to create iterator."));
         pModelSpace->close();
         pBlockTable->close();
         return corners;
     }
 
     int entityCount = 0;
-    for (pIter->start(); !pIter->done(); pIter->step()) {
+    while (!pIter->done()) {
         AcDbEntity* pEnt;
-        es = pIter->getEntity(pEnt, AcDb::kForRead);
+        Acad::ErrorStatus es = pIter->getEntity(pEnt, AcDb::kForRead);
         if (es == Acad::eOk) {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
@@ -140,58 +735,31 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
 
             if (entityCount % BATCH_SIZE == 0) {
                 acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
-                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Adjusted sleep time for potentially better performance
             }
         }
         else {
             acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
         }
+
+        pIter->step();
     }
 
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
 
-    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
 }
 
-// ADD TEXT ANNOTATION TO DRAWING__ Only enable for debugging
-//void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-//    if (!pDb) {
-//        acutPrintf(_T("\nNo working database found."));
-//        return;
-//    }
-//
-//    AcDbBlockTable* pBlockTable;
-//    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
-//        return;
-//    }
-//
-//    AcDbBlockTableRecord* pModelSpace;
-//    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
-//    es = pModelSpace->appendAcDbEntity(pText);
-//    if (es == Acad::eOk) {
-//        acutPrintf(_T("| Added text annotation: %s"), text);
-//    }
-//    else {
-//        acutPrintf(_T("\nFailed to add text annotation. Error status: %d\n"), es);
-//    }
-//    pText->close();  // Decrement reference count
-//
-//    pModelSpace->close();  // Decrement reference count
-//    pBlockTable->close();  // Decrement reference count
-//}
+bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
+    // Calculate the cross product of the two vectors
+    AcGeVector3d crossProduct = v1.crossProduct(v2);
+
+    // Check if the magnitude of the cross product is close to zero within the tolerance
+    return crossProduct.length() < tolerance;
+}
 
 double crossProduct2(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
@@ -209,140 +777,294 @@ bool directionOfDrawing2(std::vector<AcGePoint3d>& points) {
         totalTurns += crossProduct2(points[i - 1], points[i], points[i + 1]);
     }
 
-    if (totalTurns < 0) {
-        return true;
-    }
-    else if (totalTurns > 0) {
-        return false;
-    }
+    return totalTurns > 0.0;
 }
 
-// PLACE ASSETS AT DETECTED CORNERS
-void CornerAssetPlacer::placeAssetsAtCorners() {
-    //acutPrintf(_T("\nPlacing assets at corners..."));
-    std::vector<AcGePoint3d> corners = detectPolylines();
-    //check for corner connector cases
-     
-    //acutPrintf(_T("\nDetected %d corners from lines."), corners.size());
-
-    AcDbObjectId cornerPostId = loadAsset(L"128286X");
-    AcDbObjectId panelId = loadAsset(L"128285X");
-    AcDbObjectId panel75Id = loadAsset(L"128281X");
-
-    if (cornerPostId == AcDbObjectId::kNull || panelId == AcDbObjectId::kNull) {
-        acutPrintf(_T("\nFailed to load assets."));
-        return;
+double CornerAssetPlacer::calculateDistanceBetweenPolylines() {
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        return -1.0;
     }
-    
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        return -1.0;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
+        pModelSpace->close();
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbPolyline* pFirstPolyline = nullptr;
+    AcDbPolyline* pSecondPolyline = nullptr;
+
+    // Find the first two polylines
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                if (!pFirstPolyline) {
+                    pFirstPolyline = AcDbPolyline::cast(pEnt);
+                }
+                else if (!pSecondPolyline) {
+                    pSecondPolyline = AcDbPolyline::cast(pEnt);
+                    pEnt->close();
+                    break; // Found both polylines, no need to continue
+                }
+            }
+            pEnt->close();
+        }
+    }
+
+    double distance = -1.0;
+    if (pFirstPolyline && pSecondPolyline) {
+        distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+    return distance;
+}
+
+int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners) {
     int closeLoopCounter = -1;
     int loopIndex = 0;
     double outerPointCounter = corners[0].x;
     int outerLoopIndexValue = 0;
-    int firstLoopEnd;
+    int firstLoopEnd = corners.size() - 1;
 
-    // Loop through corners, find outer and inner loop
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
 
-        //acutPrintf(_T("\nCurrent position: %f, %f"), start.x, start.y); // Debug
         if (start.x > outerPointCounter) {
             outerPointCounter = start.x;
             outerLoopIndexValue = loopIndex;
         }
 
-        //acutPrintf(_T("\ndirection.y is integer?: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
-        if (isItInteger(direction.x) && isItInteger(direction.y)) {
-            //acutPrintf(_T("\nYES."));
-        }
-        else {
-            //acutPrintf(_T("\nNO. i < corners.size() - 1?"));
+        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
-                //acutPrintf(_T("\nYES. loopIndex = 1"));
                 closeLoopCounter = -1;
                 loopIndex = 1;
                 firstLoopEnd = cornerNum;
             }
-            else {
-                //acutPrintf(_T("\nNO."));
-            }
         }
     }
-    //acutPrintf(_T("\nOuter loop is loop number: %d,"), outerLoopIndexValue); // Debug
 
-    acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
-    acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+    return firstLoopEnd;
+}
+
+std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> CornerAssetPlacer::splitLoops(
+    const std::vector<AcGePoint3d>& corners, int firstLoopEnd) {
 
     std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
     std::vector<AcGePoint3d> secondLoop(corners.begin() + firstLoopEnd + 1, corners.end());
 
-    bool firstLoopIsClockwise = directionOfDrawing2(firstLoop);
-    bool secondLoopIsClockwise = directionOfDrawing2(secondLoop);
+    return { firstLoop, secondLoop };
+}
 
-    std::vector<bool> loopIsClockwise = {
-        firstLoopIsClockwise,
-        secondLoopIsClockwise
-    };
+void CornerAssetPlacer::processCorners(
+    const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
+    double distance, const std::vector<bool>& loopIsClockwise) {
 
-    loopIndex = 0;
+    int loopIndex = 0;
     int loopIndexLastPanel = 0;
-    closeLoopCounter = -1;
-    // Iterate through all detected corners and place assets accordingly
+    int closeLoopCounter = -1;
+    int outerLoopIndexValue = 0;
+
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        // Convert Panels to AcDbObjectId using loadAsset
+        AcDbObjectId panelIdA = loadAsset(config.panelIdA->blockName.c_str());
+        AcDbObjectId panelIdB = loadAsset(config.panelIdB->blockName.c_str());
+        AcDbObjectId compensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
+        AcDbObjectId compensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
+
+        // For outside corner panels
+        AcDbObjectId outsidePanelIds[6];
+        for (int i = 0; i < 6; ++i) {
+            if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
+                outsidePanelIds[i] = loadAsset(config.outsidePanelIds[i]->blockName.c_str());
+                if (outsidePanelIds[i] == AcDbObjectId::kNull) {
+                    acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
+                }
+            }
+            else {
+                outsidePanelIds[i] = AcDbObjectId::kNull;  // Assign null for dummy panels
+            }
+        }
+        AcDbObjectId outsideCompensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
+        AcDbObjectId outsideCompensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
 
         double rotation = 0.0;
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[cornerNum + 1];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()]; // Wrap around the loop
         AcGeVector3d direction = (end - start).normal();
 
         closeLoopCounter++;
-        //acutPrintf(_T("\ncloseLoopCounter: %d "), closeLoopCounter); // Debug
-
         bool isInside = false;
 
-        //acutPrintf(_T("\nstart?: %f, %f"), start.x, start.y); // Debug
-        //acutPrintf(_T("\nend?: %f, %f"), end.x, end.y); // Debug
-        //acutPrintf(_T("| [%f, %f] "), start.x, start.y); // Debug
-
-        //acutPrintf(_T("| direction.y is integer?: %f "), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x is integer?: %f,"), direction.x); // Debug
-        if (isItInteger(direction.x) && isItInteger(direction.y)) {
-            //acutPrintf(_T("| YES."));
-            start = corners[cornerNum];
-            end = corners[cornerNum + 1];
-        }
-        else {
-            //acutPrintf(_T("| NO. i < corners.size() - 1?"));
+        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
-                //acutPrintf(_T("| YES."));
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
                 closeLoopCounter = -1;
                 loopIndexLastPanel = 1;
             }
-            else {
-                //acutPrintf(_T("| NO."));
+        }
+
+        direction = (end - start).normal();
+        //acutPrintf(_T("\nDirection: %f, %f"), direction.x, direction.y);
+        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        acutPrintf(_T("\nrotation: %f"), atan2(direction.y, direction.x));
+        rotation = atan2(direction.y, direction.x);
+        rotation = normalizeAngle(rotation);
+        acutPrintf(_T("\nrotation: %f"), rotation);
+        rotation = snapToExactAngle(rotation, TOLERANCE);
+        acutPrintf(_T("\nrotation: %f"), rotation);
+
+        // Compute cross product to determine if it's a concave or convex corner
+        AcGeVector3d prevDirection = corners[cornerNum] - corners[(cornerNum > 0) ? cornerNum - 1 : corners.size() - 1];
+        AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
+        double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+
+        if (crossProductZ < 0) { // Adjust this logic if necessary based on your coordinate system
+            isInside = !loopIsClockwise[loopIndex];
+        }
+        else {
+            isInside = loopIsClockwise[loopIndex];
+        }
+
+        adjustRotationForCorner(rotation, corners, cornerNum);
+
+        if (isInside) {
+            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+        }
+        else {
+            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], outsideCompensatorIdA, outsideCompensatorIdB, distance);
+        }
+
+        loopIndex = loopIndexLastPanel;
+    }
+}
+
+void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum) {
+    AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
+    AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
+    double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+
+    if (crossProductZ > 0) {
+        rotation += M_PI_2;
+    }
+}
+
+void CornerAssetPlacer::placeAssetsAtCorners() {
+    std::vector<AcGePoint3d> corners = detectPolylines();
+
+    if (corners.empty()) {
+        acutPrintf(_T("\nNo corners detected."));
+        return;
+    }
+
+    double distance = calculateDistanceBetweenPolylines();
+    if (distance < 0) {
+        acutPrintf(_T("\nFailed to calculate distance between polylines."));
+        return;
+    }
+
+    PanelDimensions panelDims;
+    PanelConfig config = getPanelConfig(distance, panelDims);
+
+    if (!config.panelIdA || !config.panelIdB) {
+        acutPrintf(_T("\nFailed to load panels for distance %f"), distance);
+        return;
+    }
+
+    // Load the corner post asset
+    AcDbObjectId cornerPostId = loadAsset(L"128286X");
+    if (cornerPostId == AcDbObjectId::kNull) {
+        acutPrintf(_T("\nFailed to load corner post asset."));
+        return;
+    }
+
+    // Convert Panel pointers to AcDbObjectId using loadAsset
+    AcDbObjectId panelIdA = loadAsset(config.panelIdA->blockName.c_str());
+    AcDbObjectId panelIdB = loadAsset(config.panelIdB->blockName.c_str());
+
+    if (panelIdA == AcDbObjectId::kNull || panelIdB == AcDbObjectId::kNull) {
+        acutPrintf(_T("\nFailed to load panel assets."));
+        return;
+    }
+
+    // Load outside panels and compensators
+    AcDbObjectId outsidePanelIds[6];
+    for (int i = 0; i < 6; ++i) {
+        if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
+            outsidePanelIds[i] = loadAsset(config.outsidePanelIds[i]->blockName.c_str());
+            if (outsidePanelIds[i] == AcDbObjectId::kNull) {
+                acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
+            }
+        }
+        else {
+            outsidePanelIds[i] = AcDbObjectId::kNull;  // Assign null for dummy panels
+        }
+    }
+
+    AcDbObjectId compensatorIdA = loadAsset(config.compensatorIdA ? config.compensatorIdA->blockName.c_str() : L"");
+    AcDbObjectId compensatorIdB = loadAsset(config.compensatorIdB ? config.compensatorIdB->blockName.c_str() : L"");
+
+    int firstLoopEnd = identifyFirstLoopEnd(corners);
+    std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> loops = splitLoops(corners, firstLoopEnd);
+    std::vector<AcGePoint3d>& firstLoop = loops.first;
+    std::vector<AcGePoint3d>& secondLoop = loops.second;
+
+    std::vector<bool> loopIsClockwise = {
+        directionOfDrawing2(firstLoop),
+        directionOfDrawing2(secondLoop)
+    };
+
+    int loopIndex = 0;
+    int loopIndexLastPanel = 0;
+    int closeLoopCounter = -1;
+    int outerLoopIndexValue = 0;
+
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        double rotation = 0.0;
+        AcGePoint3d start = corners[cornerNum];
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];
+        AcGeVector3d direction = (end - start).normal();
+
+        closeLoopCounter++;
+        bool isInside = false;
+
+        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
+            if (cornerNum < corners.size() - 1) {
                 start = corners[cornerNum];
                 end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+                loopIndexLastPanel = 1;
             }
         }
 
-        //acutPrintf(_T("\nstart after?: %f, %f"), start.x, start.y); // Debug
-        //acutPrintf(_T("\nend after?: %f, %f"), end.x, end.y); // Debug
-
         direction = (end - start).normal();
-
-        //acutPrintf(_T("\ndirection.y: %f,"), direction.y); // Debug
-        //acutPrintf(_T("\ndirection.x: %f,"), direction.x); // Debug
-
         rotation = atan2(direction.y, direction.x);
+        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        rotation = normalizeAngle(rotation);
+        acutPrintf(_T("\nRotation: %f"), rotation);
+        rotation = snapToExactAngle(rotation, TOLERANCE);
+        acutPrintf(_T("\nRotation: %f"), rotation);
 
-        //acutPrintf(_T("\nloopIndex : %d "), loopIndex); // Debug
-        //acutPrintf(_T("| loopIndexLastPanel : %d "), loopIndexLastPanel); // Debug
-        //acutPrintf(_T("| outerLoopIndexValue : %d "), outerLoopIndexValue); // Debug
         if (!(loopIndex == outerLoopIndexValue)) {
             isInside = true;
         }
@@ -350,61 +1072,60 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             isInside = !isInside;
         }
 
-        if (cornerNum < corners.size() - 1) {
-            AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
-            AcGeVector3d nextDirection = corners[cornerNum + 1] - corners[cornerNum];
-            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
-            if (crossProductZ > 0) {
-                isInside = !isInside;
-                rotation += M_PI_2;
-            } // Change this logic based on your coordinate system
+        adjustRotationForCorner(rotation, corners, cornerNum);
+
+        // Adjust offsets based on whether it's an inside or outside corner
+        if (isInside) {
+            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
         }
         else {
-            AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum - 1];
-            AcGeVector3d nextDirection = corners[0] - corners[cornerNum];
-            double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
-            if (crossProductZ > 0) {
-                isInside = !isInside;
-                rotation += M_PI_2;
-            } // Change this logic based on your coordinate system
+            acutPrintf(_T("\nProcessing outside corner at (%f, %f, %f) with distance %f"),
+                corners[cornerNum].x, corners[cornerNum].y, corners[cornerNum].z, distance);
+
+            acutPrintf(_T("\nRotation: %f"), rotation);
+
+            acutPrintf(_T("\nUsing outside panels:"));
+            for (int i = 0; i < 6; ++i) {
+                if (!outsidePanelIds[i].isNull()) {
+                    acutPrintf(_T("\nPanel %d: Block Name: %s, Width: %f"), i, config.outsidePanelIds[i]->blockName.c_str(), config.outsidePanelIds[i]->width);
+                }
+                else {
+                    acutPrintf(_T("\nPanel %d: Block not loaded or is null"), i);
+                }
+            }
+
+            acutPrintf(_T("\nUsing compensators:"));
+            if (!compensatorIdA.isNull()) {
+                acutPrintf(_T("\nCompensator A: Block Name: %s, Width: %f"), config.compensatorIdA->blockName.c_str(), config.compensatorIdA->width);
+            }
+            else {
+                acutPrintf(_T("\nCompensator A: Block not loaded or is null"));
+            }
+
+            if (!compensatorIdB.isNull()) {
+                acutPrintf(_T("\nCompensator B: Block Name: %s, Width: %f"), config.compensatorIdB->blockName.c_str(), config.compensatorIdB->width);
+            }
+            else {
+                acutPrintf(_T("\nCompensator B: Block not loaded or is null"));
+            }
+
+            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
         }
 
-        if (isInside) {
-            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId);
-            //addTextAnnotation(corners[cornerNum], L"Inside Corner"); // Debug
-        }
-        else {
-            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelId, panel75Id);
-            //addTextAnnotation(corners[cornerNum], L"Outside Corner"); // Debug
-        }
         loopIndex = loopIndexLastPanel;
     }
-
-    //acutPrintf(_T("\nCompleted placing assets.")); // Debug
-}
-
-// LOAD ASSET FROM BLOCK TABLE
-AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
-    //acutPrintf(_T("\nLoading asset: %s"), blockName);
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    if (!pDb) return AcDbObjectId::kNull;
-
-    AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) return AcDbObjectId::kNull;
-
-    AcDbObjectId blockId;
-    if (pBlockTable->getAt(blockName, blockId) != Acad::eOk) {
-        pBlockTable->close();
-        return AcDbObjectId::kNull;
-    }
-
-    pBlockTable->close();
-    //acutPrintf(_T("\nLoaded block: %s"), blockName);
-    return blockId;
 }
 
 // PLACE ASSETS AT INSIDE CORNERS
-void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId) {
+void CornerAssetPlacer::placeInsideCornerPostAndPanels(
+    const AcGePoint3d& corner,
+    double rotation,
+    AcDbObjectId cornerPostId,
+    AcDbObjectId panelIdA,
+    AcDbObjectId panelIdB,
+    double distance,
+    AcDbObjectId compensatorIdA,
+    AcDbObjectId compensatorIdB) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -426,16 +1147,10 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 
     int wallHeight = globalVarHeight;
     int currentHeight = 0;
-    int panelHeights[] = { 135, 60 };
+    int panelHeights[] = { 1350, 600 };
 
     for (int panelNum = 0; panelNum < 2; panelNum++) {
         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-
-        if (panelNum == 1) {
-            cornerPostId = loadAsset(L"129864X");
-            panelId = loadAsset(L"129842X");
-            //panel75Id = loadAsset(L"");
-        }
 
         for (int x = 0; x < numPanelsHeight; x++) {
             AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
@@ -449,40 +1164,40 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                //acutPrintf(_T("\nCorner post placed successfully."));
+                acutPrintf(_T("\nCorner post placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
             }
             pCornerPostRef->close();
 
-            AcGeVector3d panelAOffset, panelBOffset, panel75OffsetA, panel75OffsetB;
+            AcGeVector3d panelAOffset, panelBOffset, compensatorOffsetA, compensatorOffsetB;
             rotation = normalizeAngle(rotation);
             rotation = snapToExactAngle(rotation, TOLERANCE);
 
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(10.0, 0.0, 0.0);
-                panelBOffset = AcGeVector3d(0.0, -25.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(15.0, 0.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, -75.0, 0.0);
+                panelAOffset = AcGeVector3d(100.0, 0.0, 0.0);
+                panelBOffset = AcGeVector3d(0.0, -250.0, 0.0);
+                compensatorOffsetA = AcGeVector3d(250.0, 0.0, 0.0);
+                compensatorOffsetB = AcGeVector3d(0.0, -300.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(0.0, 10.0, 0.0);
-                panelBOffset = AcGeVector3d(25.0, 0.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, 15.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(15.0, 0.0, 0.0);
+                panelAOffset = AcGeVector3d(0.0, 100.0, 0.0);
+                panelBOffset = AcGeVector3d(250.0, 0.0, 0.0);
+                compensatorOffsetA = AcGeVector3d(0.0, 250.0, 0.0);
+                compensatorOffsetB = AcGeVector3d(300.0, 0.0, 0.0);
             }
             else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(-10.0, 0.0, 0.0);
-                panelBOffset = AcGeVector3d(0.0, 25.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(-15.0, 0.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(0.0, 15.0, 0.0);
+                panelAOffset = AcGeVector3d(-100.0, 0.0, 0.0);
+                panelBOffset = AcGeVector3d(0.0, 250.0, 0.0);
+                compensatorOffsetA = AcGeVector3d(-250.0, 0.0, 0.0);
+                compensatorOffsetB = AcGeVector3d(0.0, 300.0, 0.0);
             }
-            else if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(0.0, -10.0, 0.0);
-                panelBOffset = AcGeVector3d(-25.0, 0.0, 0.0);
-                panel75OffsetA = panelAOffset + AcGeVector3d(0.0, -15.0, 0.0);
-                panel75OffsetB = panelBOffset + AcGeVector3d(-15.0, 0.0, 0.0);
+            else if (areAnglesEqual(rotation, M_3PI_2, TOLERANCE)) {
+                panelAOffset = AcGeVector3d(0.0, -100.0, 0.0);
+                panelBOffset = AcGeVector3d(-250.0, 0.0, 0.0);
+                compensatorOffsetA = AcGeVector3d(0.0, -250.0, 0.0);
+                compensatorOffsetB = AcGeVector3d(-300.0, 0.0, 0.0);
             }
             else {
                 acutPrintf(_T("\nInvalid rotation angle detected: %f at %f"), rotation, corner);
@@ -491,17 +1206,15 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 
             AcGePoint3d panelPositionA = cornerWithHeight + panelAOffset;
             AcGePoint3d panelPositionB = cornerWithHeight + panelBOffset;
-            AcGePoint3d panelPosition75A = cornerWithHeight + panel75OffsetA;
-            AcGePoint3d panelPosition75B = cornerWithHeight + panel75OffsetB;
 
             AcDbBlockReference* pPanelARef = new AcDbBlockReference();
             pPanelARef->setPosition(panelPositionA);
-            pPanelARef->setBlockTableRecord(panelId);
+            pPanelARef->setBlockTableRecord(panelIdA);
             pPanelARef->setRotation(rotation);
             pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel A placed successfully."));
+                acutPrintf(_T("\nPanel A placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
@@ -510,46 +1223,51 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
 
             AcDbBlockReference* pPanelBRef = new AcDbBlockReference();
             pPanelBRef->setPosition(panelPositionB);
-            pPanelBRef->setBlockTableRecord(panelId);
+            pPanelBRef->setBlockTableRecord(panelIdB);
             pPanelBRef->setRotation(rotation + M_PI_2);
             pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel B placed successfully."));
+                acutPrintf(_T("\nPanel B placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
             }
             pPanelBRef->close();
 
-            // Place Panel 75 near Panel A and Panel B
-            AcDbBlockReference* pPanel75RefA = new AcDbBlockReference();
-            pPanel75RefA->setPosition(panelPosition75A);
-            //pPanel75RefA->setBlockTableRecord(panel75Id);
-            pPanel75RefA->setRotation(rotation);
-            pPanel75RefA->setScaleFactors(AcGeScale3d(globalVarScale));
+            // Place compensators only if distance is 150
+            if (distance == 150) {
+                AcGePoint3d compensatorPositionA = cornerWithHeight + compensatorOffsetA;
+                AcGePoint3d compensatorPositionB = cornerWithHeight + compensatorOffsetB;
 
-            if (pModelSpace->appendAcDbEntity(pPanel75RefA) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel 75 placed near Panel A successfully."));
-            }
-            else {
-                acutPrintf(_T("\nFailed to place Panel 75 near Panel A."));
-            }
-            pPanel75RefA->close();
+                AcDbBlockReference* pCompensatorARef = new AcDbBlockReference();
+                pCompensatorARef->setPosition(compensatorPositionA);
+                pCompensatorARef->setBlockTableRecord(compensatorIdA);
+                pCompensatorARef->setRotation(rotation);
+                pCompensatorARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
-            AcDbBlockReference* pPanel75RefB = new AcDbBlockReference();
-            pPanel75RefB->setPosition(panelPosition75B);
-            //pPanel75RefB->setBlockTableRecord(panel75Id);
-            pPanel75RefB->setRotation(rotation + M_PI_2);
-            pPanel75RefB->setScaleFactors(AcGeScale3d(globalVarScale));
+                if (pModelSpace->appendAcDbEntity(pCompensatorARef) == Acad::eOk) {
+                    acutPrintf(_T("\nCompensator A placed successfully."));
+                }
+                else {
+                    acutPrintf(_T("\nFailed to place Compensator A."));
+                }
+                pCompensatorARef->close();
 
-            if (pModelSpace->appendAcDbEntity(pPanel75RefB) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel 75 placed near Panel B successfully."));
+                AcDbBlockReference* pCompensatorBRef = new AcDbBlockReference();
+                pCompensatorBRef->setPosition(compensatorPositionB);
+                pCompensatorBRef->setBlockTableRecord(compensatorIdB);
+                pCompensatorBRef->setRotation(rotation + M_PI_2);
+                pCompensatorBRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                if (pModelSpace->appendAcDbEntity(pCompensatorBRef) == Acad::eOk) {
+                    acutPrintf(_T("\nCompensator B placed successfully."));
+                }
+                else {
+                    acutPrintf(_T("\nFailed to place Compensator B."));
+                }
+                pCompensatorBRef->close();
             }
-            else {
-                acutPrintf(_T("\nFailed to place Panel 75 near Panel B."));
-            }
-            pPanel75RefB->close();
 
             currentHeight += panelHeights[panelNum];
         }
@@ -559,19 +1277,36 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(const AcGePoint3d& corner
     pBlockTable->close();
 }
 
-// PLACE ASSETS AT OUTSIDE CORNERS
-void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, AcDbObjectId panelId, AcDbObjectId panel75Id) {
+void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
+    const AcGePoint3d& corner,
+    double rotation,
+    AcDbObjectId cornerPostId,
+    const PanelConfig& config,
+    AcDbObjectId outsidePanelIdA,
+    AcDbObjectId outsidePanelIdB,
+    AcDbObjectId outsidePanelIdC,
+    AcDbObjectId outsidePanelIdD,
+    AcDbObjectId outsidePanelIdE,
+    AcDbObjectId outsidePanelIdF,
+    AcDbObjectId outsideCompensatorIdA,
+    AcDbObjectId outsideCompensatorIdB,
+    double distance)
+{
+    acutPrintf(_T("\nStarting placeOutsideCornerPostAndPanels function."));
+
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
         return;
     }
+    acutPrintf(_T("\nWorking database found."));
 
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
         return;
     }
+    acutPrintf(_T("\nBlock table retrieved successfully."));
 
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
@@ -579,142 +1314,247 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(const AcGePoint3d& corne
         pBlockTable->close();
         return;
     }
+    acutPrintf(_T("\nModel space retrieved successfully."));
 
     int wallHeight = globalVarHeight;
     int currentHeight = 0;
-    int panelHeights[] = { 135, 60 };
+    int panelHeights[] = { 1350, 600 };
 
-    AcGePoint3d cornerWithHeight = corner;
-    cornerWithHeight.z += currentHeight;
-
-    double offset = 10.0;
-    int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
-    //acutPrintf(_T("\nrotationDegrees: %d "), rotationDegrees); // Debug
-    switch (rotationDegrees) {
-    case 90:
-        cornerWithHeight.x -= offset;
-        cornerWithHeight.y -= offset;
-        break;
-    case 180:
-        cornerWithHeight.x += offset;
-        cornerWithHeight.y -= offset;
-        break;
-    case -90:
-        cornerWithHeight.x += offset;
-        cornerWithHeight.y += offset;
-        break;
-    case 270:
-        cornerWithHeight.x += 2 * offset;
-    case 0:
-        cornerWithHeight.x -= offset;
-        cornerWithHeight.y += offset;
-        break;
-    default:
-        acutPrintf(_T("\nInvalid rotation angle detected."));
-        return;
-    }
-
-    rotation -= M_PI / 2;
-    rotation = normalizeAngle(rotation + M_PI_2);
+    rotation = normalizeAngle(rotation);
     rotation = snapToExactAngle(rotation, TOLERANCE);
+
+    acutPrintf(_T("\nPlacing corner post and panels for wall height %d"), wallHeight);
 
     for (int panelNum = 0; panelNum < 2; panelNum++) {
         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-
-        if (panelNum == 1) {
-            cornerPostId = loadAsset(L"129864X");
-            panel75Id = loadAsset(L"129838X");
-        }
+        acutPrintf(_T("\nPlacing panels of height %d. Number of panels: %d"), panelHeights[panelNum], numPanelsHeight);
 
         for (int x = 0; x < numPanelsHeight; x++) {
+            acutPrintf(_T("\nPlacing corner post at height %d"), currentHeight);
+
             AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
-            AcGePoint3d currentCornerWithHeight = cornerWithHeight;
-            currentCornerWithHeight.z += currentHeight;
-            pCornerPostRef->setPosition(currentCornerWithHeight);
+            AcGePoint3d cornerWithHeight = corner;
+            cornerWithHeight.z += currentHeight;
+
+            // Offsets for corner post based on rotation
+            double offset = 100.0;  // This is the corner width
+            int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
+            switch (rotationDegrees) {
+            case 90:
+                cornerWithHeight.x -= offset;
+                cornerWithHeight.y -= offset;
+                break;
+            case 180:
+                cornerWithHeight.x += offset;
+                cornerWithHeight.y -= offset;
+                break;
+            case -90:
+            case 270:
+                cornerWithHeight.x += offset;
+                cornerWithHeight.y += offset;
+                break;
+            case 0:
+                cornerWithHeight.x -= offset;
+                cornerWithHeight.y += offset;
+                break;
+            default:
+                acutPrintf(_T("\nInvalid rotation angle detected: %f at (%f, %f, %f)"), rotation, corner.x, corner.y, corner.z);
+                continue;
+            }
+
+            pCornerPostRef->setPosition(cornerWithHeight);
             pCornerPostRef->setBlockTableRecord(cornerPostId);
-            rotation = normalizeAngle(rotation);
-            rotation = snapToExactAngle(rotation, TOLERANCE);
             pCornerPostRef->setRotation(rotation);
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                //acutPrintf(_T("\nCorner post placed successfully."));
+                acutPrintf(_T("\nCorner post placed successfully at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
             }
             else {
-                acutPrintf(_T("\nFailed to place corner post."));
+                acutPrintf(_T("\nFailed to place corner post at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
             }
             pCornerPostRef->close();
 
-            AcGeVector3d panelAOffset, panelBOffset, panel75OffsetA, panel75OffsetB;
-            rotation = normalizeAngle(rotation);
-            rotation = snapToExactAngle(rotation, TOLERANCE);
+            // Correctly declare and initialize outsidePanelIds array
+            AcDbObjectId outsidePanelIds[] = { outsidePanelIdA, outsidePanelIdB, outsidePanelIdC, outsidePanelIdD, outsidePanelIdE, outsidePanelIdF };
 
-            if (areAnglesEqual(rotation, 0, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(85.0, -10.0, 0.0);
-                panelBOffset = AcGeVector3d(10.0, -10.0, 0.0);
-                panel75OffsetA = panelAOffset;
-                panel75OffsetB = panelBOffset;
+            // Check if there are any valid panels to place
+            bool hasValidPanels = false;
+            for (int i = 0; i < 6; ++i) {
+                if (!outsidePanelIds[i].isNull()) {
+                    hasValidPanels = true;
+                    break;
+                }
             }
-            else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(10.0, 85.0, 0.0);
-                panelBOffset = AcGeVector3d(10.0, 10.0, 0.0);
-                panel75OffsetA = panelAOffset;
-                panel75OffsetB = panelBOffset;
-            }
-            else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(-85.0, 10.0, 0.0);
-                panelBOffset = AcGeVector3d(-10.0, 10.0, 0.0);
-                panel75OffsetA = panelAOffset;
-                panel75OffsetB = panelBOffset;
-            }
-            else if (areAnglesEqual(rotation, 3 * M_PI_2, TOLERANCE)) {
-                panelAOffset = AcGeVector3d(-10.0, -85.0, 0.0);
-                panelBOffset = AcGeVector3d(-10.0, -10.0, 0.0);
-                panel75OffsetA = panelAOffset;
-                panel75OffsetB = panelBOffset;
-            }
-            else {
-                acutPrintf(_T("\nInvalid rotation angle detected."));
+
+            if (!hasValidPanels) {
+                acutPrintf(_T("\nNo valid outside panel IDs found. Skipping placement for this corner."));
                 continue;
             }
 
-            AcGePoint3d panelPosition75A = currentCornerWithHeight + panel75OffsetA;
-            AcGePoint3d panelPosition75B = currentCornerWithHeight + panel75OffsetB;
+            AcGeVector3d panelOffsets[6], compensatorOffsetA, compensatorOffsetB;
+            double panelWidths[] = {
+                config.outsidePanelIds[0] ? config.outsidePanelIds[0]->width : 0,
+                config.outsidePanelIds[1] ? config.outsidePanelIds[1]->width : 0,
+                config.outsidePanelIds[2] ? config.outsidePanelIds[2]->width : 0,
+                config.outsidePanelIds[3] ? config.outsidePanelIds[3]->width : 0,
+                config.outsidePanelIds[4] ? config.outsidePanelIds[4]->width : 0,
+                config.outsidePanelIds[5] ? config.outsidePanelIds[5]->width : 0
+            };
+            double compensatorIdA = config.compensatorIdA ? config.compensatorIdA->width : 0;
+            double compensatorIdB = config.compensatorIdB ? config.compensatorIdB->width : 0;
+            double cornerWidth = 100.0;  // Width of the corner post
 
+            acutPrintf(_T("\nCalculated panel widths: %f, %f, %f, %f, %f, %f"),
+                panelWidths[0], panelWidths[1], panelWidths[2], panelWidths[3], panelWidths[4], panelWidths[5]);
 
-            // Place Panel 75 near Panel A and Panel B
-            AcDbBlockReference* pPanel75RefA = new AcDbBlockReference();
-            pPanel75RefA->setPosition(panelPosition75A);
-            pPanel75RefA->setBlockTableRecord(panel75Id);
-            pPanel75RefA->setRotation(rotation + M_PI);
-            pPanel75RefA->setScaleFactors(AcGeScale3d(globalVarScale));
+            // Define panel offsets based on rotation and number of panels
+            if (areAnglesEqual(rotation, 0, TOLERANCE)) {
+                panelOffsets[0] = AcGeVector3d(cornerWidth + panelWidths[0], -(cornerWidth), 0.0);
+                panelOffsets[1] = AcGeVector3d(cornerWidth, -(cornerWidth), 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[2] = AcGeVector3d((panelOffsets[0].x + panelWidths[2]), panelOffsets[0].y, 0.0);
+                panelOffsets[3] = AcGeVector3d(panelOffsets[1].x, ((panelOffsets[1].y) - panelWidths[1]), 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[4] = AcGeVector3d(panelOffsets[2].x + panelWidths[4], panelOffsets[2].y, 0.0);
+                panelOffsets[5] = AcGeVector3d(panelOffsets[3].x, ((panelOffsets[3].y) - panelWidths[3]), 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                compensatorOffsetA = AcGeVector3d(panelOffsets[4].x + compensatorIdA, panelOffsets[4].y, 0.0);
+                compensatorOffsetB = AcGeVector3d(panelOffsets[5].x, ((panelOffsets[5].y - panelWidths[5])), 0.0);
+            }
 
-            if (pModelSpace->appendAcDbEntity(pPanel75RefA) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel 75 placed near Panel A successfully."));
+            else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
+                // Adjust for 90-degree rotation
+                panelOffsets[0] = AcGeVector3d(cornerWidth, cornerWidth + panelWidths[0], 0.0);
+                panelOffsets[1] = AcGeVector3d(cornerWidth, cornerWidth, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[2] = AcGeVector3d((panelOffsets[0].x), (panelWidths[2] + panelOffsets[0].y), 0.0);
+                panelOffsets[3] = AcGeVector3d((panelOffsets[1].x + panelWidths[1]), panelOffsets[1].y, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[4] = AcGeVector3d((panelOffsets[2].x), (panelWidths[4] + panelOffsets[2].y), 0.0);
+                panelOffsets[5] = AcGeVector3d((panelOffsets[3].x + panelWidths[3]), panelOffsets[3].y, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                compensatorOffsetA = AcGeVector3d(panelOffsets[4].x, (compensatorIdA + panelOffsets[4].y), 0.0);
+                compensatorOffsetB = AcGeVector3d(panelOffsets[5].x + panelWidths[5], panelOffsets[5].y, 0.0);
+            }
+
+            else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
+                // Adjust for 180-degree rotation
+                panelOffsets[0] = AcGeVector3d(-(cornerWidth + panelWidths[0]), cornerWidth, 0.0);
+                panelOffsets[1] = AcGeVector3d(-cornerWidth, cornerWidth, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[2] = AcGeVector3d((panelOffsets[0].x - panelWidths[2]), panelOffsets[0].y, 0.0);
+                panelOffsets[3] = AcGeVector3d(panelOffsets[1].x, (panelOffsets[1].y + panelWidths[1]), 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[4] = AcGeVector3d((panelOffsets[2].x - panelWidths[4]), panelOffsets[2].y, 0.0);
+                panelOffsets[5] = AcGeVector3d(panelOffsets[3].x, (panelOffsets[3].y + panelWidths[3]), 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                compensatorOffsetA = AcGeVector3d((panelOffsets[4].x - compensatorIdA), panelOffsets[4].y, 0.0);
+                compensatorOffsetB = AcGeVector3d(panelOffsets[5].x, (panelOffsets[5].y + panelWidths[5]), 0.0);
+            }
+
+            else if (areAnglesEqual(rotation, M_3PI_2, TOLERANCE)) {
+                // Adjust for 270-degree rotation
+                panelOffsets[0] = AcGeVector3d(-cornerWidth, -(cornerWidth + panelWidths[0]), 0.0);
+                panelOffsets[1] = AcGeVector3d(-cornerWidth, -cornerWidth, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[2] = AcGeVector3d(panelOffsets[0].x, (panelOffsets[0].y - panelWidths[2]), 0.0);
+                panelOffsets[3] = AcGeVector3d((panelOffsets[1].x - panelWidths[1]), panelOffsets[1].y, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                panelOffsets[4] = AcGeVector3d(panelOffsets[2].x, (panelOffsets[2].y - panelWidths[4]), 0.0);
+                panelOffsets[5] = AcGeVector3d(panelOffsets[3].x - panelWidths[3], panelOffsets[3].y, 0.0);
+                /////////////////////////////////////////////////////////////////////////////////////
+                compensatorOffsetA = AcGeVector3d(panelOffsets[4].x, (panelOffsets[4].y - compensatorIdA), 0.0);
+                compensatorOffsetB = AcGeVector3d((panelOffsets[5].x - panelWidths[5]), panelOffsets[5].y, 0.0);
             }
             else {
-                acutPrintf(_T("\nFailed to place Panel 75 near Panel A."));
+                acutPrintf(_T("\nInvalid rotation angle detected: %f at (%f, %f, %f)"), rotation, corner.x, corner.y, corner.z);
+                continue;
             }
-            pPanel75RefA->close();
 
-            AcDbBlockReference* pPanel75RefB = new AcDbBlockReference();
-            pPanel75RefB->setPosition(panelPosition75B);
-            pPanel75RefB->setBlockTableRecord(panel75Id);
-            pPanel75RefB->setRotation(rotation + M_PI_2 + M_PI);
-            pPanel75RefB->setScaleFactors(AcGeScale3d(globalVarScale));
+            acutPrintf(_T("\nCalculated panel offsets:"));
+            for (int i = 0; i < 6; ++i) {
+                acutPrintf(_T("\nPanel %d offset: (%f, %f, %f)"), i, panelOffsets[i].x, panelOffsets[i].y, panelOffsets[i].z);
+            }
 
-            if (pModelSpace->appendAcDbEntity(pPanel75RefB) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel 75 placed near Panel B successfully."));
+            // Place panels using the calculated offsets
+            //AcDbObjectId outsidePanelIds[] = { outsidePanelIdA, outsidePanelIdB, outsidePanelIdC, outsidePanelIdD, outsidePanelIdE, outsidePanelIdF };
+            for (int i = 0; i < 6; i++) {
+                if (!outsidePanelIds[i].isNull()) {
+                    AcGePoint3d panelPosition = cornerWithHeight + panelOffsets[i];
+                    AcDbBlockReference* pPanelRef = new AcDbBlockReference();
+                    pPanelRef->setPosition(panelPosition);
+                    pPanelRef->setBlockTableRecord(outsidePanelIds[i]);
+
+                    // Add rotation to outside panels
+                    double panelRotation = (i % 2 == 0) ? rotation : rotation + M_PI_2;
+                    pPanelRef->setRotation(panelRotation + M_PI);
+                    pPanelRef->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                    if (pModelSpace->appendAcDbEntity(pPanelRef) == Acad::eOk) {
+                        acutPrintf(_T("\nPanel %d placed successfully at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
+                    }
+                    else {
+                        acutPrintf(_T("\nFailed to place Panel %d at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
+                    }
+                    pPanelRef->close();
+                }
+                else {
+                    acutPrintf(_T("\nOutside Panel ID %d is a dummy or null panel, skipping."), i);
+                }
+            }
+
+            if (distance != 150) {
+                // Place compensators at the defined positions
+                AcGePoint3d compensatorPositionA = cornerWithHeight + compensatorOffsetA;
+                AcGePoint3d compensatorPositionB = cornerWithHeight + compensatorOffsetB;
+
+                AcDbBlockReference* pCompensatorRefA = new AcDbBlockReference();
+                pCompensatorRefA->setPosition(compensatorPositionA);
+                pCompensatorRefA->setBlockTableRecord(outsideCompensatorIdA);
+                pCompensatorRefA->setRotation(rotation + M_PI);
+                pCompensatorRefA->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                if (pModelSpace->appendAcDbEntity(pCompensatorRefA) == Acad::eOk) {
+                    acutPrintf(_T("\nCompensator A placed successfully at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
+                }
+                else {
+                    acutPrintf(_T("\nFailed to place Compensator A at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
+                }
+                pCompensatorRefA->close();
+
+                AcDbBlockReference* pCompensatorRefB = new AcDbBlockReference();
+                pCompensatorRefB->setPosition(compensatorPositionB);
+                pCompensatorRefB->setBlockTableRecord(outsideCompensatorIdB);
+                pCompensatorRefB->setRotation(rotation + M_PI_2 + M_PI);
+                pCompensatorRefB->setScaleFactors(AcGeScale3d(globalVarScale));
+
+                if (pModelSpace->appendAcDbEntity(pCompensatorRefB) == Acad::eOk) {
+                    acutPrintf(_T("\nCompensator B placed successfully at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
+                }
+                else {
+                    acutPrintf(_T("\nFailed to place Compensator B at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
+                }
+                pCompensatorRefB->close();
+
+                acutPrintf(_T("\nFinished placing outside corner post and compensators."));
             }
             else {
-                acutPrintf(_T("\nFailed to place Panel 75 near Panel B."));
+                acutPrintf(_T("\nDistance is 150, skipping compensator placement."));
             }
-            pPanel75RefB->close();
+
 
             currentHeight += panelHeights[panelNum];
+            acutPrintf(_T("\nCompleted placement for height %d. Moving to the next height."), currentHeight);
         }
-    }
 
-    pModelSpace->close();
-    pBlockTable->close();
+        acutPrintf(_T("\nFinished placing outside corner post, panels, and compensators."));
+
+        pModelSpace->close();
+        pBlockTable->close();
+    }
 }
+
+
+
+

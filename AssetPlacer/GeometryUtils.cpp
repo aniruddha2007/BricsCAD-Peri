@@ -26,13 +26,28 @@
 #include <AcGe/AcGeMatrix3d.h>
 #include "AcDb/AcDbBlockReference.h"
 
-const double TOLERANCE = 0.1; // Tolerance for comparing angles
+const double TOLERANCE = 0.19; // Tolerance for comparing angles
 
-// Calculate angle between two vectors
+// Manual clamp function
+template <typename T>
+T clamp(T value, T min, T max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+}
+
+// Calculate the dot product and return the angle in radians
 double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2) {
-    double dotProduct = v1.dotProduct(v2);
-    double lengthsProduct = v1.length() * v2.length();
-    return acos(dotProduct / lengthsProduct) * (180.0 / M_PI);
+    // Normalize the vectors
+    AcGeVector3d normV1 = v1.normal();
+    AcGeVector3d normV2 = v2.normal();
+
+    double dotProduct = normV1.dotProduct(normV2);
+
+    // Clamp the dot product to the range [-1, 1] to avoid issues with acos
+    dotProduct = clamp(dotProduct, -1.0, 1.0);
+
+    return acos(dotProduct);
 }
 
 // Determine if an angle is a corner based on a threshold
@@ -42,27 +57,59 @@ bool isCorner(double angle, double threshold) {
 
 // Normalize an angle to the range [0, 2*PI]
 double normalizeAngle(double angle) {
-    while (angle < 0) {
-        angle += 2 * M_PI;
+    angle = fmod(angle, 2 * M_PI); // Reduce angle to within one full rotation
+
+    if (angle < 0) {
+        angle += 2 * M_PI; // Ensure the angle is positive
     }
-    while (angle >= 2 * M_PI) {
-        angle -= 2 * M_PI;
-    }
+
     return angle;
 }
 
-// Snap an angle to the nearest exact angle (0, 90, 180, 270)
-double snapToExactAngle(double angle, double TOLERANCE) {
-    if (fabs(angle - 0) < TOLERANCE) return 0;
-    if (fabs(angle - M_PI_2) < TOLERANCE) return M_PI_2;
-    if (fabs(angle - M_PI) < TOLERANCE) return M_PI;
-    if (fabs(angle - 3 * M_PI_2) < TOLERANCE) return 3 * M_PI_2;
+// Snap an angle to the nearest exact angle (0, 90, 180, 270 degrees)
+double snapToExactAngle(double angle, double tolerance = 0.19) {
+    const double snapAngles[] = { 0, M_PI_2, M_PI, 3 * M_PI_2 };
+
+    for (double snapAngle : snapAngles) {
+        if (fabs(angle - snapAngle) < tolerance) {
+            return snapAngle;
+        }
+    }
+
+    // Special case handling
+    if (fabs(angle - 2 * M_PI) < tolerance || fabs(angle) < tolerance) {
+        return 0;
+    }
+
+    acutPrintf(_T("\nAngle %f not snapped to exact angle.\n"), angle);
     return angle;
 }
+
 
 // Determine if two angles are equal within a tolerance
-bool areAnglesEqual(double angle1, double angle2, double tolerance) {
-    return std::abs(angle1 - angle2) < tolerance;
+bool areAnglesEqual(double angle1, double angle2, double tolerance = 0.1) {
+    // Normalize angles to the range [0, 2*PI]
+    angle1 = normalizeAngle(angle1);
+    angle2 = normalizeAngle(angle2);
+    return fabs(angle1 - angle2) < tolerance;
+}
+
+//// Use the cross product to check for perpendicularity
+//bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
+//    double crossProductZ = v1.crossProduct(v2).z;
+//    return fabs(crossProductZ) < tolerance;
+//}
+
+AcGeVector3d calculateDirection(const AcGePoint3d& start, const AcGePoint3d& end) {
+    AcGeVector3d direction = end - start;
+    direction.normalize();
+    return direction;
+}
+
+double calculateAngleBetweenVectors(const AcGeVector3d& v1, const AcGeVector3d& v2) {
+    double dotProduct = v1.dotProduct(v2);
+    dotProduct = clamp(dotProduct, -1.0, 1.0); // Ensure dot product is within valid range
+    return acos(dotProduct);
 }
 
 // Detect vertices of the polyline
@@ -80,8 +127,17 @@ void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& ver
     }
 }
 
+void logVector(const AcGeVector3d& vector, const char* vectorName) {
+    acutPrintf(_T("\n%s: (%f, %f, %f)"), vectorName, vector.x, vector.y, vector.z);
+}
+
+void logAngle(double angle, const char* message) {
+    acutPrintf(_T("\n%s: %f radians (%f degrees)"), message, angle, angle * 180.0 / M_PI);
+}
+
 // Process the polyline to detect corners
 void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& corners, double angleThreshold, double tolerance) {
+    // Extract vertices from the polyline
     std::vector<AcGePoint3d> vertices;
     detectVertices(pPolyline, vertices);
 
@@ -91,30 +147,40 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
         return;
     }
 
+    // Iterate over the vertices to calculate the angle between adjacent segments
     for (size_t i = 0; i < numVerts - 1; ++i) {
         AcGeVector3d currentDirection, nextDirection;
-        currentDirection = vertices[i + 1] - vertices[i];
-        currentDirection.normalize();
 
+        // Calculate the current direction vector (from current vertex to next)
+        currentDirection = vertices[i + 1] - vertices[i];
+        currentDirection.normalize();  // Normalize the direction vector
+
+        // Calculate the next direction vector (from previous vertex to current)
         if (i > 0) {
             nextDirection = vertices[i] - vertices[i - 1];
         }
         else {
-            nextDirection = vertices[i] - vertices[numVerts - 2];
+            nextDirection = vertices[i] - vertices[numVerts - 2];  // Handle the wrap-around case
         }
-        nextDirection.normalize();
+        nextDirection.normalize();  // Normalize the direction vector
 
+        // Calculate the angle between the current and next direction vectors
         double angle = calculateAngle(currentDirection, nextDirection);
+
+        // Log the calculated angle for debugging
+        logAngle(angle, "Calculated Angle");
+
+        // If the calculated angle is close to the threshold, consider it a corner
         if (areAnglesEqual(angle, angleThreshold, tolerance)) {
             corners.push_back(vertices[i]);
         }
         else {
-            // Still add the vertex if it's not considered a corner to ensure all vertices are included
+            // Optionally, include all vertices even if they are not considered corners
             corners.push_back(vertices[i]);
         }
     }
 
-    // Ensure the last vertex is included
+    // Ensure the last vertex is included in the corners vector
     if (std::find(corners.begin(), corners.end(), vertices.back()) == corners.end()) {
         corners.push_back(vertices.back());
     }
