@@ -124,6 +124,63 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
 
 }
 
+//calculate distance between polylines
+double WallPlacer::calculateDistanceBetweenPolylines() {
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        return -1.0;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        return -1.0;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
+        pModelSpace->close();
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbPolyline* pFirstPolyline = nullptr;
+    AcDbPolyline* pSecondPolyline = nullptr;
+
+    // Find the first two polylines
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                if (!pFirstPolyline) {
+                    pFirstPolyline = AcDbPolyline::cast(pEnt);
+                }
+                else if (!pSecondPolyline) {
+                    pSecondPolyline = AcDbPolyline::cast(pEnt);
+                    pEnt->close();
+                    break; // Found both polylines, no need to continue
+                }
+            }
+            pEnt->close();
+        }
+    }
+
+    double distance = -1.0;
+    if (pFirstPolyline && pSecondPolyline) {
+        distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+    return distance;
+}
+
 // Load asset
 AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
     // acutPrintf(_T("\nLoading asset: %s"), blockName);
@@ -235,6 +292,67 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
+void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+    if (isInner) {
+        if (distanceBetweenPolylines == 150) {
+            start += direction * 600;
+            end -= direction * 600;
+        }
+        else {
+            start += direction * 500;
+            end -= direction * 500;
+        }
+    }
+    else {
+        // Using the provided table for outer loop adjustments
+        int adjustment = 0;
+
+        if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) adjustment = 550;
+        else if (distanceBetweenPolylines == 250) adjustment = 600;
+        else if (distanceBetweenPolylines == 300) adjustment = 650;
+        else if (distanceBetweenPolylines == 350) adjustment = 700;
+        else if (distanceBetweenPolylines == 400) adjustment = 750;
+        else if (distanceBetweenPolylines == 450) adjustment = 800;
+        else if (distanceBetweenPolylines == 500) adjustment = 850;
+        else if (distanceBetweenPolylines == 550) adjustment = 900;
+        else if (distanceBetweenPolylines == 600) adjustment = 950;
+        else if (distanceBetweenPolylines == 650) adjustment = 1000;
+        else if (distanceBetweenPolylines == 700) adjustment = 1050;
+        else if (distanceBetweenPolylines == 750) adjustment = 1100;
+        else if (distanceBetweenPolylines == 800) adjustment = 1150;
+        else if (distanceBetweenPolylines == 850) adjustment = 1200;
+        else if (distanceBetweenPolylines == 900) adjustment = 1250;
+        else if (distanceBetweenPolylines == 950) adjustment = 1300;
+        else if (distanceBetweenPolylines == 1000) adjustment = 1350;
+        else if (distanceBetweenPolylines == 1050) adjustment = 1400;
+        else if (distanceBetweenPolylines == 1100) adjustment = 1450;
+        else if (distanceBetweenPolylines == 1150) adjustment = 1500;
+        else if (distanceBetweenPolylines == 1200) adjustment = 1550;
+        else if (distanceBetweenPolylines == 1250) adjustment = 1600;
+        else if (distanceBetweenPolylines == 1300) adjustment = 1650;
+        else if (distanceBetweenPolylines == 1350) adjustment = 1700;
+        else if (distanceBetweenPolylines == 1400) adjustment = 1750;
+        else if (distanceBetweenPolylines == 1450) adjustment = 1800;
+        else if (distanceBetweenPolylines == 1500) adjustment = 1850;
+        else if (distanceBetweenPolylines == 1550) adjustment = 1900;
+        else if (distanceBetweenPolylines == 1600) adjustment = 1950;
+        else if (distanceBetweenPolylines == 1650) adjustment = 2000;
+        else if (distanceBetweenPolylines == 1700) adjustment = 2050;
+        else if (distanceBetweenPolylines == 1750) adjustment = 2100;
+        else if (distanceBetweenPolylines == 1800) adjustment = 2150;
+        else if (distanceBetweenPolylines == 1850) adjustment = 2200;
+        else if (distanceBetweenPolylines == 1900) adjustment = 2250;
+        else if (distanceBetweenPolylines == 1950) adjustment = 2300;
+        else if (distanceBetweenPolylines == 2000) adjustment = 2350;
+        else if (distanceBetweenPolylines == 2050) adjustment = 2400;
+        else if (distanceBetweenPolylines == 2100) adjustment = 2450;
+        else adjustment = 150; // Default case for any unexpected distance value
+
+        start -= direction * adjustment;
+        end += direction * adjustment;
+    }
+}
+
 void WallPlacer::placeWalls() {
     std::vector<AcGePoint3d> corners = detectPolylines();
 
@@ -242,6 +360,8 @@ void WallPlacer::placeWalls() {
         acutPrintf(_T("\nNo polylines detected.")); // Debug
         return;
     }
+
+    double distanceBetweenPolylines = calculateDistanceBetweenPolylines();
 
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -414,6 +534,8 @@ void WallPlacer::placeWalls() {
             }
             tempSawToothIndex.clear();
         }
+
+        adjustStartAndEndPoints(start, end, direction, distanceBetweenPolylines, loopIndex != outerLoopIndexValue);
 
         loopIndex = loopIndexLastPanel;
     }

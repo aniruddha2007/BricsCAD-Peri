@@ -3,6 +3,7 @@
 // the terms of the BRX SDK license agreement.
 /////////////////////////////////////////////////////////////////////////
 // acrxEntryPoint.cpp
+
 #include "StdAfx.h"
 #include <aced.h>
 #include <rxmfcapi.h>
