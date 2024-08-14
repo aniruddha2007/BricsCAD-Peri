@@ -292,17 +292,14 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
-AcGePoint3d adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
-    AcGePoint3d pointRes;
-    pointRes = point;
+void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            pointRes += direction * 600;
+            point += direction * 600;
         }
         else {
-            pointRes += direction * 500;
+            point += direction * 500;
         }
-        return pointRes;
     }
     else {
         // Using the provided table for outer loop adjustments
@@ -466,8 +463,7 @@ AcGePoint3d adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& dire
         }
         else adjustment = 150; // Default case for any unexpected distance value
 
-        pointRes -= direction * adjustment;
-        return pointRes;
+        point -= direction * adjustment;
     }
 }
 void WallPlacer::placeWalls() {
@@ -722,8 +718,8 @@ void WallPlacer::placeWalls() {
                 end = adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
 
-            start = adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            end = adjustStartAndEndPoints(end, direction, distanceBetweenPolylines, isInner);
+            adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+            adjustStartAndEndPoints(end, direction, distanceBetweenPolylines, isInner);
 
             double distance = start.distanceTo(end);
             AcGePoint3d currentPoint = start;
