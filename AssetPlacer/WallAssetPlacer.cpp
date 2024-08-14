@@ -463,6 +463,7 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
         }
         else adjustment = 150; // Default case for any unexpected distance value
 
+        adjustment = adjustment / 2;
         point -= direction * adjustment;
     }
 }
