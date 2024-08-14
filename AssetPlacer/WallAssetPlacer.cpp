@@ -292,14 +292,17 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
-void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+AcGePoint3d adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+    AcGePoint3d pointRes;
+    pointRes = point;
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            point += direction * 300;
+            pointRes += direction * 300;
         }
         else {
-            point += direction * 250;
+            pointRes += direction * 250;
         }
+        return pointRes;
     }
     else {
         // Using the provided table for outer loop adjustments
@@ -348,7 +351,8 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
 
         adjustment = adjustment / 2;
 
-        point -= direction * adjustment;
+        pointRes -= direction * adjustment;
+        return pointRes;
     }
 }
 
@@ -587,21 +591,21 @@ void WallPlacer::placeWalls() {
             // Adjust start point
             if (!prevClockwise && isInner) {
                 //start += direction * 500;
-                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+                start = adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
             else if (!prevClockwise && isOuter) {
                 //start -= direction * 500;
-                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+                start = adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
                 //end -= direction * 500;
-                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                end = adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
             else if (!nextClockwise && isOuter) {
                 //end += direction * 500;
-                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                end = adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
 
             double distance = start.distanceTo(end);
