@@ -110,6 +110,18 @@
           <CLICommand UID="XLS_007_CLI" xlate="true">Height</CLICommand>
         </Macro>
       </MenuMacro>
+      <MenuMacro UID="MMU_009">
+        <Macro type="Any">
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
+          <Name UID="XLS_009" xlate="true">Place Brackets</Name>
+          <Command>^C^CPlaceBrackets</Command>
+          <HelpString UID="XLS_009_HELP" xlate="true">Place Brackets</HelpString>
+          <SmallImage Name="bracket.png"/>
+          <LargeImage Name="bracket.png"/>
+          <CLICommand UID="XLS_009_CLI" xlate="true">Place Brackets</CLICommand>
+        </Macro>
+        </MenuMacro>
     </MacroGroup>
     <MenuRoot>
       <RibbonRoot>
@@ -137,6 +149,10 @@
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_016"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_008" UID="RBNU_017">
                 <TooltipTitle UID="XLS_008_TOOLTIP" xlate="true">Place Columns</TooltipTitle>
+              </RibbonCommandButton>
+              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_020"/>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_009" UID="RBNU_019">
+                <TooltipTitle UID="XLS_009_TOOLTIP" xlate="true">Place Brackets</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_010"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_003" UID="RBNU_011">
