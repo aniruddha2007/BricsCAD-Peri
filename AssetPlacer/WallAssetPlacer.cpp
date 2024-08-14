@@ -719,7 +719,7 @@ void WallPlacer::placeWalls() {
             }
 
             adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            adjustStartAndEndPoints(end, direction, distanceBetweenPolylines, isInner);
+            adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
 
             double distance = start.distanceTo(end);
             AcGePoint3d currentPoint = start;
