@@ -462,7 +462,7 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
             acutPrintf(_T("\nDistance between polylines is 2100."));
         }
         else adjustment = 150; // Default case for any unexpected distance value
-
+        adjustment -= 100;
         point += direction * adjustment;
     }
 }
