@@ -462,9 +462,8 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
             acutPrintf(_T("\nDistance between polylines is 2100."));
         }
         else adjustment = 150; // Default case for any unexpected distance value
-        adjustment -= 100;
-        adjustment = adjustment / 2;
-        point -= direction * adjustment;
+
+        point += direction * adjustment;
     }
 }
 void WallPlacer::placeWalls() {
