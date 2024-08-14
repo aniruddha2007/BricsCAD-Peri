@@ -292,15 +292,13 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
-void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            start += direction * 600;
-            end -= direction * 600;
+            point += direction * 300;
         }
         else {
-            start += direction * 500;
-            end -= direction * 500;
+            point += direction * 250;
         }
     }
     else {
@@ -348,8 +346,9 @@ void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, const AcGeVec
         else if (distanceBetweenPolylines == 2100) adjustment = 2450;
         else adjustment = 150; // Default case for any unexpected distance value
 
-        start -= direction * adjustment;
-        end += direction * adjustment;
+        adjustment = adjustment / 2;
+
+        point -= direction * adjustment;
     }
 }
 
@@ -535,8 +534,6 @@ void WallPlacer::placeWalls() {
             tempSawToothIndex.clear();
         }
 
-        adjustStartAndEndPoints(start, end, direction, distanceBetweenPolylines, loopIndex != outerLoopIndexValue);
-
         loopIndex = loopIndexLastPanel;
     }
 
@@ -554,6 +551,7 @@ void WallPlacer::placeWalls() {
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
+        AcGeVector3d reverseDirection = (start - end).normal();
 
         if (!isInteger(direction.x) || !isInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
@@ -584,41 +582,48 @@ void WallPlacer::placeWalls() {
             }
 
             direction = (end - start).normal();
+            reverseDirection = (start - end).normal();
 
             // Adjust start point
             if (!prevClockwise && isInner) {
-                start += direction * 500;
+                //start += direction * 500;
+                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
             else if (!prevClockwise && isOuter) {
-                start -= direction * 500;
+                //start -= direction * 500;
+                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
-                end -= direction * 500;
+                //end -= direction * 500;
+                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
             else if (!nextClockwise && isOuter) {
-                end += direction * 500;
+                //end += direction * 500;
+                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
 
             double distance;
             AcGePoint3d currentPoint;
 
+            //IF NOT ALIGNED, MODIFY OFFSETS BELOW
+
             if (isInner) {
-                distance = start.distanceTo(end) - 500;
-                currentPoint = start + direction * 250;
+                //distance = start.distanceTo(end) - 500;
+                //currentPoint = start + direction * 250;
             }
             else {
-                distance = start.distanceTo(end) - 1700;
-                currentPoint = start + direction * 850;
+                //distance = start.distanceTo(end) - 1700;
+                //currentPoint = start + direction * 850;
             }
 
             double rotation = atan2(direction.y, direction.x);
             double panelLength;
 
             if (isOuter) {
-                distance += 400;
-                currentPoint -= direction * 200;
+                //distance += 400;
+                //currentPoint -= direction * 200;
                 rotation += M_PI;
             }
 
