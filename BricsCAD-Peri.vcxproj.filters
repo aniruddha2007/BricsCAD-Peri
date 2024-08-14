@@ -21,8 +21,6 @@
     <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
     <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
     <ClCompile Include="Scafold\PlaceBracket-PP.cpp" />
-    <ClCompile Include="Test-only\TestCol.cpp" />
-    <ClCompile Include="Test-only\extractCol.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -44,8 +42,6 @@
     <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
     <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
     <ClInclude Include="Scafold\PlaceBracket-PP.h" />
-    <ClInclude Include="Test-only\TestCol.h" />
-    <ClInclude Include="Test-only\extractCol.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

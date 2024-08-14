@@ -27,8 +27,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
-    <ClCompile Include="Test-only\extractCol.cpp" />
-    <ClCompile Include="Test-only\TestCol.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
     <ClCompile Include="SharedDefinations.cpp" />
     <ClCompile Include="Timber\TimberAssetCreator.cpp" />
@@ -51,8 +49,6 @@
     <ClInclude Include="SourceFiles\Resource.h" />
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
-    <ClInclude Include="Test-only\extractCol.h" />
-    <ClInclude Include="Test-only\TestCol.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
     <ClInclude Include="Timber\TimberAssetCreator.h" />
     <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />

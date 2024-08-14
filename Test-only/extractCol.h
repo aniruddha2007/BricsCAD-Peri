@@ -22,4 +22,5 @@ class ColumnExtractor {
 public:
     std::vector<ColumnData> extractColumnData();
     void extractAndCreateBlock(const std::string& blockName, const std::string& jsonFilePath);
+    void extractAndSaveToJson(const std::string& jsonFilePath);
 };

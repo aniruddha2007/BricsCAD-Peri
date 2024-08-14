@@ -304,6 +304,181 @@ bool isThisClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoi
     return crossProduct.z < 0;
 }
 
+void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+    if (isInner) {
+        if (distanceBetweenPolylines == 150) {
+            point += direction * 300;
+        }
+        else {
+            point += direction * 250;
+        }
+    }
+    else {
+        // Using the provided table for outer loop adjustments
+        int adjustment = 0;
+
+        if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
+            adjustment = 550;
+            acutPrintf(_T("\nDistance between polylines is 150 or 200."));
+        }
+        else if (distanceBetweenPolylines == 250) {
+            adjustment = 600;
+            acutPrintf(_T("\nDistance between polylines is 250."));
+        }
+        else if (distanceBetweenPolylines == 300) {
+            adjustment = 650;
+            acutPrintf(_T("\nDistance between polylines is 300."));
+        }
+        else if (distanceBetweenPolylines == 350) {
+            adjustment = 700;
+            acutPrintf(_T("\nDistance between polylines is 350."));
+        }
+        else if (distanceBetweenPolylines == 400) {
+            adjustment = 750;
+            acutPrintf(_T("\nDistance between polylines is 400."));
+        }
+        else if (distanceBetweenPolylines == 450) {
+            adjustment = 800;
+            acutPrintf(_T("\nDistance between polylines is 450."));
+        }
+        else if (distanceBetweenPolylines == 500) {
+            adjustment = 850;
+            acutPrintf(_T("\nDistance between polylines is 500."));
+        }
+        else if (distanceBetweenPolylines == 550) {
+            adjustment = 900;
+            acutPrintf(_T("\nDistance between polylines is 550."));
+        }
+        else if (distanceBetweenPolylines == 600) {
+            adjustment = 950;
+            acutPrintf(_T("\nDistance between polylines is 600."));
+        }
+        else if (distanceBetweenPolylines == 650) {
+            adjustment = 1000;
+            acutPrintf(_T("\nDistance between polylines is 650."));
+        }
+        else if (distanceBetweenPolylines == 700) {
+            adjustment = 1050;
+            acutPrintf(_T("\nDistance between polylines is 700."));
+        }
+        else if (distanceBetweenPolylines == 750) {
+            adjustment = 1100;
+            acutPrintf(_T("\nDistance between polylines is 750."));
+        }
+        else if (distanceBetweenPolylines == 800) {
+            adjustment = 1150;
+            acutPrintf(_T("\nDistance between polylines is 800."));
+        }
+        else if (distanceBetweenPolylines == 850) {
+            adjustment = 1200;
+            acutPrintf(_T("\nDistance between polylines is 850."));
+        }
+        else if (distanceBetweenPolylines == 900) {
+            adjustment = 1250;
+            acutPrintf(_T("\nDistance between polylines is 900."));
+        }
+        else if (distanceBetweenPolylines == 950) {
+            adjustment = 1300;
+            acutPrintf(_T("\nDistance between polylines is 950."));
+        }
+        else if (distanceBetweenPolylines == 1000) {
+            adjustment = 1350;
+            acutPrintf(_T("\nDistance between polylines is 1000."));
+        }
+        else if (distanceBetweenPolylines == 1050) {
+            adjustment = 1400;
+            acutPrintf(_T("\nDistance between polylines is 1050."));
+        }
+        else if (distanceBetweenPolylines == 1100) {
+            adjustment = 1450;
+            acutPrintf(_T("\nDistance between polylines is 1100."));
+        }
+        else if (distanceBetweenPolylines == 1150) {
+            adjustment = 1500;
+            acutPrintf(_T("\nDistance between polylines is 1150."));
+        }
+        else if (distanceBetweenPolylines == 1200) {
+            adjustment = 1550;
+            acutPrintf(_T("\nDistance between polylines is 1200."));
+        }
+        else if (distanceBetweenPolylines == 1250) {
+            adjustment = 1600;
+            acutPrintf(_T("\nDistance between polylines is 1250."));
+        }
+        else if (distanceBetweenPolylines == 1300) {
+            adjustment = 1650;
+            acutPrintf(_T("\nDistance between polylines is 1300."));
+        }
+        else if (distanceBetweenPolylines == 1350) {
+            adjustment = 1700;
+            acutPrintf(_T("\nDistance between polylines is 1350."));
+        }
+        else if (distanceBetweenPolylines == 1400) {
+            adjustment = 1750;
+            acutPrintf(_T("\nDistance between polylines is 1400."));
+        }
+        else if (distanceBetweenPolylines == 1450) {
+            adjustment = 1800;
+            acutPrintf(_T("\nDistance between polylines is 1450."));
+        }
+        else if (distanceBetweenPolylines == 1500) {
+            adjustment = 1850;
+            acutPrintf(_T("\nDistance between polylines is 1500."));
+        }
+        else if (distanceBetweenPolylines == 1550) {
+            adjustment = 1900;
+            acutPrintf(_T("\nDistance between polylines is 1550."));
+        }
+        else if (distanceBetweenPolylines == 1600) {
+            adjustment = 1950;
+            acutPrintf(_T("\nDistance between polylines is 1600."));
+        }
+        else if (distanceBetweenPolylines == 1650) {
+            adjustment = 2000;
+            acutPrintf(_T("\nDistance between polylines is 1650."));
+        }
+        else if (distanceBetweenPolylines == 1700) {
+            adjustment = 2050;
+            acutPrintf(_T("\nDistance between polylines is 1700."));
+        }
+        else if (distanceBetweenPolylines == 1750) {
+            adjustment = 2100;
+            acutPrintf(_T("\nDistance between polylines is 1750."));
+        }
+        else if (distanceBetweenPolylines == 1800) {
+            adjustment = 2150;
+            acutPrintf(_T("\nDistance between polylines is 1800."));
+        }
+        else if (distanceBetweenPolylines == 1850) {
+            adjustment = 2200;
+            acutPrintf(_T("\nDistance between polylines is 1850."));
+        }
+        else if (distanceBetweenPolylines == 1900) {
+            adjustment = 2250;
+            acutPrintf(_T("\nDistance between polylines is 1900."));
+        }
+        else if (distanceBetweenPolylines == 1950) {
+            adjustment = 2300;
+            acutPrintf(_T("\nDistance between polylines is 1950."));
+        }
+        else if (distanceBetweenPolylines == 2000) {
+            adjustment = 2350;
+            acutPrintf(_T("\nDistance between polylines is 2000."));
+        }
+        else if (distanceBetweenPolylines == 2050) {
+            adjustment = 2400;
+            acutPrintf(_T("\nDistance between polylines is 2050."));
+        }
+        else if (distanceBetweenPolylines == 2100) {
+            adjustment = 2450;
+            acutPrintf(_T("\nDistance between polylines is 2100."));
+        }
+        else adjustment = 150; // Default case for any unexpected distance value
+        adjustment -= 100;
+        point += direction * adjustment;
+    }
+}
+
 // Place Ties
 void TiePlacer::placeTies() {
     acutPrintf(L"\nPlacing Ties");

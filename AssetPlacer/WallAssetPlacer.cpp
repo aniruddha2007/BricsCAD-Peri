@@ -466,6 +466,7 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
         point += direction * adjustment;
     }
 }
+
 void WallPlacer::placeWalls() {
     std::vector<AcGePoint3d> corners = detectPolylines();
 
