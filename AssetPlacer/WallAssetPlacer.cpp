@@ -295,10 +295,10 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
 void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            point += direction * 600;
+            point += direction * 300;
         }
         else {
-            point += direction * 500;
+            point += direction * 250;
         }
     }
     else {
