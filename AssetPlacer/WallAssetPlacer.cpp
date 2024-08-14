@@ -701,21 +701,21 @@ void WallPlacer::placeWalls() {
             // Adjust start point
             if (!prevClockwise && isInner) {
                 //start += direction * 500;
-                start = adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
             else if (!prevClockwise && isOuter) {
                 //start -= direction * 500;
-                start = adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
             }
 
             // Adjust end point
             if (!nextClockwise && isInner) {
                 //end -= direction * 500;
-                end = adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
             else if (!nextClockwise && isOuter) {
                 //end += direction * 500;
-                end = adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
 
             adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
