@@ -297,10 +297,10 @@ AcGePoint3d adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& dire
     pointRes = point;
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            pointRes += direction * 300;
+            pointRes += direction * 600;
         }
         else {
-            pointRes += direction * 250;
+            pointRes += direction * 500;
         }
         return pointRes;
     }
@@ -348,8 +348,6 @@ AcGePoint3d adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& dire
         else if (distanceBetweenPolylines == 2050) adjustment = 2400;
         else if (distanceBetweenPolylines == 2100) adjustment = 2450;
         else adjustment = 150; // Default case for any unexpected distance value
-
-        adjustment = adjustment / 2;
 
         pointRes -= direction * adjustment;
         return pointRes;
