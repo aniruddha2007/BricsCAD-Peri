@@ -604,8 +604,8 @@ void WallPlacer::placeWalls() {
                 adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
             }
 
-            double distance;
-            AcGePoint3d currentPoint;
+            double distance = start.distanceTo(end);
+            AcGePoint3d currentPoint = start;
 
             //IF NOT ALIGNED, MODIFY OFFSETS BELOW
 
@@ -744,7 +744,7 @@ void WallPlacer::placeWalls() {
 
     int prevStartCornerIndex = -1;
     int movedCompensators = 0;
-    
+
     for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
         WallPanel& panel = wallPanels[panelNum];
         if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
