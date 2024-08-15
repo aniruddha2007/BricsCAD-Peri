@@ -304,6 +304,63 @@ bool isThisClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoi
     return crossProduct.z < 0;
 }
 
+//calculate distance between polylines
+double TiePlacer::calculateDistanceBetweenPolylines() {
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        return -1.0;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        return -1.0;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
+        pModelSpace->close();
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbPolyline* pFirstPolyline = nullptr;
+    AcDbPolyline* pSecondPolyline = nullptr;
+
+    // Find the first two polylines
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                if (!pFirstPolyline) {
+                    pFirstPolyline = AcDbPolyline::cast(pEnt);
+                }
+                else if (!pSecondPolyline) {
+                    pSecondPolyline = AcDbPolyline::cast(pEnt);
+                    pEnt->close();
+                    break; // Found both polylines, no need to continue
+                }
+            }
+            pEnt->close();
+        }
+    }
+
+    double distance = -1.0;
+    if (pFirstPolyline && pSecondPolyline) {
+        distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+    return distance;
+}
+
 void TiePlacer::adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
@@ -487,6 +544,9 @@ void TiePlacer::placeTies() {
     if (panelPositions.empty()) {
         //acutPrintf(L"\nNo wall panels found");
     }
+
+    double distanceBetweenPolylines = calculateDistanceBetweenPolylines();
+
     // List of available Tieswith their sizes
     std::vector<Tie> tieSizes = {
         {500, L"030005X"},
@@ -647,6 +707,7 @@ void TiePlacer::placeTies() {
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[cornerNum + 1];
         AcGeVector3d direction = (end - start).normal();
+        AcGeVector3d reverseDirection = (start - end).normal();
 
         if (!isThisInteger(direction.x) || !isThisInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
@@ -683,6 +744,7 @@ void TiePlacer::placeTies() {
         if ((isInner && loopIsClockwise[loopIndex]) || (isOuter && !loopIsClockwise[loopIndex])) {
 
             direction = (end - start).normal();
+            reverseDirection = (start - end).normal();
 
             bool skipFirstTie = false;
             bool skipLastTie = false;
@@ -695,22 +757,29 @@ void TiePlacer::placeTies() {
             // Adjust start point
             if (loopIsClockwise[loopIndex]) {
                 if (!prevClockwise && isInner) {
-                    start += direction * 500;
+                    //start += direction * 500;
+                    adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
                 }
                 // Adjust end point
                 if (!nextClockwise && isInner) {
-                    end -= direction * 500;
+                    //end -= direction * 500;
+                    adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
                 }
             }
             else {
                 if (prevClockwise && isInner) {
-                    start += direction * 500;
+                    //start += direction * 500;
+                    adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
                 }
                 // Adjust end point
                 if (nextClockwise && isInner) {
-                    end -= direction * 500;
+                    //end -= direction * 500;
+                    adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
                 }
             }
+
+            adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+            adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
 
             double distance = start.distanceTo(end) - 500;
             AcGePoint3d currentPoint = start + direction * 250;

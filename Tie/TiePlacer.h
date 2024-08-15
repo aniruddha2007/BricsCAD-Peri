@@ -15,6 +15,7 @@ private:
 	static AcDbObjectId LoadTieAsset(const wchar_t* blockName);
 	static void placeTieAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId);
 	static void TiePlacer::adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner);
+	static double calculateDistanceBetweenPolylines();
 	//Add other helper functions here
 
 	// Comparator for AcGePoint3d
