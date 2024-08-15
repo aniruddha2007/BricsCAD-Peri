@@ -304,7 +304,7 @@ bool isThisClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoi
     return crossProduct.z < 0;
 }
 
-void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+void TiePlacer::adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
             point += direction * 300;
