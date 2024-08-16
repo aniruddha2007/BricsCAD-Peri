@@ -30,13 +30,12 @@
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
 #include "SettingsCommands.h"
-#include "Columns/PlaceColumns.h"
+#include "Columns/PlaceColumn.h"
+#include "Columns/ExtractColumn.h"
 #include "AssetPlacer/SpecialCaseCorners.h"
 #include "Scafold/PlaceBracket-PP.h"
 //#include <openssl/sha.h>
-//Only for debug
-//#include "Test-only/TestCol.h"
-//#include "Test-only/extractCol.h"
+
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -105,13 +104,12 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceTies"), _T("PlaceTies"), ACRX_CMD_MODAL, []() { TiePlacer::placeTies(); });
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceColumns"), _T("PlaceColumns"), ACRX_CMD_MODAL, []() { ColumnPlacer::placeColumns(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceColumns"), _T("PlaceColumns"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceColumns(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("ExtractColumn"), _T("ExtractColumn"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppExtractColumn(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("ExtractColumn"), _T("ExtractColumn"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppExtractColumn(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("TestCol"), _T("TestCol"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppTestCol(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
@@ -150,27 +148,6 @@ public:
     {
         acutPrintf(_T("\nRunning MySandboxCommand."));
     }
-
-    ////Test-Peri command
-    //static void BrxAppExtractColumn(void)
-    //{
-    //    acutPrintf(_T("\nRunning Extract Block."));
-    //    ColumnExtractor colExtractor;
-
-    //    // Extract column data and create a block, saving data to JSON
-    //    colExtractor.extractAndCreateBlock("ColumnBlock200*200", "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
-    //    acutPrintf(_T("\nColumn data stored in JSON."));
-    //}
-
- //   //Test-Peri command
- //   static void BrxAppTestCol(void)
-	//{
-	//	acutPrintf(_T("\nRunning Test Column."));
-	//	
- //       ColumnPlacermain colPlacer;
- //       colPlacer.placeColumnsFromJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.json");
- //       acutPrintf(_T("\nColumns placed."));
-	//}
 
     // PlaceBrackets command
     static void BrxAppPlaceBrackets(void)
@@ -226,11 +203,19 @@ public:
 		TiePlacer::placeTies();
 	}
 
-    // PlaceColumns command
+     //PlaceColumns command
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		ColumnPlacer::placeColumns();
+		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\blocks.json");
+	}
+
+    //ExtractColumn command
+    static void BrxAppExtractColumn(void)
+	{
+		acutPrintf(_T("\nRunning ExtractColumn."));
+        ExtractColumn();
+		//SaveBlocksToJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\blocks.json");
 	}
 
     // LoadBlocks command
@@ -283,6 +268,7 @@ public:
         acutPrintf(_T("\nPlaceConnectors: To Place all types of Connectors. Duo Couplers, Waler, Duo Grip DW 15. "));
         acutPrintf(_T("\nPlaceTies: To only place Ties."));
         acutPrintf(_T("\nPlaceColunms: To only place Columns."));
+        acutPrintf(_T("\nPlaceBrackets: To only place Brackets."));
         acutPrintf(_T("\nDefineHeight: Define Height, specify height in mm."));
         acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));

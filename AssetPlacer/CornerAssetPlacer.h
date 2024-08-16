@@ -81,7 +81,8 @@ private:
     // Helper method to split corners into two loops
     static std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> splitLoops(const std::vector<AcGePoint3d>& corners, int firstLoopEnd);
     // Helper method to process corners, determining rotation and inside/outside placement
-    static void processCorners(const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config, double distance, const std::vector<bool>& loopIsClockwise);
+    static void processCorners(const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
+        double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop);
     // Helper method to adjust rotation for a corner based on direction vectors
     static void adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum);
 

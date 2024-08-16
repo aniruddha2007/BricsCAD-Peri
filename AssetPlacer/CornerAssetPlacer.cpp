@@ -40,7 +40,7 @@
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
 
-const int BATCH_SIZE = 10; // Process 10 entities at a time
+const int BATCH_SIZE = 30; // Process 30 entities at a time
 
 const double TOLERANCE = 0.19; // Tolerance for angle comparison
 
@@ -836,6 +836,8 @@ double CornerAssetPlacer::calculateDistanceBetweenPolylines() {
     return distance;
 }
 
+
+
 int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners) {
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -877,7 +879,7 @@ std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> CornerAssetPlacer:
 
 void CornerAssetPlacer::processCorners(
     const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
-    double distance, const std::vector<bool>& loopIsClockwise) {
+    double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop) {
 
     int loopIndex = 0;
     int loopIndexLastPanel = 0;
@@ -913,7 +915,9 @@ void CornerAssetPlacer::processCorners(
         AcGeVector3d direction = (end - start).normal();
 
         closeLoopCounter++;
-        bool isInside = false;
+
+        // Determine if the corner is inside or outside based on loop membership
+        bool isInside = isInsideLoop[loopIndex];
 
         if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
             if (cornerNum < corners.size() - 1) {
@@ -925,7 +929,6 @@ void CornerAssetPlacer::processCorners(
         }
 
         direction = (end - start).normal();
-        //acutPrintf(_T("\nDirection: %f, %f"), direction.x, direction.y);
         acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
         acutPrintf(_T("\nrotation: %f"), atan2(direction.y, direction.x));
         rotation = atan2(direction.y, direction.x);
@@ -933,18 +936,6 @@ void CornerAssetPlacer::processCorners(
         acutPrintf(_T("\nrotation: %f"), rotation);
         rotation = snapToExactAngle(rotation, TOLERANCE);
         acutPrintf(_T("\nrotation: %f"), rotation);
-
-        // Compute cross product to determine if it's a concave or convex corner
-        AcGeVector3d prevDirection = corners[cornerNum] - corners[(cornerNum > 0) ? cornerNum - 1 : corners.size() - 1];
-        AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
-        double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
-
-        if (crossProductZ < 0) { // Adjust this logic if necessary based on your coordinate system
-            isInside = !loopIsClockwise[loopIndex];
-        }
-        else {
-            isInside = loopIsClockwise[loopIndex];
-        }
 
         adjustRotationForCorner(rotation, corners, cornerNum);
 
@@ -957,7 +948,9 @@ void CornerAssetPlacer::processCorners(
 
         loopIndex = loopIndexLastPanel;
     }
+
 }
+
 
 void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum) {
     AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
@@ -1554,7 +1547,3 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
         pBlockTable->close();
     }
 }
-
-
-
-

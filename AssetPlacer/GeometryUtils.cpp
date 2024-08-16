@@ -85,6 +85,43 @@ double snapToExactAngle(double angle, double tolerance = 0.19) {
     return angle;
 }
 
+bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise) {
+    // Calculate previous and next indices
+    size_t prevIndex = (currentIndex == 0) ? polylinePoints.size() - 1 : currentIndex - 1;
+    size_t nextIndex = (currentIndex + 1) % polylinePoints.size();
+
+    // Create vectors for current and next segments
+    AcGeVector3d vec1 = polylinePoints[currentIndex] - polylinePoints[prevIndex];
+    AcGeVector3d vec2 = polylinePoints[nextIndex] - polylinePoints[currentIndex];
+
+    // Calculate the cross product to determine convexity
+    double crossProductZ = vec1.x * vec2.y - vec1.y * vec2.x;
+
+    // Calculate the angle between the two vectors
+    double angle = acos(vec1.dotProduct(vec2) / (vec1.length() * vec2.length()));
+
+    // Determine if the corner is convex
+    bool isConvex = (crossProductZ > 0) ? (angle < M_PI) : (angle > M_PI);
+
+    // Return true if the corner is inside, considering convexity and winding direction
+    return isConvex ? !isClockwise : isClockwise;
+}
+
+bool directionOfPolyline(const std::vector<AcGePoint3d>& polylinePoints) {
+    double totalTurns = 0.0;
+
+    for (size_t i = 0; i < polylinePoints.size(); ++i) {
+        size_t nextIndex = (i + 1) % polylinePoints.size();
+        size_t nextNextIndex = (i + 2) % polylinePoints.size();
+
+        AcGeVector3d vec1 = polylinePoints[nextIndex] - polylinePoints[i];
+        AcGeVector3d vec2 = polylinePoints[nextNextIndex] - polylinePoints[nextIndex];
+
+        totalTurns += vec1.x * vec2.y - vec1.y * vec2.x;
+    }
+
+    return totalTurns > 0;
+}
 
 // Determine if two angles are equal within a tolerance
 bool areAnglesEqual(double angle1, double angle2, double tolerance = 0.1) {
@@ -326,24 +363,46 @@ std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {
     return vertices;
 }
 
-// Function to calculate the distance between corresponding vertices of two polylines
+// Function to calculate the shift between corresponding vertices of two polylines
 double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
-    std::vector<AcGePoint3d> vertices1 = getPolylineVertices(pPolyline1);
-    std::vector<AcGePoint3d> vertices2 = getPolylineVertices(pPolyline2);
+    acutPrintf(_T("\nEntering getPolylineDistance...\n"));
 
-    if (vertices1.size() != vertices2.size()) {
-        acutPrintf(_T("\nThe polylines have different numbers of vertices."));
+    // Get vertices of the first polyline
+    std::vector<AcGePoint3d> vertices1 = getPolylineVertices(pPolyline1);
+    acutPrintf(_T("Number of vertices in first polyline: %d\n"), vertices1.size());
+
+    // Get vertices of the second polyline
+    std::vector<AcGePoint3d> vertices2 = getPolylineVertices(pPolyline2);
+    acutPrintf(_T("Number of vertices in second polyline: %d\n"), vertices2.size());
+
+    // Determine the minimum number of vertices to use for comparison
+    size_t minSize = std::min(vertices1.size(), vertices2.size());
+    size_t maxSize = std::max(vertices1.size(), vertices2.size());
+
+    // If the difference in vertex counts is greater than 1, log an error and return
+    if (maxSize - minSize > 1) {
+        acutPrintf(_T("\nThe polylines have significantly different numbers of vertices and cannot be directly compared.\n"));
         return -1.0;
     }
 
-    for (size_t i = 0; i < vertices1.size(); ++i) {
+    acutPrintf(_T("\nCalculating shift between corresponding vertices...\n"));
+
+    for (size_t i = 0; i < minSize; ++i) {
         double deltaX = vertices2[i].x - vertices1[i].x;
         double deltaY = vertices2[i].y - vertices1[i].y;
 
-        if (std::abs(deltaX) == std::abs(deltaY)) {
-            return std::abs(deltaX); // Return the positive distance value
+        // Check if the absolute values of deltaX and deltaY are the same
+        if (fabs(deltaX) != fabs(deltaY)) {
+            acutPrintf(_T("\nError: Absolute deltaX and deltaY are not the same. deltaX = %f, deltaY = %f\n"), deltaX, deltaY);
+            return -1.0; // Return an error if they are not the same
         }
+
+        // If they are the same, return either deltaX or deltaY (since they should be the same in magnitude)
+        acutPrintf(_T("Vertex %d: deltaX = %f, deltaY = %f\n"), i, deltaX, deltaY);
+        return fabs(deltaX); // Return the absolute value of deltaX or deltaY
     }
 
-    return -1.0; // Return -1 if no matching deltas are found
+    acutPrintf(_T("Exiting getPolylineDistance...\n"));
+    return -1.0; // In case no valid vertices are found
 }
+

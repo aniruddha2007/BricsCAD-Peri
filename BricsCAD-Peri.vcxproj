@@ -15,7 +15,8 @@
     <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
-    <ClCompile Include="Columns\PlaceColumns.cpp" />
+    <ClCompile Include="Columns\ExtractColumn.cpp" />
+    <ClCompile Include="Columns\PlaceColumn.cpp" />
     <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="DefineScale.cpp" />
     <ClCompile Include="Scafold\PlaceBracket-PP.cpp" />
@@ -40,7 +41,8 @@
     <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
-    <ClInclude Include="Columns\PlaceColumns.h" />
+    <ClInclude Include="Columns\ExtractColumn.h" />
+    <ClInclude Include="Columns\PlaceColumn.h" />
     <ClInclude Include="DefineHeight.h" />
     <ClInclude Include="DefineScale.h" />
     <ClInclude Include="Scafold\PlaceBracket-PP.h" />

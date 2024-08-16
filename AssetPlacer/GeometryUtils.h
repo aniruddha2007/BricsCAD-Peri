@@ -10,6 +10,8 @@ bool areAnglesEqual(double angle1, double angle2, double tolerance);
 double normalizeAngle(double angle);
 double snapToExactAngle(double angle, double tolerance);
 bool isCorner(double angle, double threshold = 45.0);
+bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise);
+bool directionOfPolyline(const std::vector<AcGePoint3d>& polylinePoints);
 void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& vertices);
 void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& corners, double angleThreshold, double tolerance);
 void rotateAroundXAxis(AcDbBlockReference* pBlockRef, double angle);
