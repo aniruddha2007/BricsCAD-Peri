@@ -778,9 +778,6 @@ void TiePlacer::placeTies() {
                 }
             }
 
-            adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
-
             double distance = start.distanceTo(end) - 500;
             AcGePoint3d currentPoint = start + direction * 250;
             rotation = atan2(direction.y, direction.x);
