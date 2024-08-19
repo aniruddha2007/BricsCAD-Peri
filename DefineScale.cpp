@@ -6,6 +6,7 @@
 // Default to (1, 1, 1)
 AcGeScale3d globalVarScale(1, 1, 1);
 
+// Define the scale factor
 void DefineScale::defineScale() {
     ads_real scale;
     ads_printf(_T("\nEnter the scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1)): "));

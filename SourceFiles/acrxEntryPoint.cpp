@@ -115,7 +115,6 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
 
-        //loadCustomMenu();   // Load the custom menu
         BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
         return result;

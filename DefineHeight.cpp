@@ -6,6 +6,7 @@
 //Default to 135
 int globalVarHeight = 1350;
 
+// Define the height of the structure
 void DefineHeight::defineHeight() {
     ads_real height;
     ads_printf(_T("\nEnter the height of the structure (mm): "));

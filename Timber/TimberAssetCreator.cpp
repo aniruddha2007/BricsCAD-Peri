@@ -8,6 +8,7 @@
 #include "geassign.h"
 #include <sstream>
 
+// Create a timber asset with the specified length and height
 AcDbObjectId TimberAssetCreator::createTimberAsset(double length, double height) {
     acutPrintf(_T("\nCreating timber asset with length: %f and height: %f"), length, height); // Debug output
 

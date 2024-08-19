@@ -128,6 +128,7 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
 //    }
 //};
 
+//Panel Configurations according to the distance
 PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& panelDims) {
     PanelConfig config = {};
 
@@ -642,6 +643,7 @@ PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& 
     return config;
 }
 
+// Function to check if a double value is an integer within a tolerance
 bool isItInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
@@ -687,6 +689,7 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
     return true;
 }
 
+//Detecting corners from polylines
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
@@ -753,6 +756,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     return corners;
 }
 
+
 bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
     // Calculate the cross product of the two vectors
     AcGeVector3d crossProduct = v1.crossProduct(v2);
@@ -780,6 +784,7 @@ bool directionOfDrawing2(std::vector<AcGePoint3d>& points) {
     return totalTurns > 0.0;
 }
 
+//Function to calculate the distance between two polylines
 double CornerAssetPlacer::calculateDistanceBetweenPolylines() {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -866,6 +871,7 @@ int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corn
     return firstLoopEnd;
 }
 
+// Function to split the corners into two loops based on the first loop end
 std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> CornerAssetPlacer::splitLoops(
     const std::vector<AcGePoint3d>& corners, int firstLoopEnd) {
 
@@ -875,6 +881,7 @@ std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> CornerAssetPlacer:
     return { firstLoop, secondLoop };
 }
 
+// Function to determine if a loop is clockwise or counterclockwise
 void CornerAssetPlacer::processCorners(
     const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
     double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop) {
@@ -949,7 +956,7 @@ void CornerAssetPlacer::processCorners(
 
 }
 
-
+// Function to adjust the rotation for a corner based on the direction of the corner
 void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum) {
     AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
     AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
@@ -960,6 +967,7 @@ void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vec
     }
 }
 
+// Function to place the corner post and panels for an inside corner
 void CornerAssetPlacer::placeAssetsAtCorners() {
     std::vector<AcGePoint3d> corners = detectPolylines();
 
@@ -1249,6 +1257,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
     pBlockTable->close();
 }
 
+// PLACE ASSETS AT OUTSIDE CORNERS
 void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
     const AcGePoint3d& corner,
     double rotation,

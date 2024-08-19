@@ -32,6 +32,7 @@
 
 const double TOLERANCE = 0.1; // Tolerance for comparing double values
 
+// Define the assets for the stacked wall panels
 const std::vector<std::wstring> panelNames = {
     ASSET_128280,
     ASSET_129840,
