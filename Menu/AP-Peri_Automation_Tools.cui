@@ -127,7 +127,7 @@
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
           <Name UID="XLS_010" xlate="true">Help</Name>
-          <Command>^C^CListCMD</Command>
+          <Command>^C^CListCMDS</Command>
           <HelpString UID="XLS_010_HELP" xlate="true">Help</HelpString>
           <SmallImage Name="question.png"/>
           <LargeImage Name="question.png"/>

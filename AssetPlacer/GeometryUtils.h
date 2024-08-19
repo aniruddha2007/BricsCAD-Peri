@@ -19,3 +19,8 @@ void rotateAroundYAxis(AcDbBlockReference* pBlockRef, double angle);
 void rotateAroundZAxis(AcDbBlockReference* pBlockRef, double angle);
 std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline);
 double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2);
+bool isPolylineClosed(const AcDbPolyline* pPolyline);
+std::vector<AcGePoint3d> forcePolylineClockwise(std::vector<AcGePoint3d>& points);
+bool isPolylineClockwise(const std::vector<AcGePoint3d>& points);
+double categorizeAngle(double angle);
+bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise);

@@ -617,27 +617,27 @@ PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& 
 
 
         // Debug output to verify panel assignment
-        acutPrintf(_T("\nPanel Configuration for Distance %f:"), distance);
-        for (int i = 0; i < 6; ++i) {
-            if (config.outsidePanelIds[i]) {
-                acutPrintf(_T("\nOutside Panel %d: Block Name: %s, Width: %f"), i, config.outsidePanelIds[i]->blockName.c_str(), config.outsidePanelIds[i]->width);
-            }
-            else {
-                acutPrintf(_T("\nOutside Panel %d: Block not assigned or is null."), i);
-            }
-        }
-        if (config.compensatorIdA) {
-            acutPrintf(_T("\nCompensator A: Block Name: %s, Width: %f"), config.compensatorIdA->blockName.c_str(), config.compensatorIdA->width);
-        }
-        else {
-            acutPrintf(_T("\nCompensator A: Block not assigned or is null."));
-        }
-        if (config.compensatorIdB) {
-            acutPrintf(_T("\nCompensator B: Block Name: %s, Width: %f"), config.compensatorIdB->blockName.c_str(), config.compensatorIdB->width);
-        }
-        else {
-            acutPrintf(_T("\nCompensator B: Block not assigned or is null."));
-        }
+        //acutPrintf(_T("\nPanel Configuration for Distance %f:"), distance);
+        //for (int i = 0; i < 6; ++i) {
+        //    if (config.outsidePanelIds[i]) {
+        //        acutPrintf(_T("\nOutside Panel %d: Block Name: %s, Width: %f"), i, config.outsidePanelIds[i]->blockName.c_str(), config.outsidePanelIds[i]->width);
+        //    }
+        //    else {
+        //        acutPrintf(_T("\nOutside Panel %d: Block not assigned or is null."), i);
+        //    }
+        //}
+        //if (config.compensatorIdA) {
+        //    acutPrintf(_T("\nCompensator A: Block Name: %s, Width: %f"), config.compensatorIdA->blockName.c_str(), config.compensatorIdA->width);
+        //}
+        //else {
+        //    acutPrintf(_T("\nCompensator A: Block not assigned or is null."));
+        //}
+        //if (config.compensatorIdB) {
+        //    acutPrintf(_T("\nCompensator B: Block Name: %s, Width: %f"), config.compensatorIdB->blockName.c_str(), config.compensatorIdB->width);
+        //}
+        //else {
+        //    acutPrintf(_T("\nCompensator B: Block not assigned or is null."));
+        //}
 
     return config;
 }
@@ -836,8 +836,6 @@ double CornerAssetPlacer::calculateDistanceBetweenPolylines() {
     return distance;
 }
 
-
-
 int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners) {
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -1032,6 +1030,8 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
     int closeLoopCounter = -1;
     int outerLoopIndexValue = 0;
 
+    bool isClockwise = isPolylineClockwise(corners);
+
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         double rotation = 0.0;
         AcGePoint3d start = corners[cornerNum];
@@ -1052,11 +1052,11 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
         direction = (end - start).normal();
         rotation = atan2(direction.y, direction.x);
-        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        //acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
         rotation = normalizeAngle(rotation);
-        acutPrintf(_T("\nRotation: %f"), rotation);
+        //acutPrintf(_T("\nRotation: %f"), rotation);
         rotation = snapToExactAngle(rotation, TOLERANCE);
-        acutPrintf(_T("\nRotation: %f"), rotation);
+        //acutPrintf(_T("\nRotation: %f"), rotation);
 
         if (!(loopIndex == outerLoopIndexValue)) {
             isInside = true;
@@ -1067,42 +1067,21 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
         adjustRotationForCorner(rotation, corners, cornerNum);
 
-        // Adjust offsets based on whether it's an inside or outside corner
-        if (isInside) {
-            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+        if (isClockwise) {
+            if (!isInside) {
+                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
+            }
+            else {
+                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+            }
         }
         else {
-            acutPrintf(_T("\nProcessing outside corner at (%f, %f, %f) with distance %f"),
-                corners[cornerNum].x, corners[cornerNum].y, corners[cornerNum].z, distance);
-
-            acutPrintf(_T("\nRotation: %f"), rotation);
-
-            acutPrintf(_T("\nUsing outside panels:"));
-            for (int i = 0; i < 6; ++i) {
-                if (!outsidePanelIds[i].isNull()) {
-                    acutPrintf(_T("\nPanel %d: Block Name: %s, Width: %f"), i, config.outsidePanelIds[i]->blockName.c_str(), config.outsidePanelIds[i]->width);
-                }
-                else {
-                    acutPrintf(_T("\nPanel %d: Block not loaded or is null"), i);
-                }
-            }
-
-            acutPrintf(_T("\nUsing compensators:"));
-            if (!compensatorIdA.isNull()) {
-                acutPrintf(_T("\nCompensator A: Block Name: %s, Width: %f"), config.compensatorIdA->blockName.c_str(), config.compensatorIdA->width);
+            if (!isInside) {
+                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
             }
             else {
-                acutPrintf(_T("\nCompensator A: Block not loaded or is null"));
+                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
             }
-
-            if (!compensatorIdB.isNull()) {
-                acutPrintf(_T("\nCompensator B: Block Name: %s, Width: %f"), config.compensatorIdB->blockName.c_str(), config.compensatorIdB->width);
-            }
-            else {
-                acutPrintf(_T("\nCompensator B: Block not loaded or is null"));
-            }
-
-            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
         }
 
         loopIndex = loopIndexLastPanel;
@@ -1157,7 +1136,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                acutPrintf(_T("\nCorner post placed successfully."));
+                //acutPrintf(_T("\nCorner post placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
@@ -1207,7 +1186,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
             pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel A placed successfully."));
+                //acutPrintf(_T("\nPanel A placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
@@ -1221,7 +1200,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
             pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                acutPrintf(_T("\nPanel B placed successfully."));
+                //acutPrintf(_T("\nPanel B placed successfully."));
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
@@ -1240,7 +1219,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
                 pCompensatorARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorARef) == Acad::eOk) {
-                    acutPrintf(_T("\nCompensator A placed successfully."));
+                    //acutPrintf(_T("\nCompensator A placed successfully."));
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator A."));
@@ -1254,7 +1233,7 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
                 pCompensatorBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorBRef) == Acad::eOk) {
-                    acutPrintf(_T("\nCompensator B placed successfully."));
+                    //acutPrintf(_T("\nCompensator B placed successfully."));
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator B."));
@@ -1285,21 +1264,19 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
     AcDbObjectId outsideCompensatorIdB,
     double distance)
 {
-    acutPrintf(_T("\nStarting placeOutsideCornerPostAndPanels function."));
+    //acutPrintf(_T("\nStarting placeOutsideCornerPostAndPanels function."));
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
         return;
     }
-    acutPrintf(_T("\nWorking database found."));
 
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
         return;
     }
-    acutPrintf(_T("\nBlock table retrieved successfully."));
 
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
@@ -1307,7 +1284,6 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
         pBlockTable->close();
         return;
     }
-    acutPrintf(_T("\nModel space retrieved successfully."));
 
     int wallHeight = globalVarHeight;
     int currentHeight = 0;
@@ -1316,14 +1292,12 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
     rotation = normalizeAngle(rotation);
     rotation = snapToExactAngle(rotation, TOLERANCE);
 
-    acutPrintf(_T("\nPlacing corner post and panels for wall height %d"), wallHeight);
-
     for (int panelNum = 0; panelNum < 2; panelNum++) {
         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-        acutPrintf(_T("\nPlacing panels of height %d. Number of panels: %d"), panelHeights[panelNum], numPanelsHeight);
+        //acutPrintf(_T("\nPlacing panels of height %d. Number of panels: %d"), panelHeights[panelNum], numPanelsHeight);
 
         for (int x = 0; x < numPanelsHeight; x++) {
-            acutPrintf(_T("\nPlacing corner post at height %d"), currentHeight);
+            //acutPrintf(_T("\nPlacing corner post at height %d"), currentHeight);
 
             AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
             AcGePoint3d cornerWithHeight = corner;
@@ -1361,7 +1335,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                acutPrintf(_T("\nCorner post placed successfully at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
+                //acutPrintf(_T("\nCorner post placed successfully at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
@@ -1398,8 +1372,8 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
             double compensatorIdB = config.compensatorIdB ? config.compensatorIdB->width : 0;
             double cornerWidth = 100.0;  // Width of the corner post
 
-            acutPrintf(_T("\nCalculated panel widths: %f, %f, %f, %f, %f, %f"),
-                panelWidths[0], panelWidths[1], panelWidths[2], panelWidths[3], panelWidths[4], panelWidths[5]);
+            //acutPrintf(_T("\nCalculated panel widths: %f, %f, %f, %f, %f, %f"),
+                //panelWidths[0], panelWidths[1], panelWidths[2], panelWidths[3], panelWidths[4], panelWidths[5]);
 
             // Define panel offsets based on rotation and number of panels
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
@@ -1465,9 +1439,9 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
                 continue;
             }
 
-            acutPrintf(_T("\nCalculated panel offsets:"));
+            //acutPrintf(_T("\nCalculated panel offsets:"));
             for (int i = 0; i < 6; ++i) {
-                acutPrintf(_T("\nPanel %d offset: (%f, %f, %f)"), i, panelOffsets[i].x, panelOffsets[i].y, panelOffsets[i].z);
+                //acutPrintf(_T("\nPanel %d offset: (%f, %f, %f)"), i, panelOffsets[i].x, panelOffsets[i].y, panelOffsets[i].z);
             }
 
             // Place panels using the calculated offsets
@@ -1485,7 +1459,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
                     pPanelRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                     if (pModelSpace->appendAcDbEntity(pPanelRef) == Acad::eOk) {
-                        acutPrintf(_T("\nPanel %d placed successfully at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
+                        //acutPrintf(_T("\nPanel %d placed successfully at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
                     }
                     else {
                         acutPrintf(_T("\nFailed to place Panel %d at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
@@ -1493,7 +1467,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
                     pPanelRef->close();
                 }
                 else {
-                    acutPrintf(_T("\nOutside Panel ID %d is a dummy or null panel, skipping."), i);
+                    //acutPrintf(_T("\nOutside Panel ID %d is a dummy or null panel, skipping."), i);
                 }
             }
 
@@ -1509,7 +1483,7 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
                 pCompensatorRefA->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorRefA) == Acad::eOk) {
-                    acutPrintf(_T("\nCompensator A placed successfully at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
+                    //acutPrintf(_T("\nCompensator A placed successfully at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator A at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
@@ -1523,14 +1497,14 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
                 pCompensatorRefB->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorRefB) == Acad::eOk) {
-                    acutPrintf(_T("\nCompensator B placed successfully at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
+                    //acutPrintf(_T("\nCompensator B placed successfully at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator B at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
                 }
                 pCompensatorRefB->close();
 
-                acutPrintf(_T("\nFinished placing outside corner post and compensators."));
+                //acutPrintf(_T("\nFinished placing outside corner post and compensators."));
             }
             else {
                 acutPrintf(_T("\nDistance is 150, skipping compensator placement."));
@@ -1538,10 +1512,10 @@ void CornerAssetPlacer::placeOutsideCornerPostAndPanels(
 
 
             currentHeight += panelHeights[panelNum];
-            acutPrintf(_T("\nCompleted placement for height %d. Moving to the next height."), currentHeight);
+            //acutPrintf(_T("\nCompleted placement for height %d. Moving to the next height."), currentHeight);
         }
 
-        acutPrintf(_T("\nFinished placing outside corner post, panels, and compensators."));
+        //acutPrintf(_T("\nFinished placing outside corner post, panels, and compensators."));
 
         pModelSpace->close();
         pBlockTable->close();

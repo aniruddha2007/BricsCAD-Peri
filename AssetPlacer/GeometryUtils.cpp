@@ -18,6 +18,7 @@
 #include "GeometryUtils.h"
 #include "SharedDefinations.h"
 #include <cmath>
+#include <typeinfo>
 #include <algorithm>
 #include <AcDb.h>
 #include <AcDb/AcDbBlockTable.h>
@@ -25,6 +26,8 @@
 #include <AcDb/AcDbPolyline.h>
 #include <AcGe/AcGeMatrix3d.h>
 #include "AcDb/AcDbBlockReference.h"
+#include <sstream>
+#include <iostream>
 
 const double TOLERANCE = 0.19; // Tolerance for comparing angles
 
@@ -85,6 +88,7 @@ double snapToExactAngle(double angle, double tolerance = 0.19) {
     return angle;
 }
 
+// Determine if a corner is inside or outside based on the polyline direction
 bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise) {
     // Calculate previous and next indices
     size_t prevIndex = (currentIndex == 0) ? polylinePoints.size() - 1 : currentIndex - 1;
@@ -107,6 +111,7 @@ bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, siz
     return isConvex ? !isClockwise : isClockwise;
 }
 
+// Determine the direction of a polyline based on the total turns
 bool directionOfPolyline(const std::vector<AcGePoint3d>& polylinePoints) {
     double totalTurns = 0.0;
 
@@ -137,12 +142,14 @@ bool areAnglesEqual(double angle1, double angle2, double tolerance = 0.1) {
 //    return fabs(crossProductZ) < tolerance;
 //}
 
+// Calculate the direction vector between two points
 AcGeVector3d calculateDirection(const AcGePoint3d& start, const AcGePoint3d& end) {
     AcGeVector3d direction = end - start;
     direction.normalize();
     return direction;
 }
 
+// Calculate the angle between two vectors
 double calculateAngleBetweenVectors(const AcGeVector3d& v1, const AcGeVector3d& v2) {
     double dotProduct = v1.dotProduct(v2);
     dotProduct = clamp(dotProduct, -1.0, 1.0); // Ensure dot product is within valid range
@@ -164,12 +171,14 @@ void detectVertices(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& ver
     }
 }
 
+// Log a point with a message
 void logVector(const AcGeVector3d& vector, const char* vectorName) {
-    acutPrintf(_T("\n%s: (%f, %f, %f)"), vectorName, vector.x, vector.y, vector.z);
+    //acutPrintf(_T("\n%s: (%f, %f, %f)"), vectorName, vector.x, vector.y, vector.z);
 }
 
+// Log an angle with a message
 void logAngle(double angle, const char* message) {
-    acutPrintf(_T("\n%s: %f radians (%f degrees)"), message, angle, angle * 180.0 / M_PI);
+    //acutPrintf(_T("\n%s: %f radians (%f degrees)"), message, angle, angle * 180.0 / M_PI);
 }
 
 // Process the polyline to detect corners
@@ -185,11 +194,11 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
     }
 
     // Iterate over the vertices to calculate the angle between adjacent segments
-    for (size_t i = 0; i < numVerts - 1; ++i) {
+    for (size_t i = 0; i < numVerts; ++i) {  // Note: Iterate through all vertices to ensure wrap-around handling
         AcGeVector3d currentDirection, nextDirection;
 
         // Calculate the current direction vector (from current vertex to next)
-        currentDirection = vertices[i + 1] - vertices[i];
+        currentDirection = vertices[(i + 1) % numVerts] - vertices[i];
         currentDirection.normalize();  // Normalize the direction vector
 
         // Calculate the next direction vector (from previous vertex to current)
@@ -197,15 +206,12 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
             nextDirection = vertices[i] - vertices[i - 1];
         }
         else {
-            nextDirection = vertices[i] - vertices[numVerts - 2];  // Handle the wrap-around case
+            nextDirection = vertices[i] - vertices[numVerts - 1];  // Handle the wrap-around case
         }
         nextDirection.normalize();  // Normalize the direction vector
 
         // Calculate the angle between the current and next direction vectors
         double angle = calculateAngle(currentDirection, nextDirection);
-
-        // Log the calculated angle for debugging
-        logAngle(angle, "Calculated Angle");
 
         // If the calculated angle is close to the threshold, consider it a corner
         if (areAnglesEqual(angle, angleThreshold, tolerance)) {
@@ -223,66 +229,66 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
     }
 }
 
-// Function to classify polyline entities
-void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detectedCorners, double angleThreshold) {
-    AcDbBlockTable* pBlockTable;
-    AcDbBlockTableRecord* pBlockTableRecord;
-
-    acutPrintf(_T("\nAttempting to get block table.\n"));
-    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
-        return;
-    }
-
-    acutPrintf(_T("\nAttempting to get model space.\n"));
-    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForRead);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
-        pBlockTable->close();
-        return;
-    }
-
-    acutPrintf(_T("\nSuccessfully accessed model space.\n"));
-
-    AcDbBlockTableRecordIterator* pIterator;
-    es = pBlockTableRecord->newIterator(pIterator);
-    if (es != Acad::eOk) {
-        acutPrintf(_T("\nFailed to create block table record iterator. Error status: %d\n"), es);
-        pBlockTableRecord->close();
-        pBlockTable->close();
-        return;
-    }
-
-    acutPrintf(_T("\nIterating through entities.\n"));
-    for (; !pIterator->done(); pIterator->step()) {
-        AcDbEntity* pEntity;
-        es = pIterator->getEntity(pEntity, AcDb::kForRead);
-        if (es != Acad::eOk) {
-            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
-            continue;
-        }
-
-        if (pEntity->isKindOf(AcDbPolyline::desc())) {
-            AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
-            acutPrintf(_T("\nPolyline detected.\n"));
-            if (pPolyline->isClosed() || pPolyline->numVerts() == 4) { // Treat 4-vertex polylines as closed rectangles
-                acutPrintf(_T("\nClosed or 4-vertex polyline detected. Processing...\n"));
-                processPolyline(pPolyline, detectedCorners, angleThreshold, TOLERANCE);
-            }
-            else {
-                acutPrintf(_T("\nDetected open polyline. Skipping...\n"));
-            }
-        }
-        pEntity->close();
-    }
-
-    delete pIterator;
-    pBlockTableRecord->close();
-    pBlockTable->close();
-
-    acutPrintf(_T("\nDetected %d corners from lines.\n"), detectedCorners.size());
-}
+//// Function to classify polyline entities
+//void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detectedCorners, double angleThreshold) {
+//    AcDbBlockTable* pBlockTable;
+//    AcDbBlockTableRecord* pBlockTableRecord;
+//
+//    acutPrintf(_T("\nAttempting to get block table.\n"));
+//    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
+//    if (es != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
+//        return;
+//    }
+//
+//    acutPrintf(_T("\nAttempting to get model space.\n"));
+//    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForRead);
+//    if (es != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    acutPrintf(_T("\nSuccessfully accessed model space.\n"));
+//
+//    AcDbBlockTableRecordIterator* pIterator;
+//    es = pBlockTableRecord->newIterator(pIterator);
+//    if (es != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to create block table record iterator. Error status: %d\n"), es);
+//        pBlockTableRecord->close();
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    acutPrintf(_T("\nIterating through entities.\n"));
+//    for (; !pIterator->done(); pIterator->step()) {
+//        AcDbEntity* pEntity;
+//        es = pIterator->getEntity(pEntity, AcDb::kForRead);
+//        if (es != Acad::eOk) {
+//            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
+//            continue;
+//        }
+//
+//        if (pEntity->isKindOf(AcDbPolyline::desc())) {
+//            AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
+//            acutPrintf(_T("\nPolyline detected.\n"));
+//            if (pPolyline->isClosed() || pPolyline->numVerts() == 4) { // Treat 4-vertex polylines as closed rectangles
+//                acutPrintf(_T("\nClosed or 4-vertex polyline detected. Processing...\n"));
+//                processPolyline(pPolyline, detectedCorners, angleThreshold, TOLERANCE);
+//            }
+//            else {
+//                acutPrintf(_T("\nDetected open polyline. Skipping...\n"));
+//            }
+//        }
+//        pEntity->close();
+//    }
+//
+//    delete pIterator;
+//    pBlockTableRecord->close();
+//    pBlockTable->close();
+//
+//    acutPrintf(_T("\nDetected %d corners from lines.\n"), detectedCorners.size());
+//}
 
 // Function to apply rotation around the x-axis
 void rotateAroundXAxis(AcDbBlockReference* pBlockRef, double angle) {
@@ -365,15 +371,15 @@ std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {
 
 // Function to calculate the shift between corresponding vertices of two polylines
 double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
-    acutPrintf(_T("\nEntering getPolylineDistance...\n"));
+    //acutPrintf(_T("\nEntering getPolylineDistance...\n"));
 
     // Get vertices of the first polyline
     std::vector<AcGePoint3d> vertices1 = getPolylineVertices(pPolyline1);
-    acutPrintf(_T("Number of vertices in first polyline: %d\n"), vertices1.size());
+    //acutPrintf(_T("Number of vertices in first polyline: %d\n"), vertices1.size());
 
     // Get vertices of the second polyline
     std::vector<AcGePoint3d> vertices2 = getPolylineVertices(pPolyline2);
-    acutPrintf(_T("Number of vertices in second polyline: %d\n"), vertices2.size());
+    //acutPrintf(_T("Number of vertices in second polyline: %d\n"), vertices2.size());
 
     // Determine the minimum number of vertices to use for comparison
     size_t minSize = std::min(vertices1.size(), vertices2.size());
@@ -385,24 +391,98 @@ double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
         return -1.0;
     }
 
-    acutPrintf(_T("\nCalculating shift between corresponding vertices...\n"));
+    //acutPrintf(_T("\nCalculating shift between corresponding vertices...\n"));
+
+    const double tolerance = 1e-6;  // Define a small tolerance for floating-point comparison
 
     for (size_t i = 0; i < minSize; ++i) {
         double deltaX = vertices2[i].x - vertices1[i].x;
         double deltaY = vertices2[i].y - vertices1[i].y;
 
-        // Check if the absolute values of deltaX and deltaY are the same
-        if (fabs(deltaX) != fabs(deltaY)) {
+        // Check if the absolute values of deltaX and deltaY are the same within a tolerance
+        if (fabs(fabs(deltaX) - fabs(deltaY)) > tolerance) {
             acutPrintf(_T("\nError: Absolute deltaX and deltaY are not the same. deltaX = %f, deltaY = %f\n"), deltaX, deltaY);
-            return -1.0; // Return an error if they are not the same
+            return -1.0; // Return an error if they are not the same within the tolerance
         }
 
-        // If they are the same, return either deltaX or deltaY (since they should be the same in magnitude)
-        acutPrintf(_T("Vertex %d: deltaX = %f, deltaY = %f\n"), i, deltaX, deltaY);
-        return fabs(deltaX); // Return the absolute value of deltaX or deltaY
+        // If they are the same, return deltaX as an integer
+        int deltaXInt = static_cast<int>(fabs(deltaX));
+        //acutPrintf(_T("Vertex %d: deltaX = %f, deltaY = %f, Returning: %d\n"), i, deltaX, deltaY, deltaXInt);
+        return deltaXInt; // Return the absolute value of deltaX as an integer
     }
 
-    acutPrintf(_T("Exiting getPolylineDistance...\n"));
+    //acutPrintf(_T("Exiting getPolylineDistance...\n"));
     return -1.0; // In case no valid vertices are found
+}
+
+// Function to ensure polyline is clockwise
+std::vector<AcGePoint3d> forcePolylineClockwise(std::vector<AcGePoint3d>& points) {
+    if (points.empty()) return points;
+
+    // Check if the polyline is already clockwise
+    if (!isPolylineClockwise(points)) {
+        // If not, reverse the points to make it clockwise
+        std::reverse(points.begin(), points.end());
+    }
+
+    return points;
+}
+
+// Function to determine if a polyline is clockwise
+bool isPolylineClockwise(const std::vector<AcGePoint3d>& points) {
+    double sum = 0.0;
+    const double tolerance = 1e-9;
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        AcGePoint3d current = points[i];
+        AcGePoint3d next = points[(i + 1) % points.size()];
+
+        double contribution = (next.x - current.x) * (next.y + current.y);
+        sum += contribution;
+    }
+
+    if (sum > tolerance) {
+        //acutPrintf(_T("\nPolyline is Clockwise\n"));
+        return true;
+    }
+    else if (sum < -tolerance) {
+        //acutPrintf(_T("\nPolyline is Counterclockwise\n"));
+        return false;
+    }
+    else {
+        acutPrintf(_T("\nPolyline is nearly collinear\n"));
+        return false; // Handle as needed
+    }
+}
+
+// Function to determine if a corner is inside or outside based on the polyline direction
+bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise) {
+    // Calculate previous and next indices
+    size_t prevIndex = (currentIndex == 0) ? polylinePoints.size() - 1 : currentIndex - 1;
+    size_t nextIndex = (currentIndex + 1) % polylinePoints.size();
+
+    // Create vectors for current and next segments
+    AcGeVector3d vec1 = polylinePoints[currentIndex] - polylinePoints[prevIndex];
+    AcGeVector3d vec2 = polylinePoints[nextIndex] - polylinePoints[currentIndex];
+
+    // Calculate the cross product to determine convexity
+    double crossProductZ = vec1.x * vec2.y - vec1.y * vec2.x;
+
+    // Print debug information for each corner
+    acutPrintf(_T("\nCorner %d: Prev(%.2f, %.2f), Current(%.2f, %.2f), Next(%.2f, %.2f)"),
+        currentIndex, polylinePoints[prevIndex].x, polylinePoints[prevIndex].y,
+        polylinePoints[currentIndex].x, polylinePoints[currentIndex].y,
+        polylinePoints[nextIndex].x, polylinePoints[nextIndex].y);
+
+    acutPrintf(_T("\nVector 1: (%.2f, %.2f), Vector 2: (%.2f, %.2f)"), vec1.x, vec1.y, vec2.x, vec2.y);
+    acutPrintf(_T("\nCross Product Z: %.2f"), crossProductZ);
+
+    // Inside/Outside determination based on polyline direction
+    bool isInside = isClockwise ? (crossProductZ < 0) : (crossProductZ > 0);
+
+    // Print the final determination for this corner
+    acutPrintf(_T("\nCorner %d is %s"), currentIndex, isInside ? "Inside" : "Outside");
+
+    return isInside;
 }
 

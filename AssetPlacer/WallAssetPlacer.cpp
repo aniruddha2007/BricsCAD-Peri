@@ -55,6 +55,30 @@ bool isInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
 
+//AcGePoint3d findTopLeftPoint(const std::vector<AcGePoint3d>& points) {
+//    return *std::min_element(points.begin(), points.end(), [](const AcGePoint3d& a, const AcGePoint3d& b) {
+//        if (a.y == b.y) {
+//            return a.x < b.x;
+//        }
+//        return a.y > b.y;
+//        });
+//}
+//
+////function to normalize polyline orientation
+//std::vector<AcGePoint3d> normalizePolylineOrientation(std::vector<AcGePoint3d>& points) {
+//    if (points.empty()) {
+//        return points;
+//    }
+//
+//    AcGePoint3d topLeft = findTopLeftPoint(points);
+//
+//    auto it = std::find(points.begin(), points.end(), topLeft);
+//    if (it != points.begin()) {
+//		std::rotate(points.begin(), it, points.end());
+//	}
+//    return points;
+//}
+
 //Detect polylines
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
@@ -118,6 +142,8 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
+
+    forcePolylineClockwise(corners);
 
     acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
