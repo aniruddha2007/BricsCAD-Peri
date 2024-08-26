@@ -689,7 +689,6 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
     return true;
 }
 
-//Detecting corners from polylines
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
@@ -748,6 +747,9 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
         pIter->step();
     }
 
+    // Filter out extra pairs of corners
+    filterClosePoints(corners, TOLERANCE);
+
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
@@ -755,6 +757,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
 }
+
 
 
 bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {

@@ -24,3 +24,4 @@ std::vector<AcGePoint3d> forcePolylineClockwise(std::vector<AcGePoint3d>& points
 bool isPolylineClockwise(const std::vector<AcGePoint3d>& points);
 double categorizeAngle(double angle);
 bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise);
+void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance);

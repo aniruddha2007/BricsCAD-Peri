@@ -187,6 +187,8 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
     std::vector<AcGePoint3d> vertices;
     detectVertices(pPolyline, vertices);
 
+    filterClosePoints(vertices, tolerance);
+
     size_t numVerts = vertices.size();
     if (numVerts < 3) {
         // If there are less than 3 vertices, no corners can be detected
@@ -486,3 +488,26 @@ bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t curre
     return isInside;
 }
 
+void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance) {
+    std::vector<AcGePoint3d> filteredVertices;
+    acutPrintf(_T("\nFiltering points with tolerance: %f"), tolerance);
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        // Check if the current vertex is too close to the previous vertex
+        if (i == 0 || vertices[i].distanceTo(vertices[i - 1]) > tolerance) {
+            filteredVertices.push_back(vertices[i]);
+        }
+        else {
+            acutPrintf(_T("\nSkipping vertex at (%f, %f, %f) due to proximity to the previous vertex"),
+                vertices[i].x, vertices[i].y, vertices[i].z);
+        }
+    }
+
+    // Handle case where the last vertex might be too close to the first one (for closed polylines)
+    if (filteredVertices.size() > 1 && filteredVertices.back().distanceTo(filteredVertices.front()) <= tolerance) {
+        acutPrintf(_T("\nSkipping last vertex due to proximity to the first vertex"));
+        filteredVertices.pop_back();
+    }
+
+    vertices.swap(filteredVertices);
+}
