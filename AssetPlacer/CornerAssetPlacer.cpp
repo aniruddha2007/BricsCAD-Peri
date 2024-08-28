@@ -758,8 +758,6 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     return corners;
 }
 
-
-
 bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
     // Calculate the cross product of the two vectors
     AcGeVector3d crossProduct = v1.crossProduct(v2);
@@ -885,79 +883,79 @@ std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> CornerAssetPlacer:
 }
 
 // Function to determine if a loop is clockwise or counterclockwise
-void CornerAssetPlacer::processCorners(
-    const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
-    double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop) {
-
-    int loopIndex = 0;
-    int loopIndexLastPanel = 0;
-    int closeLoopCounter = -1;
-    int outerLoopIndexValue = 0;
-
-    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
-        // Convert Panels to AcDbObjectId using loadAsset
-        AcDbObjectId panelIdA = loadAsset(config.panelIdA->blockName.c_str());
-        AcDbObjectId panelIdB = loadAsset(config.panelIdB->blockName.c_str());
-        AcDbObjectId compensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
-        AcDbObjectId compensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
-
-        // For outside corner panels
-        AcDbObjectId outsidePanelIds[6];
-        for (int i = 0; i < 6; ++i) {
-            if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
-                outsidePanelIds[i] = loadAsset(config.outsidePanelIds[i]->blockName.c_str());
-                if (outsidePanelIds[i] == AcDbObjectId::kNull) {
-                    acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
-                }
-            }
-            else {
-                outsidePanelIds[i] = AcDbObjectId::kNull;  // Assign null for dummy panels
-            }
-        }
-        AcDbObjectId outsideCompensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
-        AcDbObjectId outsideCompensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
-
-        double rotation = 0.0;
-        AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()]; // Wrap around the loop
-        AcGeVector3d direction = (end - start).normal();
-
-        closeLoopCounter++;
-
-        // Determine if the corner is inside or outside based on loop membership
-        bool isInside = isInsideLoop[loopIndex];
-
-        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
-            if (cornerNum < corners.size() - 1) {
-                start = corners[cornerNum];
-                end = corners[cornerNum - closeLoopCounter];
-                closeLoopCounter = -1;
-                loopIndexLastPanel = 1;
-            }
-        }
-
-        direction = (end - start).normal();
-        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
-        acutPrintf(_T("\nrotation: %f"), atan2(direction.y, direction.x));
-        rotation = atan2(direction.y, direction.x);
-        rotation = normalizeAngle(rotation);
-        acutPrintf(_T("\nrotation: %f"), rotation);
-        rotation = snapToExactAngle(rotation, TOLERANCE);
-        acutPrintf(_T("\nrotation: %f"), rotation);
-
-        adjustRotationForCorner(rotation, corners, cornerNum);
-
-        if (isInside) {
-            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
-        }
-        else {
-            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], outsideCompensatorIdA, outsideCompensatorIdB, distance);
-        }
-
-        loopIndex = loopIndexLastPanel;
-    }
-
-}
+//void CornerAssetPlacer::processCorners(
+//    const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
+//    double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop) {
+//
+//    int loopIndex = 0;
+//    int loopIndexLastPanel = 0;
+//    int closeLoopCounter = -1;
+//    int outerLoopIndexValue = 0;
+//
+//    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+//        // Convert Panels to AcDbObjectId using loadAsset
+//        AcDbObjectId panelIdA = loadAsset(config.panelIdA->blockName.c_str());
+//        AcDbObjectId panelIdB = loadAsset(config.panelIdB->blockName.c_str());
+//        AcDbObjectId compensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
+//        AcDbObjectId compensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
+//
+//        // For outside corner panels
+//        AcDbObjectId outsidePanelIds[6];
+//        for (int i = 0; i < 6; ++i) {
+//            if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
+//                outsidePanelIds[i] = loadAsset(config.outsidePanelIds[i]->blockName.c_str());
+//                if (outsidePanelIds[i] == AcDbObjectId::kNull) {
+//                    acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
+//                }
+//            }
+//            else {
+//                outsidePanelIds[i] = AcDbObjectId::kNull;  // Assign null for dummy panels
+//            }
+//        }
+//        AcDbObjectId outsideCompensatorIdA = loadAsset(config.compensatorIdA->blockName.c_str());
+//        AcDbObjectId outsideCompensatorIdB = loadAsset(config.compensatorIdB->blockName.c_str());
+//
+//        double rotation = 0.0;
+//        AcGePoint3d start = corners[cornerNum];
+//        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()]; // Wrap around the loop
+//        AcGeVector3d direction = (end - start).normal();
+//
+//        closeLoopCounter++;
+//
+//        // Determine if the corner is inside or outside based on loop membership
+//        bool isInside = isInsideLoop[loopIndex];
+//
+//        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
+//            if (cornerNum < corners.size() - 1) {
+//                start = corners[cornerNum];
+//                end = corners[cornerNum - closeLoopCounter];
+//                closeLoopCounter = -1;
+//                loopIndexLastPanel = 1;
+//            }
+//        }
+//
+//        direction = (end - start).normal();
+//        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+//        acutPrintf(_T("\nrotation: %f"), atan2(direction.y, direction.x));
+//        rotation = atan2(direction.y, direction.x);
+//        rotation = normalizeAngle(rotation);
+//        acutPrintf(_T("\nrotation: %f"), rotation);
+//        rotation = snapToExactAngle(rotation, TOLERANCE);
+//        acutPrintf(_T("\nrotation: %f"), rotation);
+//
+//        adjustRotationForCorner(rotation, corners, cornerNum);
+//
+//        if (isInside) {
+//            placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+//        }
+//        else {
+//            placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], outsideCompensatorIdA, outsideCompensatorIdB, distance);
+//        }
+//
+//        loopIndex = loopIndexLastPanel;
+//    }
+//
+//}
 
 // Function to adjust the rotation for a corner based on the direction of the corner
 void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum) {
@@ -1063,9 +1061,9 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
         direction = (end - start).normal();
         rotation = atan2(direction.y, direction.x);
-        //acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
         rotation = normalizeAngle(rotation);
-        //acutPrintf(_T("\nRotation: %f"), rotation);
+        acutPrintf(_T("\nRotation: %f"), rotation);
         rotation = snapToExactAngle(rotation, TOLERANCE);
         //acutPrintf(_T("\nRotation: %f"), rotation);
 
@@ -1077,9 +1075,16 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         }
 
         adjustRotationForCorner(rotation, corners, cornerNum);
+        // **Special Case**: Determine if the corner is convex or concave
+        AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
+        AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
+        double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
 
-        if (isClockwise) {
-            if (!isInside) {
+        if (crossProductZ > 0) {
+            // Convex corner
+            acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
+            // Add logic specific to convex corners here if needed
+            if (isInside) {
                 placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
             }
             else {
@@ -1087,13 +1092,17 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             }
         }
         else {
+            // Concave corner
+            acutPrintf(_T("\nConcave corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
+            // Add logic specific to concave corners here if needed
             if (!isInside) {
-                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
-            }
-            else {
                 placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
             }
+            else {
+                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+            }
         }
+
 
         loopIndex = loopIndexLastPanel;
     }

@@ -98,14 +98,13 @@ bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, siz
     AcGeVector3d vec1 = polylinePoints[currentIndex] - polylinePoints[prevIndex];
     AcGeVector3d vec2 = polylinePoints[nextIndex] - polylinePoints[currentIndex];
 
-    // Calculate the cross product to determine convexity
-    double crossProductZ = vec1.x * vec2.y - vec1.y * vec2.x;
+    //Normalize vectors
+    vec1.normalize();
+    vec2.normalize();
 
-    // Calculate the angle between the two vectors
-    double angle = acos(vec1.dotProduct(vec2) / (vec1.length() * vec2.length()));
+    double crossProductZ = vec1.crossProduct(vec2).z;
 
-    // Determine if the corner is convex
-    bool isConvex = (crossProductZ > 0) ? (angle < M_PI) : (angle > M_PI);
+    bool isConvex = crossProductZ > 0;
 
     // Return true if the corner is inside, considering convexity and winding direction
     return isConvex ? !isClockwise : isClockwise;
@@ -444,11 +443,11 @@ bool isPolylineClockwise(const std::vector<AcGePoint3d>& points) {
     }
 
     if (sum > tolerance) {
-        //acutPrintf(_T("\nPolyline is Clockwise\n"));
+        acutPrintf(_T("\nPolyline is Clockwise\n"));
         return true;
     }
     else if (sum < -tolerance) {
-        //acutPrintf(_T("\nPolyline is Counterclockwise\n"));
+        acutPrintf(_T("\nPolyline is Counterclockwise\n"));
         return false;
     }
     else {
