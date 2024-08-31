@@ -40,6 +40,8 @@
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
 
+std::vector<CornerConfig> g_cornerConfigs;
+
 const int BATCH_SIZE = 30; // Process 30 entities at a time
 
 const double TOLERANCE = 0.19; // Tolerance for angle comparison
@@ -643,6 +645,53 @@ PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& 
     return config;
 }
 
+std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::vector<AcGePoint3d>& corners, const PanelConfig& config) {
+    std::vector<CornerConfig> cornerConfigs;
+
+    for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
+        CornerConfig cornerConfig;
+        cornerConfig.position = corners[cornerNum];
+
+        // Calculate previous and next points relative to the current corner
+        AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
+        AcGePoint3d next = corners[(cornerNum + 1) % corners.size()];
+
+        AcGeVector3d prevDirection = (cornerConfig.position - prev).normal();
+        AcGeVector3d nextDirection = (next - cornerConfig.position).normal();
+
+        // Determine if it's an inside (concave) or outside (convex) corner
+        double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+
+        if (crossProductZ > 0) {
+            // Convex corner, typically an outside corner
+            cornerConfig.isInside = false;
+
+            // Calculate the adjustment for outside corners
+            double adjustment = 0.0;
+            if (config.outsidePanelIds[0]) adjustment += config.outsidePanelIds[0]->width;
+            if (config.outsidePanelIds[2]) adjustment += config.outsidePanelIds[2]->width;
+            if (config.outsidePanelIds[4]) adjustment += config.outsidePanelIds[4]->width;
+            if (config.compensatorIdA) adjustment += config.compensatorIdA->width;
+
+            cornerConfig.outsideCornerAdjustment = adjustment;
+        }
+        else {
+            // Concave corner, typically an inside corner
+            cornerConfig.isInside = true;
+            cornerConfig.outsideCornerAdjustment = 250.0;  // For inside corners, use a fixed adjustment
+        }
+
+        // Debug output
+        acutPrintf(_T("\nCorner %d: Position: %f, %f, Is Inside: %d, Adjustment: %f"),
+            cornerNum, cornerConfig.position.x, cornerConfig.position.y, cornerConfig.isInside, cornerConfig.outsideCornerAdjustment);
+
+        cornerConfigs.push_back(cornerConfig);
+    }
+
+    return cornerConfigs;
+}
+
+
 // Function to check if a double value is an integer within a tolerance
 bool isItInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
@@ -991,6 +1040,16 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         return;
     }
 
+    std::vector<CornerConfig> cornerConfigs = generateCornerConfigs(corners, config);
+    g_cornerConfigs = generateCornerConfigs(corners, config);
+
+    // Debug output to verify corner configurations
+    //for (size_t i = 0; i < cornerConfigs.size(); ++i) {
+    //    acutPrintf(_T("\nCorner %d: Position: %f, %f, Is Inside: %d, Adjustment: %f"),
+    //        i, cornerConfigs[i].position.x, cornerConfigs[i].position.y, cornerConfigs[i].isInside, cornerConfigs[i].outsideCornerAdjustment);
+    //}
+    
+
     // Load the corner post asset
     AcDbObjectId cornerPostId = loadAsset(L"128286X");
     if (cornerPostId == AcDbObjectId::kNull) {
@@ -1061,9 +1120,9 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
         direction = (end - start).normal();
         rotation = atan2(direction.y, direction.x);
-        acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        //acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
         rotation = normalizeAngle(rotation);
-        acutPrintf(_T("\nRotation: %f"), rotation);
+        //acutPrintf(_T("\nRotation: %f"), rotation);
         rotation = snapToExactAngle(rotation, TOLERANCE);
         //acutPrintf(_T("\nRotation: %f"), rotation);
 
@@ -1082,7 +1141,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
 
         if (crossProductZ > 0) {
             // Convex corner
-            acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
+            //acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to convex corners here if needed
             if (isInside) {
                 placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
@@ -1093,7 +1152,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         }
         else {
             // Concave corner
-            acutPrintf(_T("\nConcave corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
+            //acutPrintf(_T("\nConcave corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to concave corners here if needed
             if (!isInside) {
                 placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);

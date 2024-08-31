@@ -15,9 +15,9 @@ using json = nlohmann::json;
 
 void PlaceColumn(const std::string& jsonFilePath)
 {
-    // Ask the user for the block name
+    // Ask the user for the column name
     ACHAR blockNameInput[256];
-    if (acedGetString(Adesk::kFalse, _T("\nEnter the block name: "), blockNameInput) != RTNORM) {
+    if (acedGetString(Adesk::kFalse, _T("\nEnter the column name (e.g., 200x200): "), blockNameInput) != RTNORM) {
         acutPrintf(_T("\nOperation canceled."));
         return;
     }
@@ -29,6 +29,10 @@ void PlaceColumn(const std::string& jsonFilePath)
 #else
     std::string blockNameStr(blockNameInput);
 #endif
+
+    // Use the global variable for height
+    int totalHeightRequired = globalVarHeight;
+    int currentHeight = 0;
 
     // Load the JSON file
     std::ifstream inFile(jsonFilePath);
@@ -46,26 +50,30 @@ void PlaceColumn(const std::string& jsonFilePath)
         return;
     }
 
-    // Find the block with the specified name
-    bool blockFound = false;
-    json selectedBlockData;
-    for (const auto& blockData : blocksJson["columns"]) {
-        if (blockData["blockname"] == blockNameStr) {
-            selectedBlockData = blockData;
-            blockFound = true;
-            break;
+    // Find the column with the specified name
+    bool columnFound = false;
+    std::vector<json> selectedBlockData;
+    for (const auto& columnData : blocksJson["columns"]) {
+        if (columnData["blockname"] == blockNameStr) {
+            selectedBlockData.push_back(columnData);
+            columnFound = true;
         }
     }
 
-    if (!blockFound) {
-        acutPrintf(_T("\nBlock '%s' not found in the JSON file."), blockNameInput);
+    if (!columnFound) {
+        acutPrintf(_T("\nColumn '%s' not found in the JSON file."), blockNameInput);
         return;
     }
+
+    // Sort the selected blocks by height in descending order
+    std::sort(selectedBlockData.begin(), selectedBlockData.end(), [](const json& a, const json& b) {
+        return a["height"].get<int>() > b["height"].get<int>();
+        });
 
     // Prompt the user to pick a base point on the screen
     AcGePoint3d basePoint;
     ads_point adsBasePoint;
-    if (acedGetPoint(nullptr, _T("\nSpecify the base point for block insertion: "), adsBasePoint) != RTNORM) {
+    if (acedGetPoint(nullptr, _T("\nSpecify the base point for column insertion: "), adsBasePoint) != RTNORM) {
         acutPrintf(_T("\nPoint selection was canceled."));
         return;
     }
@@ -79,68 +87,72 @@ void PlaceColumn(const std::string& jsonFilePath)
     AcDbBlockTableRecord* pModelSpace;
     pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
 
-    // Calculate the reference point of the first block to use as a relative base point
-    AcGePoint3d firstBlockPos(
-        selectedBlockData["blocks"][0]["position"]["x"].get<double>(),
-        selectedBlockData["blocks"][0]["position"]["y"].get<double>(),
-        selectedBlockData["blocks"][0]["position"]["z"].get<double>()
-    );
+    // Loop through available heights and place blocks accordingly
+    for (const auto& blockData : selectedBlockData) {
+        int blockHeight = blockData["height"].get<int>();
 
-    // Loop over each block in the selected column
-    for (const auto& blockData : selectedBlockData["blocks"]) {
-        std::string blockNameStr = blockData["name"];
-        AcGePoint3d blockPos(
-            blockData["position"]["x"].get<double>(),
-            blockData["position"]["y"].get<double>(),
-            blockData["position"]["z"].get<double>()
-        );
-        double blockRotation = blockData["rotation"];
-        AcGeScale3d blockScale(
-            blockData["scale"]["x"].get<double>(),
-            blockData["scale"]["y"].get<double>(),
-            blockData["scale"]["z"].get<double>()
-        );
+        // Calculate how many blocks of this height we can stack
+        int numBlocksToPlace = (totalHeightRequired - currentHeight) / blockHeight;
 
-        // Convert std::string to ACHAR*
+        for (int i = 0; i < numBlocksToPlace; i++) {
+            // Place all blocks associated with this height
+            for (const auto& block : blockData["blocks"]) {
+                std::string blockNameStr = block["name"];
+                AcGePoint3d blockPos(
+                    block["position"]["x"].get<double>(),
+                    block["position"]["y"].get<double>(),
+                    block["position"]["z"].get<double>()
+                );
+                double blockRotation = block["rotation"];
+                AcGeScale3d blockScale(
+                    block["scale"]["x"].get<double>(),
+                    block["scale"]["y"].get<double>(),
+                    block["scale"]["z"].get<double>()
+                );
+
+                // Calculate the final insertion point relative to the user-specified base point
+                AcGePoint3d insertionPoint = basePoint + blockPos.asVector();
+                insertionPoint.z += currentHeight; // Adjust Z for stacking
+
+                // Check if the block name exists in the block table
+                AcDbBlockTableRecord* pBlockDef;
 #ifdef UNICODE
-        std::wstring wBlockName = std::wstring(blockNameStr.begin(), blockNameStr.end());
-        const wchar_t* blockName = wBlockName.c_str();
+                std::wstring wBlockName = std::wstring(blockNameStr.begin(), blockNameStr.end());
+                if (pBlockTable->getAt(wBlockName.c_str(), pBlockDef, AcDb::kForRead) != Acad::eOk) {
+                    acutPrintf(_T("\nBlock definition not found: %ls"), wBlockName.c_str());
+                    continue;
+                }
 #else
-        const char* blockName = blockNameStr.c_str();
+                if (pBlockTable->getAt(blockNameStr.c_str(), pBlockDef, AcDb::kForRead) != Acad::eOk) {
+                    acutPrintf(_T("\nBlock definition not found: %s"), blockNameStr.c_str());
+                    continue;
+                }
 #endif
 
-        // Check if the block name exists in the block table
-        AcDbBlockTableRecord* pBlockDef;
-        if (pBlockTable->getAt(blockName, pBlockDef, AcDb::kForRead) != Acad::eOk) {
-            acutPrintf(_T("\nBlock definition not found: %s"), blockName);
-            continue;
+                // Create a new block reference
+                AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+                pBlockRef->setBlockTableRecord(pBlockDef->objectId());
+                pBlockRef->setPosition(insertionPoint);
+                pBlockRef->setRotation(blockRotation);
+                pBlockRef->setScaleFactors(blockScale);
+
+                // Add the block reference to model space
+                if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
+                    acutPrintf(_T("\nBlock '%s' inserted successfully at (%.2f, %.2f, %.2f)."),
+                        blockNameStr.c_str(), insertionPoint.x, insertionPoint.y, insertionPoint.z);
+                }
+                else {
+                    acutPrintf(_T("\nFailed to insert block '%s'."), blockNameStr.c_str());
+                }
+
+                // Clean up
+                pBlockRef->close();
+                pBlockDef->close();
+            }
+
+            // Update the current height after placing the blocks
+            currentHeight += blockHeight;
         }
-
-        // Calculate the offset from the first block's original position
-        AcGeVector3d offset = blockPos - firstBlockPos;
-
-        // Calculate the final insertion point relative to the user-specified base point
-        AcGePoint3d insertionPoint = basePoint + offset;
-
-        // Create a new block reference
-        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-        pBlockRef->setBlockTableRecord(pBlockDef->objectId());
-        pBlockRef->setPosition(insertionPoint);
-        pBlockRef->setRotation(blockRotation);
-        pBlockRef->setScaleFactors(blockScale);
-
-        // Add the block reference to model space
-        if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-            acutPrintf(_T("\nBlock '%s' inserted successfully at (%.2f, %.2f, %.2f)."),
-                blockName, insertionPoint.x, insertionPoint.y, insertionPoint.z);
-        }
-        else {
-            acutPrintf(_T("\nFailed to insert block '%s'."), blockName);
-        }
-
-        // Clean up
-        pBlockRef->close();
-        pBlockDef->close();
     }
 
     // Clean up

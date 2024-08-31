@@ -4,7 +4,6 @@
 #include "dbents.h"
 #include <vector>
 
-
 double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2);
 bool areAnglesEqual(double angle1, double angle2, double tolerance);
 double normalizeAngle(double angle);

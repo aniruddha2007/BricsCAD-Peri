@@ -17,6 +17,7 @@
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
+#include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"
 #include <vector>
@@ -318,13 +319,15 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
-void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner) {
+void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, bool isInner, double distanceBetweenPolylines, const CornerConfig& cornerConfig) {
+    bool isInnerCorner = cornerConfig.isInside;
+
     if (isInner) {
         if (distanceBetweenPolylines == 150) {
-            point += direction * 300;
+            point -= direction * 300;
         }
         else {
-            point += direction * 250;
+            point -= direction * 250;
         }
     }
     else {
@@ -333,163 +336,133 @@ void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, 
 
         if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
             adjustment = 550;
-            acutPrintf(_T("\nDistance between polylines is 150 or 200."));
         }
         else if (distanceBetweenPolylines == 250) {
             adjustment = 600;
-            acutPrintf(_T("\nDistance between polylines is 250."));
         }
         else if (distanceBetweenPolylines == 300) {
             adjustment = 650;
-            acutPrintf(_T("\nDistance between polylines is 300."));
         }
         else if (distanceBetweenPolylines == 350) {
             adjustment = 700;
-            acutPrintf(_T("\nDistance between polylines is 350."));
         }
         else if (distanceBetweenPolylines == 400) {
             adjustment = 750;
-            acutPrintf(_T("\nDistance between polylines is 400."));
         }
         else if (distanceBetweenPolylines == 450) {
             adjustment = 800;
-            acutPrintf(_T("\nDistance between polylines is 450."));
         }
         else if (distanceBetweenPolylines == 500) {
             adjustment = 850;
-            acutPrintf(_T("\nDistance between polylines is 500."));
         }
         else if (distanceBetweenPolylines == 550) {
             adjustment = 900;
-            acutPrintf(_T("\nDistance between polylines is 550."));
         }
         else if (distanceBetweenPolylines == 600) {
             adjustment = 950;
-            acutPrintf(_T("\nDistance between polylines is 600."));
         }
         else if (distanceBetweenPolylines == 650) {
             adjustment = 1000;
-            acutPrintf(_T("\nDistance between polylines is 650."));
         }
         else if (distanceBetweenPolylines == 700) {
             adjustment = 1050;
-            acutPrintf(_T("\nDistance between polylines is 700."));
         }
         else if (distanceBetweenPolylines == 750) {
             adjustment = 1100;
-            acutPrintf(_T("\nDistance between polylines is 750."));
         }
         else if (distanceBetweenPolylines == 800) {
             adjustment = 1150;
-            acutPrintf(_T("\nDistance between polylines is 800."));
         }
         else if (distanceBetweenPolylines == 850) {
             adjustment = 1200;
-            acutPrintf(_T("\nDistance between polylines is 850."));
         }
         else if (distanceBetweenPolylines == 900) {
             adjustment = 1250;
-            acutPrintf(_T("\nDistance between polylines is 900."));
         }
         else if (distanceBetweenPolylines == 950) {
             adjustment = 1300;
-            acutPrintf(_T("\nDistance between polylines is 950."));
         }
         else if (distanceBetweenPolylines == 1000) {
             adjustment = 1350;
-            acutPrintf(_T("\nDistance between polylines is 1000."));
         }
         else if (distanceBetweenPolylines == 1050) {
             adjustment = 1400;
-            acutPrintf(_T("\nDistance between polylines is 1050."));
         }
         else if (distanceBetweenPolylines == 1100) {
             adjustment = 1450;
-            acutPrintf(_T("\nDistance between polylines is 1100."));
         }
         else if (distanceBetweenPolylines == 1150) {
             adjustment = 1500;
-            acutPrintf(_T("\nDistance between polylines is 1150."));
         }
         else if (distanceBetweenPolylines == 1200) {
             adjustment = 1550;
-            acutPrintf(_T("\nDistance between polylines is 1200."));
         }
         else if (distanceBetweenPolylines == 1250) {
             adjustment = 1600;
-            acutPrintf(_T("\nDistance between polylines is 1250."));
         }
         else if (distanceBetweenPolylines == 1300) {
             adjustment = 1650;
-            acutPrintf(_T("\nDistance between polylines is 1300."));
         }
         else if (distanceBetweenPolylines == 1350) {
             adjustment = 1700;
-            acutPrintf(_T("\nDistance between polylines is 1350."));
         }
         else if (distanceBetweenPolylines == 1400) {
             adjustment = 1750;
-            acutPrintf(_T("\nDistance between polylines is 1400."));
         }
         else if (distanceBetweenPolylines == 1450) {
             adjustment = 1800;
-            acutPrintf(_T("\nDistance between polylines is 1450."));
         }
         else if (distanceBetweenPolylines == 1500) {
             adjustment = 1850;
-            acutPrintf(_T("\nDistance between polylines is 1500."));
         }
         else if (distanceBetweenPolylines == 1550) {
             adjustment = 1900;
-            acutPrintf(_T("\nDistance between polylines is 1550."));
         }
         else if (distanceBetweenPolylines == 1600) {
             adjustment = 1950;
-            acutPrintf(_T("\nDistance between polylines is 1600."));
         }
         else if (distanceBetweenPolylines == 1650) {
             adjustment = 2000;
-            acutPrintf(_T("\nDistance between polylines is 1650."));
         }
         else if (distanceBetweenPolylines == 1700) {
             adjustment = 2050;
-            acutPrintf(_T("\nDistance between polylines is 1700."));
         }
         else if (distanceBetweenPolylines == 1750) {
             adjustment = 2100;
-            acutPrintf(_T("\nDistance between polylines is 1750."));
         }
         else if (distanceBetweenPolylines == 1800) {
             adjustment = 2150;
-            acutPrintf(_T("\nDistance between polylines is 1800."));
         }
         else if (distanceBetweenPolylines == 1850) {
             adjustment = 2200;
-            acutPrintf(_T("\nDistance between polylines is 1850."));
         }
         else if (distanceBetweenPolylines == 1900) {
             adjustment = 2250;
-            acutPrintf(_T("\nDistance between polylines is 1900."));
         }
         else if (distanceBetweenPolylines == 1950) {
             adjustment = 2300;
-            acutPrintf(_T("\nDistance between polylines is 1950."));
         }
         else if (distanceBetweenPolylines == 2000) {
             adjustment = 2350;
-            acutPrintf(_T("\nDistance between polylines is 2000."));
         }
         else if (distanceBetweenPolylines == 2050) {
             adjustment = 2400;
-            acutPrintf(_T("\nDistance between polylines is 2050."));
         }
         else if (distanceBetweenPolylines == 2100) {
             adjustment = 2450;
-            acutPrintf(_T("\nDistance between polylines is 2100."));
         }
-        else adjustment = 150; // Default case for any unexpected distance value
+        else {
+            adjustment = 150; // Default case for any unexpected distance value
+        }
+
         adjustment -= 100;
-        point += direction * adjustment;
+
+        if (!isInnerCorner) {
+            // Flip the adjustment for outside corners
+            adjustment = -adjustment;
+        }
+
+        point -= direction * adjustment;
     }
 }
 
@@ -502,6 +475,12 @@ void WallPlacer::placeWalls() {
     }
 
     double distanceBetweenPolylines = calculateDistanceBetweenPolylines();
+
+    // Initialize PanelDimensions instance
+    PanelDimensions panelDims;
+
+    // Generate the CornerConfig vector using the public getPanelConfig method
+    std::vector<CornerConfig> cornerConfigs = CornerAssetPlacer::generateCornerConfigs(corners, CornerAssetPlacer::getPanelConfig(distanceBetweenPolylines, panelDims));
 
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -706,8 +685,10 @@ void WallPlacer::placeWalls() {
                 end = corners[cornerNum - closeLoopCounter];
             }
         }
-        if (std::find(sawToothIndex.begin(), sawToothIndex.end(), cornerNum) == sawToothIndex.end())
-        {
+
+        CornerConfig cornerConfig = cornerConfigs[cornerNum];
+
+        if (std::find(sawToothIndex.begin(), sawToothIndex.end(), cornerNum) == sawToothIndex.end()) {
             // Get previous and next corners
             AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
             AcGePoint3d next = corners[(cornerNum + 2) % corners.size()];
@@ -716,7 +697,7 @@ void WallPlacer::placeWalls() {
             bool nextClockwise = isClockwise(start, end, next);
 
             bool isInner = loopIndex != outerLoopIndexValue;
-            bool isOuter = !isInner;  // Outer loop is the opposite of inner
+            bool isOuter = !isInner;
             if (!loopIsClockwise[loopIndex]) {
                 isInner = !isInner;
                 isOuter = !isOuter;
@@ -725,153 +706,106 @@ void WallPlacer::placeWalls() {
             direction = (end - start).normal();
             reverseDirection = (start - end).normal();
 
-            // Adjust start point
-            if (!prevClockwise && isInner) {
-                //start += direction * 500;
-                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            }
-            else if (!prevClockwise && isOuter) {
-                //start -= direction * 500;
-                adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            }
-
-            // Adjust end point
-            if (!nextClockwise && isInner) {
-                //end -= direction * 500;
-                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
-            }
-            else if (!nextClockwise && isOuter) {
-                //end += direction * 500;
-                adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
-            }
-
-            adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+            // Adjust start and end points symmetrically
+            adjustStartAndEndPoints(start, direction, isInner, distanceBetweenPolylines, cornerConfig);
+            adjustStartAndEndPoints(end, reverseDirection, isInner, distanceBetweenPolylines, cornerConfig);
 
             double distance = start.distanceTo(end);
+            if (distance < 50) {
+                acutPrintf(_T("\nDistance between corners is too small to place any panel."));
+                continue; // Skip this segment if distance is insufficient
+            }
             AcGePoint3d currentPoint = start;
 
-            //IF NOT ALIGNED, MODIFY OFFSETS BELOW
-
-            if (isInner) {
-                //distance = start.distanceTo(end) - 500;
-                //currentPoint = start + direction * 250;
-            }
-            else {
-                //distance = start.distanceTo(end) - 1700;
-                //currentPoint = start + direction * 850;
+            // Ensure the distance is sufficient to place panels
+            if (distance < panelSizes[0].length) {
+                acutPrintf(_T("\nDistance between corners is too small to place any panel."));
+                return; // Exit if distance is insufficient
             }
 
             double rotation = atan2(direction.y, direction.x);
-            double panelLength;
 
+            // Adjust rotation if the loop is outer
             if (isOuter) {
-                //distance += 400;
-                //currentPoint -= direction * 200;
                 rotation += M_PI;
             }
 
+            // Place panels along the segment
             for (const auto& panel : panelSizes) {
                 currentHeight = 0;
-                //AcGePoint3d backupCurrentPoint = currentPoint;
-                //double backupDistance = distance;
 
                 for (int panelNum = 0; panelNum < 3; panelNum++) {
                     AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
 
-                    if (assetId != AcDbObjectId::kNull) {
-                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+                    if (assetId == AcDbObjectId::kNull) {
+                        acutPrintf(_T("\nFailed to load asset for panel %s."), panel.id[panelNum].c_str());
+                        continue; // Skip this panel if asset loading fails
+                    }
 
-                        //acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
-                        //for (int x = 0; x < numPanelsHeight; x++) {
-                        if (numPanelsHeight > 0) {
-                            //currentPoint = backupCurrentPoint;
-                            //distance = backupDistance;
+                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
+                    if (numPanelsHeight <= 0) continue;
 
-                            int numPanels = static_cast<int>(distance / panel.length);
-                            //acutPrintf(_T("\nnumPanels = %d"), numPanels);
-                            for (int i = 0; i < numPanels; i++) {
-                                AcGePoint3d currentPointWithHeight = currentPoint;
-                                currentPointWithHeight.z += currentHeight;
-                                if (isOuter) {
-                                    currentPointWithHeight += direction * panel.length;
-                                }
-                                rotation = normalizeAngle(rotation);
-                                rotation = snapToExactAngle(rotation, TOLERANCE);
+                    int numPanels = static_cast<int>(distance / panel.length);
+                    if (numPanels == 0) {
+                        acutPrintf(_T("\nInsufficient distance to place any panels: %f"), distance);
+                        continue; // Skip this panel if distance is insufficient
+                    }
+                    for (int i = 0; i < numPanels; i++) {
+                        AcGePoint3d currentPointWithHeight = currentPoint;
+                        currentPointWithHeight.z += currentHeight;
 
-                                panelLength = panel.length;
-                                wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter });
+                        if (isOuter) {
+                            currentPointWithHeight += direction * panel.length;
+                        }
 
-                                totalPanelsPlaced++;
-                                currentPoint += direction * panelLength;
-                                distance -= panelLength;
-                            }
-                            // Place timber for remaining distance
-                            if (distance > 0 && distance < 50) {
-                                //acutPrintf(_T("\nPlacing timber at distance: %f, height: %d"), distance, panelHeights[panelNum]);
-                                AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
-                                if (timberAssetId == AcDbObjectId::kNull) {
-                                    acutPrintf(_T("\nFailed to place timber."));
-                                }
-                                else {
-                                    rotation = normalizeAngle(rotation);
+                        rotation = normalizeAngle(rotation);
+                        rotation = snapToExactAngle(rotation, TOLERANCE);
 
-                                    // Calculate the new position with the appropriate offsets based on rotation
-                                    AcGePoint3d timberPosition = currentPoint;
-                                    timberPosition.z += static_cast<double>(panelHeights[panelNum]) / 2.0;  // Z offset
+                        wallPanels.push_back(WallPanel{
+    currentPointWithHeight,  // position
+    assetId,                 // assetId
+    rotation,                // rotation
+    static_cast<double>(panel.length),  // length, ensure this is a double
+    panelHeights[panelNum],  // height
+    loopIndex,               // loopIndex
+    isOuter                  // isOuterLoop
+                            });
 
-                                    // Apply offsets based on the rotation to snap to neighboring base point
-                                    switch (static_cast<int>(round(rotation / M_PI_2))) {
-                                    case 0: // 0 degrees
-                                    case 4: // Normalize 360 degrees to 0 degrees
-                                        timberPosition.y += 50;  // Offset in the y direction
-                                        break;
-                                    case 1: // 90 degrees
-                                        timberPosition.x += 50;  // Offset in the x direction
-                                        break;
-                                    case 2: // 180 degrees
-                                        timberPosition.y -= 50;  // Offset in the y direction
-                                        break;
-                                    case 3: // 270 degrees
-                                    case -1: // Normalize -90 degrees to 270 degrees
-                                        timberPosition.x -= 50;  // Offset in the x direction
-                                        break;
-                                    default:
-                                        acutPrintf(_T("\nInvalid rotation angle detected: %f "), rotation);
-                                        continue;
-                                    }
+                        totalPanelsPlaced++;
+                        currentPoint += direction * panel.length;
+                        distance -= panel.length;
 
-                                    // Ensure that the timber connects correctly with the neighboring panel base point
-                                    timberPosition += AcGeVector3d(50 * cos(rotation), 50 * sin(rotation), 0);  // Apply offset considering rotation
+                        if (distance < 0) {
+                            acutPrintf(_T("\nInsufficient distance left for further panels."));
+                            break;
+                        }
+                    }
 
-                                    // Add the timber panel with the calculated position and rotation
-                                    timber.push_back({ timberPosition, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
-                                    distance = 0;
-                                    /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
-                                    AcGePoint3d timberPosition = currentPoint;
-                                    timberPosition.z += currentHeight;
-                                    pTimberRef->setPosition(timberPosition);
-                                    pTimberRef->setBlockTableRecord(timberAssetId);
-                                    pTimberRef->setRotation(rotation);
-                                    pTimberRef->setScaleFactors(AcGeScale3d(globalVarScale));
+                    // Place timber for remaining distance
+                    if (distance > 0 && distance < 50) {
+                        AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
+                        if (timberAssetId != AcDbObjectId::kNull) {
+                            AcGePoint3d timberPosition = currentPoint;
+                            timberPosition.z += static_cast<double>(panelHeights[panelNum]) / 2.0;
 
-                                    if (pModelSpace->appendAcDbEntity(pTimberRef) == Acad::eOk) {
-                                        acutPrintf(_T("\nTimber placed successfully."));
-                                    }
-                                    else {
-                                        acutPrintf(_T("\nFailed to place timber."));
-                                    }
-                                    pTimberRef->close();*/
-                                }
-                            }
+                            timberPosition += AcGeVector3d(50 * cos(rotation), 50 * sin(rotation), 0);
 
-                            //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
-                            currentHeight = wallHeight;
+                            timber.push_back({ timberPosition, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
+                            distance = 0;
+                        }
+                        else {
+                            acutPrintf(_T("\nFailed to create timber asset."));
                         }
                     }
                 }
             }
+
+            segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
+            loopIndex = loopIndexLastPanel;
         }
+
+        
+        
         segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
         loopIndex = loopIndexLastPanel;
     }
@@ -1012,6 +946,9 @@ void WallPlacer::placeWalls() {
             if (panel2.length == panel.length) {
                 for (int panelNum = 0; panelNum < 3; panelNum++) {
                     AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
+                    if(assetId == AcDbObjectId::kNull) {
+						acutPrintf(_T("\nFailed to load asset for panel %s."), panel2.id[panelNum].c_str());
+					}
 
                     if (assetId != AcDbObjectId::kNull) {
                         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
@@ -1075,6 +1012,9 @@ void WallPlacer::placeWalls() {
         for (const auto& panel2 : panelSizes) {
             for (int panelNum = 0; panelNum < 3; panelNum++) {
                 AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
+                if (assetId == AcDbObjectId::kNull) {
+                    acutPrintf(_T("\nFailed to load asset for panel %s."), panel2.id[panelNum].c_str());
+                }
 
                 if (assetId != AcDbObjectId::kNull) {
                     int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
@@ -1142,4 +1082,3 @@ void WallPlacer::placeWalls() {
     pBlockTable->close();
     acutPrintf(_T("\nCompleted placing walls."));
 }
-

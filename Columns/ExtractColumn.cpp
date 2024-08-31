@@ -16,6 +16,13 @@ using json = nlohmann::json;
 
 void ExtractColumn()
 {
+    // Ask the user for the column height
+    int columnHeight;
+    if (acedGetInt(_T("\nEnter the column height (e.g., 1350 or 600): "), &columnHeight) != RTNORM) {
+        acutPrintf(_T("\nOperation canceled."));
+        return;
+    }
+
     // Ask the user for the column name
     ACHAR columnName[256];
     if (acedGetString(Adesk::kFalse, _T("\nEnter the column name: "), columnName) != RTNORM) {
@@ -56,6 +63,7 @@ void ExtractColumn()
 
     json columnJson; // JSON object to store the column data
     columnJson["blockname"] = columnNameStr;
+    columnJson["height"] = columnHeight;  // Store the height information in JSON
     columnJson["blocks"] = json::array();
 
     // Iterate through model space and extract block data
@@ -137,3 +145,4 @@ void ExtractColumn()
         acutPrintf(_T("\nFailed to open the JSON file for writing."));
     }
 }
+

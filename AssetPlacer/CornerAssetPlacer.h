@@ -7,41 +7,47 @@
 #include "gept3dar.h"  // For AcGePoint3d
 #include "dbsymtb.h"   // For AcDbObjectId
 
-struct Panel {
+struct Panels {
     double width;
     double thickness;
     double height;
     std::wstring blockName;
 
-    Panel(double w, double t, double h, const wchar_t* name)
+    Panels(double w, double t, double h, const wchar_t* name)
         : width(w), thickness(t), height(h), blockName(name) {}
 };
 
+struct CornerConfig {
+    AcGePoint3d position;
+    bool isInside;
+    double outsideCornerAdjustment;
+};
+
 struct PanelConfig {
-    Panel* panelIdA;
-    Panel* panelIdB;
-    Panel* outsidePanelIds[6]; // Array to hold outside panel pointers (max 6)
-    Panel* compensatorIdA;
-    Panel* compensatorIdB;
+    Panels* panelIdA;
+    Panels* panelIdB;
+    Panels* outsidePanelIds[6]; // Array to hold outside panel pointers (max 6)
+    Panels* compensatorIdA;
+    Panels* compensatorIdB;
 };
 
 struct PanelDimensions {
-    std::vector<Panel> panels;
+    std::vector<Panels> panels;
 
     PanelDimensions() {
         // Initialize with the given panel dimensions and block names
-        panels.push_back(Panel(0, 0, 0, L""));  // Dummy panel for 0 width
-        panels.push_back(Panel(50, 100, 1350, L"128287X"));
-        panels.push_back(Panel(100, 100, 1350, L"128292X"));
-        panels.push_back(Panel(150, 100, 1350, L"128285X"));
-        panels.push_back(Panel(300, 100, 1350, L"128284X"));
-        panels.push_back(Panel(450, 100, 1350, L"128283X"));
-        panels.push_back(Panel(600, 100, 1350, L"128282X"));
-        panels.push_back(Panel(750, 100, 1350, L"128281X"));
+        panels.push_back(Panels(0, 0, 0, L""));  // Dummy panel for 0 width
+        panels.push_back(Panels(50, 100, 1350, L"128287X"));
+        panels.push_back(Panels(100, 100, 1350, L"128292X"));
+        panels.push_back(Panels(150, 100, 1350, L"128285X"));
+        panels.push_back(Panels(300, 100, 1350, L"128284X"));
+        panels.push_back(Panels(450, 100, 1350, L"128283X"));
+        panels.push_back(Panels(600, 100, 1350, L"128282X"));
+        panels.push_back(Panels(750, 100, 1350, L"128281X"));
     }
 
     // Function to get panel by width (if needed)
-    Panel* getPanelByWidth(double width) {
+    Panels* getPanelByWidth(double width) {
         for (auto& panel : panels) {
             if (panel.width == width) {
                 return &panel;
@@ -50,6 +56,7 @@ struct PanelDimensions {
         return nullptr;  // Return nullptr if no matching panel is found
     }
 };
+extern std::vector<CornerConfig> g_cornerConfigs;
 
 class CornerAssetPlacer {
 public:
@@ -57,6 +64,8 @@ public:
     static void placeAssetsAtCorners();
     // Public method to identify walls, ensuring declaration matches definition
     static void identifyWalls();
+    static PanelConfig getPanelConfig(double distance, PanelDimensions& panelDims);
+    static std::vector<CornerConfig> generateCornerConfigs(const std::vector<AcGePoint3d>& corners, const PanelConfig& config);
 
 private:
     // Method to detect polylines in the drawing
@@ -64,7 +73,7 @@ private:
     // Method to load an asset block from the block table
     static AcDbObjectId loadAsset(const wchar_t* blockName);
     // Method to get panel configuration based on distance
-    static PanelConfig getPanelConfig(double distance, PanelDimensions& panelDims);
+   
     // Method to place an asset at a specific corner with a given rotation
     static void placeAssetAtCorner(const AcGePoint3d& corner, double rotation, AcDbObjectId assetId);
     // Method to place corner post and panels (Inside corner)
