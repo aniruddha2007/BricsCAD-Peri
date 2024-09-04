@@ -1,3 +1,4 @@
+//CornerAssetPlacer.h
 #pragma once
 
 #include <vector>
@@ -6,6 +7,7 @@
 #include <map>
 #include "gept3dar.h"  // For AcGePoint3d
 #include "dbsymtb.h"   // For AcDbObjectId
+#include "SharedConfigs.h"
 
 struct Panels {
     double width;
@@ -15,12 +17,6 @@ struct Panels {
 
     Panels(double w, double t, double h, const wchar_t* name)
         : width(w), thickness(t), height(h), blockName(name) {}
-};
-
-struct CornerConfig {
-    AcGePoint3d position;
-    bool isInside;
-    double outsideCornerAdjustment;
 };
 
 struct PanelConfig {
@@ -56,7 +52,6 @@ struct PanelDimensions {
         return nullptr;  // Return nullptr if no matching panel is found
     }
 };
-extern std::vector<CornerConfig> g_cornerConfigs;
 
 class CornerAssetPlacer {
 public:

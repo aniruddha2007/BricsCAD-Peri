@@ -22,6 +22,7 @@ private:
     static AcDbObjectId loadAsset(const wchar_t* blockName);
     static void placeWallSegment(const AcGePoint3d& start, const AcGePoint3d& end);
     static void addTextAnnotation(const AcGePoint3d& position, const wchar_t* text);
+	static void WallPlacer::adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, bool isConcave, bool isInner, bool isAdjacentConvex);
 	static double calculateDistanceBetweenPolylines();
     // Comparator for AcGePoint3d to be used in the map
     struct Point3dComparator {

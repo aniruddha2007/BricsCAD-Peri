@@ -8,4 +8,5 @@ extern AcGeScale3d globalVarScale;
 class DefineScale {
 public:
     static void defineScale();
+    //static void testhdf();
 };

@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
+    <ClCompile Include="AssetPlacer\SharedConfigs.cpp" />
     <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
@@ -38,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
+    <ClInclude Include="AssetPlacer\SharedConfigs.h" />
     <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -110,6 +112,7 @@
     <OutDir>$(SolutionDir)\$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib";$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="UserMacros">
     <wxMsvcVersion>142</wxMsvcVersion>
@@ -163,9 +166,9 @@
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>./;$(BRX24_SDK_PATH)/inc$(PlatformArchitecture);$(BRX24_SDK_PATH)/inc;C:\Program Files\OpenSSL-Win64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./;$(BRX24_SDK_PATH)/inc$(PlatformArchitecture);$(BRX24_SDK_PATH)/inc;C:\Program Files\OpenSSL-Win64\include;C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>BRX_APP;__BRXTARGET=24;_AFXEXT;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BRX_APP;__BRXTARGET=24;_AFXEXT;NDEBUG;H5_BUILT_AS_DYNAMIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAsManaged>false</CompileAsManaged>
       <StringPooling>true</StringPooling>
       <DisableSpecificWarnings>4192;</DisableSpecificWarnings>
@@ -178,8 +181,8 @@
       <OptimizeReferences>false</OptimizeReferences>
       <SubSystem>Windows</SubSystem>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
-      <AdditionalLibraryDirectories>$(BRX24_SDK_PATH)/lib$(PlatformArchitecture);C:\Program Files\OpenSSL-Win64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libssl.lib";"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libcrypto.lib";%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(BRX24_SDK_PATH)/lib$(PlatformArchitecture);C:\Program Files\OpenSSL-Win64\lib;C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libssl.lib";"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libcrypto.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_cpp.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_hl.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_hl_cpp.lib";%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

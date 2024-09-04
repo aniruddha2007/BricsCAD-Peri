@@ -432,7 +432,7 @@ std::vector<AcGePoint3d> forcePolylineClockwise(std::vector<AcGePoint3d>& points
 // Function to determine if a polyline is clockwise
 bool isPolylineClockwise(const std::vector<AcGePoint3d>& points) {
     double sum = 0.0;
-    const double tolerance = 1e-9;
+    const double tolerance = 1e-6;
 
     for (size_t i = 0; i < points.size(); ++i) {
         AcGePoint3d current = points[i];

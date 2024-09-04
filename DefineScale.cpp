@@ -2,6 +2,7 @@
 #include "DefineScale.h"
 #include "acutads.h"
 #include "aced.h"
+//#include "hdf5.h"
 
 // Default to (1, 1, 1)
 AcGeScale3d globalVarScale(1, 1, 1);
@@ -20,3 +21,12 @@ void DefineScale::defineScale() {
         acutPrintf(_T("\nInvalid input. Please enter a valid number."));
     }
 }
+
+//void DefineScale::testhdf() {
+//    hid_t file_id = H5Fcreate("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\test.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+//    if (file_id < 0) {
+//        acutPrintf(_T("\nFailed to create file"));
+//    }
+//    H5Fclose(file_id);
+//    acutPrintf(_T("\nFile created successfully"));
+//}

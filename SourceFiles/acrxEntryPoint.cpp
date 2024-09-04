@@ -206,7 +206,7 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\blocks.json");
+		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.h5");
 	}
 
     //ExtractColumn command
@@ -235,6 +235,7 @@ public:
     static void BrxAppDefineScale(void)
     {
         acutPrintf(_T("\nRunning DefineScale."));
+        //DefineScale::testhdf();
         DefineScale::defineScale();
     }
 

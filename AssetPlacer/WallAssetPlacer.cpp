@@ -17,7 +17,6 @@
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
-#include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"
 #include <vector>
@@ -45,6 +44,18 @@ std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> W
 const int BATCH_SIZE = 30; // Batch size for processing entities
 
 const double TOLERANCE = 0.1; // Tolerance for comparing angles
+double proximityTolerance = 1.0; // Adjust this tolerance as needed
+std::vector<AcGePoint3d> processedCorners; // To keep track of processed corners
+
+bool isCloseToProcessedCorners(const AcGePoint3d& point, const std::vector<AcGePoint3d>& processedCorners, double tolerance) {
+    for (const auto& processedCorner : processedCorners) {
+        if (point.distanceTo(processedCorner) < tolerance) {
+            return true; // Point is too close to a processed corner
+        }
+    }
+    return false;
+}
+
 
 // Structure to hold panel information
 struct Panel {
@@ -56,29 +67,48 @@ bool isInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
 
-//AcGePoint3d findTopLeftPoint(const std::vector<AcGePoint3d>& points) {
-//    return *std::min_element(points.begin(), points.end(), [](const AcGePoint3d& a, const AcGePoint3d& b) {
-//        if (a.y == b.y) {
-//            return a.x < b.x;
-//        }
-//        return a.y > b.y;
-//        });
-//}
-//
-////function to normalize polyline orientation
-//std::vector<AcGePoint3d> normalizePolylineOrientation(std::vector<AcGePoint3d>& points) {
-//    if (points.empty()) {
-//        return points;
-//    }
-//
-//    AcGePoint3d topLeft = findTopLeftPoint(points);
-//
-//    auto it = std::find(points.begin(), points.end(), topLeft);
-//    if (it != points.begin()) {
-//		std::rotate(points.begin(), it, points.end());
-//	}
-//    return points;
-//}
+// Helper function to calculate the signed area of the triangle formed by points A, B, and C
+double triangleArea(const AcGePoint3d& A, const AcGePoint3d& B, const AcGePoint3d& C) {
+    return 0.5 * ((B.x - A.x) * (C.y - A.y) - (C.x - A.x) * (B.y - A.y));
+}
+
+bool isCornerConcave(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
+    // Calculate cross product to determine corner type
+    AcGeVector3d v1 = current - prev;
+    AcGeVector3d v2 = next - current;
+    double cross = v1.x * v2.y - v1.y * v2.x;
+
+    double tolerance = 1e-6;
+
+    bool isConcave = cross < - tolerance;
+
+    //// Debugging information
+    //acutPrintf(_T("\nChecking corner at (%f, %f): "), current.x, current.y);
+    //acutPrintf(_T("Previous Point: (%f, %f), Next Point: (%f, %f)"), prev.x, prev.y, next.x, next.y);
+    //acutPrintf(_T("Cross Product: %f, Identified as Concave: %d"), cross, isConcave);
+
+    return isConcave;
+}
+
+bool isCornerConvex(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
+    AcGeVector3d v1 = current - prev;
+    AcGeVector3d v2 = next - current;
+    double cross = v1.x * v2.y - v1.y * v2.x;
+
+    // Tolerance to handle floating-point errors
+    double tolerance = 1e-6;
+
+    bool isConvex = cross > tolerance;
+
+    //acutPrintf(_T("\nChecking corner at (%f, %f): Previous Point: (%f, %f), Next Point: (%f, %f)"),
+    //    current.x, current.y, prev.x, prev.y, next.x, next.y);
+    //acutPrintf(_T("Cross Product: %f, Identified as Convex: %d"), cross, isConvex);
+
+    return isConvex;
+}
+
+
+
 
 //Detect polylines
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
@@ -143,8 +173,6 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
-
-    forcePolylineClockwise(corners);
 
     acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
@@ -319,152 +347,374 @@ AcGeVector3d rotateVector(const AcGeVector3d& direction, double angle) {
     return AcGeVector3d(x, y, z);
 }
 
-void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, bool isInner, double distanceBetweenPolylines, const CornerConfig& cornerConfig) {
-    bool isInnerCorner = cornerConfig.isInside;
+struct WallPanel {
+    AcGePoint3d position;
+    AcDbObjectId assetId;
+    double rotation;
+    double length;
+    int height;
+    int loopIndex;
+    bool isOuterLoop;
+};
 
+struct Timber {
+    AcGePoint3d position;
+    AcDbObjectId assetId;
+    double rotation;
+    double length;
+    int height;
+    int loopIndex;
+    bool isOuterLoop;
+};
+
+std::vector<WallPanel> wallPanels;
+std::vector<Timber> timber;
+
+std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
+
+//void adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, double distanceBetweenPolylines, bool isInner, bool isConcave) {
+//    if (isInner) {
+//        if (isConcave) {
+//            if (distanceBetweenPolylines == 150) {
+//                point += direction * 300;
+//            }
+//            else {
+//                point += direction * 250;
+//            }
+//        }
+//        else { // Convex
+//            if (distanceBetweenPolylines == 150) {
+//                point -= direction * 300;
+//            }
+//            else {
+//                point -= direction * 250;
+//            }
+//        }
+//    }
+//    else { // Outer loop
+//        int adjustment = 0;
+//
+//        if (isConcave) {
+//            // Concave adjustments for the outer loop
+//            if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
+//                adjustment = 550;
+//            }
+//            else if (distanceBetweenPolylines == 250) {
+//                adjustment = 600;
+//            }
+//            else if (distanceBetweenPolylines == 300) {
+//                adjustment = 650;
+//            }
+//            else if (distanceBetweenPolylines == 350) {
+//                adjustment = 850;
+//            }
+//            else if (distanceBetweenPolylines == 400) {
+//                adjustment = 750;
+//            }
+//            else if (distanceBetweenPolylines == 450) {
+//                adjustment = 800;
+//            }
+//            else if (distanceBetweenPolylines == 500) {
+//                adjustment = 850;
+//            }
+//            else if (distanceBetweenPolylines == 550) {
+//                adjustment = 900;
+//            }
+//            else if (distanceBetweenPolylines == 600) {
+//                adjustment = 950;
+//            }
+//            else if (distanceBetweenPolylines == 650) {
+//                adjustment = 1000;
+//            }
+//            else if (distanceBetweenPolylines == 700) {
+//                adjustment = 1050;
+//            }
+//            else if (distanceBetweenPolylines == 750) {
+//                adjustment = 1100;
+//            }
+//            else if (distanceBetweenPolylines == 800) {
+//                adjustment = 1150;
+//            }
+//            else if (distanceBetweenPolylines == 850) {
+//                adjustment = 1200;
+//            }
+//            else if (distanceBetweenPolylines == 900) {
+//                adjustment = 1250;
+//            }
+//            else if (distanceBetweenPolylines == 950) {
+//                adjustment = 1300;
+//            }
+//            else if (distanceBetweenPolylines == 1000) {
+//                adjustment = 1350;
+//            }
+//            else if (distanceBetweenPolylines == 1050) {
+//                adjustment = 1400;
+//            }
+//            else if (distanceBetweenPolylines == 1100) {
+//                adjustment = 1450;
+//            }
+//            else if (distanceBetweenPolylines == 1150) {
+//                adjustment = 1500;
+//            }
+//            else if (distanceBetweenPolylines == 1200) {
+//                adjustment = 1550;
+//            }
+//            else if (distanceBetweenPolylines == 1250) {
+//                adjustment = 1600;
+//            }
+//            else if (distanceBetweenPolylines == 1300) {
+//                adjustment = 1650;
+//            }
+//            else if (distanceBetweenPolylines == 1350) {
+//                adjustment = 1700;
+//            }
+//            else if (distanceBetweenPolylines == 1400) {
+//                adjustment = 1750;
+//            }
+//            else if (distanceBetweenPolylines == 1450) {
+//                adjustment = 1800;
+//            }
+//            else if (distanceBetweenPolylines == 1500) {
+//                adjustment = 1850;
+//            }
+//            else if (distanceBetweenPolylines == 1550) {
+//                adjustment = 1900;
+//            }
+//            else if (distanceBetweenPolylines == 1600) {
+//                adjustment = 1950;
+//            }
+//            else if (distanceBetweenPolylines == 1650) {
+//                adjustment = 2000;
+//            }
+//            else if (distanceBetweenPolylines == 1700) {
+//                adjustment = 2050;
+//            }
+//            else if (distanceBetweenPolylines == 1750) {
+//                adjustment = 2100;
+//            }
+//            else if (distanceBetweenPolylines == 1800) {
+//                adjustment = 2150;
+//            }
+//            else if (distanceBetweenPolylines == 1850) {
+//                adjustment = 2200;
+//            }
+//            else if (distanceBetweenPolylines == 1900) {
+//                adjustment = 2250;
+//            }
+//            else if (distanceBetweenPolylines == 1950) {
+//                adjustment = 2300;
+//            }
+//            else if (distanceBetweenPolylines == 2000) {
+//                adjustment = 2350;
+//            }
+//            else if (distanceBetweenPolylines == 2050) {
+//                adjustment = 2400;
+//            }
+//            else if (distanceBetweenPolylines == 2100) {
+//                adjustment = 2450;
+//            }
+//            else {
+//                adjustment = 150; // Default case for any unexpected distance value
+//            }
+//            adjustment -= 100;
+//            point += direction * adjustment;
+//        }
+//        
+//else { // Convex adjustments for the outer loop
+//            if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
+//                adjustment = 550;
+//            }
+//            else if (distanceBetweenPolylines == 250) {
+//                adjustment = 600;
+//            }
+//            else if (distanceBetweenPolylines == 300) {
+//                adjustment = 650;
+//            }
+//            else if (distanceBetweenPolylines == 350) {
+//                adjustment = 0;
+//            }
+//            else if (distanceBetweenPolylines == 400) {
+//                adjustment = 750;
+//            }
+//            else if (distanceBetweenPolylines == 450) {
+//                adjustment = 800;
+//            }
+//            else if (distanceBetweenPolylines == 500) {
+//                adjustment = 850;
+//            }
+//            else if (distanceBetweenPolylines == 550) {
+//                adjustment = 900;
+//            }
+//            else if (distanceBetweenPolylines == 600) {
+//                adjustment = 950;
+//            }
+//            else if (distanceBetweenPolylines == 650) {
+//                adjustment = 1000;
+//            }
+//            else if (distanceBetweenPolylines == 700) {
+//                adjustment = 1050;
+//            }
+//            else if (distanceBetweenPolylines == 750) {
+//                adjustment = 1100;
+//            }
+//            else if (distanceBetweenPolylines == 800) {
+//                adjustment = 1150;
+//            }
+//            else if (distanceBetweenPolylines == 850) {
+//                adjustment = 1200;
+//            }
+//            else if (distanceBetweenPolylines == 900) {
+//                adjustment = 1250;
+//            }
+//            else if (distanceBetweenPolylines == 950) {
+//                adjustment = 1300;
+//            }
+//            else if (distanceBetweenPolylines == 1000) {
+//                adjustment = 1350;
+//            }
+//            else if (distanceBetweenPolylines == 1050) {
+//                adjustment = 1400;
+//            }
+//            else if (distanceBetweenPolylines == 1100) {
+//                adjustment = 1450;
+//            }
+//            else if (distanceBetweenPolylines == 1150) {
+//                adjustment = 1500;
+//            }
+//            else if (distanceBetweenPolylines == 1200) {
+//                adjustment = 1550;
+//            }
+//            else if (distanceBetweenPolylines == 1250) {
+//                adjustment = 1600;
+//            }
+//            else if (distanceBetweenPolylines == 1300) {
+//                adjustment = 1650;
+//            }
+//            else if (distanceBetweenPolylines == 1350) {
+//                adjustment = 1700;
+//            }
+//            else if (distanceBetweenPolylines == 1400) {
+//                adjustment = 1750;
+//            }
+//            else if (distanceBetweenPolylines == 1450) {
+//                adjustment = 1800;
+//            }
+//            else if (distanceBetweenPolylines == 1500) {
+//                adjustment = 1850;
+//            }
+//            else if (distanceBetweenPolylines == 1550) {
+//                adjustment = 1900;
+//            }
+//            else if (distanceBetweenPolylines == 1600) {
+//                adjustment = 1950;
+//            }
+//            else if (distanceBetweenPolylines == 1650) {
+//                adjustment = 2000;
+//            }
+//            else if (distanceBetweenPolylines == 1700) {
+//                adjustment = 2050;
+//            }
+//            else if (distanceBetweenPolylines == 1750) {
+//                adjustment = 2100;
+//            }
+//            else if (distanceBetweenPolylines == 1800) {
+//                adjustment = 2150;
+//            }
+//            else if (distanceBetweenPolylines == 1850) {
+//                adjustment = 2200;
+//            }
+//            else if (distanceBetweenPolylines == 1900) {
+//                adjustment = 2250;
+//            }
+//            else if (distanceBetweenPolylines == 1950) {
+//                adjustment = 2300;
+//            }
+//            else if (distanceBetweenPolylines == 2000) {
+//                adjustment = 2350;
+//            }
+//            else if (distanceBetweenPolylines == 2050) {
+//                adjustment = 2400;
+//            }
+//            else if (distanceBetweenPolylines == 2100) {
+//                adjustment = 2450;
+//            }
+//            else {
+//                adjustment = 150; // Default case for any unexpected distance value
+//            }
+//            adjustment += 100;
+//            point += direction * adjustment;
+//        }
+//    }
+//}
+
+//void WallPlacer::adjustStartAndEndPoints(AcGePoint3d& point, const AcGeVector3d& direction, bool isConcave, bool isInner, bool isAdjacentConvex) {
+//    int adjustment = 0;
+//
+//    if (isInner) {
+//        if (isConcave) {
+//            adjustment = isAdjacentConvex ? 250 : 250;
+//            acutPrintf(_T("\nAdjusting Concave Inner corner with %d adjustment."), adjustment);
+//        }
+//        else {
+//            adjustment = isAdjacentConvex ? 450 : 250;
+//            acutPrintf(_T("\nAdjusting Convex Inner corner with %d adjustment."), adjustment);
+//        }
+//    }
+//    else {
+//        if (isConcave) {
+//            adjustment = isAdjacentConvex ? 450 : 450;
+//            acutPrintf(_T("\nAdjusting Concave Outer corner with %d adjustment."), adjustment);
+//        }
+//        else {
+//            adjustment = isAdjacentConvex ? 250 : 450;
+//            acutPrintf(_T("\nAdjusting Convex Outer corner with %d adjustment."), adjustment);
+//        }
+//    }
+//
+//    point += direction * adjustment;
+//}
+
+void adjustSegment(AcGePoint3d& start, AcGePoint3d& end, const AcGeVector3d& direction, bool isConcave, bool isInner, bool isAdjacentConvex) {
+    int adjustment = 0;
+
+    // Determine the adjustment based on the corner type and its relationship with adjacent corners
     if (isInner) {
-        if (distanceBetweenPolylines == 150) {
-            point -= direction * 300;
+        if (isConcave) {
+            adjustment = isAdjacentConvex ? 250 : 450;
         }
         else {
-            point -= direction * 250;
+            adjustment = isAdjacentConvex ? 450 : 250;
         }
     }
     else {
-        // Using the provided table for outer loop adjustments
-        int adjustment = 0;
-
-        if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
-            adjustment = 550;
-        }
-        else if (distanceBetweenPolylines == 250) {
-            adjustment = 600;
-        }
-        else if (distanceBetweenPolylines == 300) {
-            adjustment = 650;
-        }
-        else if (distanceBetweenPolylines == 350) {
-            adjustment = 700;
-        }
-        else if (distanceBetweenPolylines == 400) {
-            adjustment = 750;
-        }
-        else if (distanceBetweenPolylines == 450) {
-            adjustment = 800;
-        }
-        else if (distanceBetweenPolylines == 500) {
-            adjustment = 850;
-        }
-        else if (distanceBetweenPolylines == 550) {
-            adjustment = 900;
-        }
-        else if (distanceBetweenPolylines == 600) {
-            adjustment = 950;
-        }
-        else if (distanceBetweenPolylines == 650) {
-            adjustment = 1000;
-        }
-        else if (distanceBetweenPolylines == 700) {
-            adjustment = 1050;
-        }
-        else if (distanceBetweenPolylines == 750) {
-            adjustment = 1100;
-        }
-        else if (distanceBetweenPolylines == 800) {
-            adjustment = 1150;
-        }
-        else if (distanceBetweenPolylines == 850) {
-            adjustment = 1200;
-        }
-        else if (distanceBetweenPolylines == 900) {
-            adjustment = 1250;
-        }
-        else if (distanceBetweenPolylines == 950) {
-            adjustment = 1300;
-        }
-        else if (distanceBetweenPolylines == 1000) {
-            adjustment = 1350;
-        }
-        else if (distanceBetweenPolylines == 1050) {
-            adjustment = 1400;
-        }
-        else if (distanceBetweenPolylines == 1100) {
-            adjustment = 1450;
-        }
-        else if (distanceBetweenPolylines == 1150) {
-            adjustment = 1500;
-        }
-        else if (distanceBetweenPolylines == 1200) {
-            adjustment = 1550;
-        }
-        else if (distanceBetweenPolylines == 1250) {
-            adjustment = 1600;
-        }
-        else if (distanceBetweenPolylines == 1300) {
-            adjustment = 1650;
-        }
-        else if (distanceBetweenPolylines == 1350) {
-            adjustment = 1700;
-        }
-        else if (distanceBetweenPolylines == 1400) {
-            adjustment = 1750;
-        }
-        else if (distanceBetweenPolylines == 1450) {
-            adjustment = 1800;
-        }
-        else if (distanceBetweenPolylines == 1500) {
-            adjustment = 1850;
-        }
-        else if (distanceBetweenPolylines == 1550) {
-            adjustment = 1900;
-        }
-        else if (distanceBetweenPolylines == 1600) {
-            adjustment = 1950;
-        }
-        else if (distanceBetweenPolylines == 1650) {
-            adjustment = 2000;
-        }
-        else if (distanceBetweenPolylines == 1700) {
-            adjustment = 2050;
-        }
-        else if (distanceBetweenPolylines == 1750) {
-            adjustment = 2100;
-        }
-        else if (distanceBetweenPolylines == 1800) {
-            adjustment = 2150;
-        }
-        else if (distanceBetweenPolylines == 1850) {
-            adjustment = 2200;
-        }
-        else if (distanceBetweenPolylines == 1900) {
-            adjustment = 2250;
-        }
-        else if (distanceBetweenPolylines == 1950) {
-            adjustment = 2300;
-        }
-        else if (distanceBetweenPolylines == 2000) {
-            adjustment = 2350;
-        }
-        else if (distanceBetweenPolylines == 2050) {
-            adjustment = 2400;
-        }
-        else if (distanceBetweenPolylines == 2100) {
-            adjustment = 2450;
+        if (isConcave) {
+            adjustment = isAdjacentConvex ? 450 : 250;
         }
         else {
-            adjustment = 150; // Default case for any unexpected distance value
+            adjustment = isAdjacentConvex ? 250 : 450;
         }
-
-        adjustment -= 100;
-
-        if (!isInnerCorner) {
-            // Flip the adjustment for outside corners
-            adjustment = -adjustment;
-        }
-
-        point -= direction * adjustment;
     }
+
+    // Apply the adjustment to both start and end points
+    start += direction * adjustment;
+    end -= direction * adjustment;
 }
+
+bool isColliding(const AcGePoint3d& panelStart, const AcGePoint3d& panelEnd, const std::vector<WallPanel>& placedPanels) {
+    for (const auto& placedPanel : placedPanels) {
+        AcGePoint3d placedStart = placedPanel.position;
+        AcGePoint3d placedEnd = placedStart + AcGeVector3d(placedPanel.length, 0, 0).rotateBy(placedPanel.rotation, AcGeVector3d::kZAxis);
+
+        // Check if the bounding boxes of the two segments overlap
+        if (panelStart.distanceTo(placedStart) < TOLERANCE && panelEnd.distanceTo(placedEnd) < TOLERANCE) {
+            return true;  // Collision detected
+        }
+    }
+    return false;  // No collision
+}
+
+
+
 
 void WallPlacer::placeWalls() {
     std::vector<AcGePoint3d> corners = detectPolylines();
@@ -475,12 +725,6 @@ void WallPlacer::placeWalls() {
     }
 
     double distanceBetweenPolylines = calculateDistanceBetweenPolylines();
-
-    // Initialize PanelDimensions instance
-    PanelDimensions panelDims;
-
-    // Generate the CornerConfig vector using the public getPanelConfig method
-    std::vector<CornerConfig> cornerConfigs = CornerAssetPlacer::generateCornerConfigs(corners, CornerAssetPlacer::getPanelConfig(distanceBetweenPolylines, panelDims));
 
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -513,7 +757,7 @@ void WallPlacer::placeWalls() {
     //acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
     //acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
 
-    std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd +1);
+    std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
     std::vector<AcGePoint3d> secondLoop(corners.begin() + firstLoopEnd + 1, corners.end());
 
     bool firstLoopIsClockwise = directionOfDrawing(firstLoop);
@@ -541,33 +785,6 @@ void WallPlacer::placeWalls() {
         acutPrintf(_T(" not"));
     }
     acutPrintf(_T(" Clockwise"));*/
-
-
-
-    struct WallPanel {
-        AcGePoint3d position;
-        AcDbObjectId assetId;
-        double rotation;
-        double length;
-        int height;
-        int loopIndex;
-        bool isOuterLoop;
-    };
-
-    struct Timber {
-        AcGePoint3d position;
-        AcDbObjectId assetId;
-        double rotation;
-        double length;
-        int height;
-        int loopIndex;
-        bool isOuterLoop;
-    };
-
-    std::vector<WallPanel> wallPanels;
-    std::vector<Timber> timber;
-
-    std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
 
     loopIndex = 0;
     int loopIndexLastPanel = 0;
@@ -685,19 +902,47 @@ void WallPlacer::placeWalls() {
                 end = corners[cornerNum - closeLoopCounter];
             }
         }
+        if (std::find(sawToothIndex.begin(), sawToothIndex.end(), cornerNum) == sawToothIndex.end())
+        {
 
-        CornerConfig cornerConfig = cornerConfigs[cornerNum];
 
-        if (std::find(sawToothIndex.begin(), sawToothIndex.end(), cornerNum) == sawToothIndex.end()) {
-            // Get previous and next corners
             AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
+            AcGePoint3d current = corners[cornerNum];
             AcGePoint3d next = corners[(cornerNum + 2) % corners.size()];
+
+            // Get previous and next corners
+            if (isCloseToProcessedCorners(current, processedCorners, proximityTolerance)) {
+                //debugging information
+                acutPrintf(_T("\nSkipping corner at (%f, %f) as it is close to a processed corner."), current.x, current.y);
+                continue; // Skip this corner as it is close to an already processed one
+            }
+
+            bool isConcave = isCornerConcave(prev, current, next);
+            bool isConvex = !isConcave && isCornerConvex(prev, current, next);
+
+            // Flagging adjacent corners
+            bool isAdjacentConvex = false;
+            bool isAdjacentConcave = false;
+
+            if (isConvex) {
+                // Flag previous and next corners as adjacent to a convex corner
+                size_t prevIndex = (cornerNum + corners.size() - 1) % corners.size();
+                size_t nextIndex = (cornerNum + 1) % corners.size();
+
+                isAdjacentConvex = true;
+                // Set flag for adjacent corners
+                isAdjacentConcave = false;  // Reset any concave flag if the previous corner was marked incorrectly
+            }
+            else if (isConcave) {
+                isAdjacentConvex = false;  // Reset any convex flag if the previous corner was marked incorrectly
+                // Flagging adjacent corners as adjacent to concave is not needed in this approach
+            }
 
             bool prevClockwise = isClockwise(prev, start, end);
             bool nextClockwise = isClockwise(start, end, next);
 
             bool isInner = loopIndex != outerLoopIndexValue;
-            bool isOuter = !isInner;
+            bool isOuter = !isInner;  // Outer loop is the opposite of inner
             if (!loopIsClockwise[loopIndex]) {
                 isInner = !isInner;
                 isOuter = !isOuter;
@@ -706,106 +951,156 @@ void WallPlacer::placeWalls() {
             direction = (end - start).normal();
             reverseDirection = (start - end).normal();
 
-            // Adjust start and end points symmetrically
-            adjustStartAndEndPoints(start, direction, isInner, distanceBetweenPolylines, cornerConfig);
-            adjustStartAndEndPoints(end, reverseDirection, isInner, distanceBetweenPolylines, cornerConfig);
+            // Adjust the entire segment between the current and next corner
+            if (isConcave) {
+                acutPrintf(_T("\nProcessing a Concave corner at (%f, %f). Is Inner: %d, Is Adjacent Convex: %d"), current.x, current.y, isInner, isAdjacentConvex);
+                adjustSegment(current, next, direction, true, isInner, isAdjacentConvex);
+                processedCorners.push_back(current); // Mark this corner as processed
+            }
+            else if (isConvex) {
+                acutPrintf(_T("\nProcessing a Convex corner at (%f, %f). Is Inner: %d, Is Adjacent Concave: %d"), current.x, current.y, isInner, isAdjacentConcave);
+                adjustSegment(current, next, direction, false, isInner, isAdjacentConvex);
+                processedCorners.push_back(current); // Mark this corner as processed
+            }
+
+            // Adjust the entire segment for the next corner
+            if (cornerNum < corners.size() - 1) {
+                // Fetch the next corner
+                bool nextConcave = isCornerConcave(current, next, corners[(cornerNum + 3) % corners.size()]);
+                bool nextConvex = !nextConcave && isCornerConvex(current, next, corners[(cornerNum + 3) % corners.size()]);
+
+                if (nextConcave) {
+                    acutPrintf(_T("\nAdjusting segment for next Concave corner at (%f, %f). Is Inner: %d, Is Adjacent Convex: %d"), next.x, next.y, isInner, isAdjacentConvex);
+                    adjustSegment(current, next, reverseDirection, true, isInner, isAdjacentConvex);
+                }
+                else if (nextConvex) {
+                    acutPrintf(_T("\nAdjusting segment for next Convex corner at (%f, %f). Is Inner: %d, Is Adjacent Convex: %d"), next.x, next.y, isInner, isAdjacentConvex);
+                    adjustSegment(current, next, reverseDirection, false, isInner, isAdjacentConvex);
+                }
+            }
+
+
+
+
+
+            //// Debugging information after adjustments
+            //acutPrintf(_T("\nAdjusted start: (%f, %f)"), start.x, start.y);
+            //acutPrintf(_T("\nAdjusted end: (%f, %f)"), end.x, end.y);
+
 
             double distance = start.distanceTo(end);
-            if (distance < 50) {
-                acutPrintf(_T("\nDistance between corners is too small to place any panel."));
-                continue; // Skip this segment if distance is insufficient
-            }
             AcGePoint3d currentPoint = start;
 
-            // Ensure the distance is sufficient to place panels
-            if (distance < panelSizes[0].length) {
-                acutPrintf(_T("\nDistance between corners is too small to place any panel."));
-                return; // Exit if distance is insufficient
-            }
-
             double rotation = atan2(direction.y, direction.x);
+            double panelLength;
 
-            // Adjust rotation if the loop is outer
             if (isOuter) {
+                //distance += 400;
+                //currentPoint -= direction * 200;
                 rotation += M_PI;
             }
 
-            // Place panels along the segment
             for (const auto& panel : panelSizes) {
                 currentHeight = 0;
+                //AcGePoint3d backupCurrentPoint = currentPoint;
+                //double backupDistance = distance;
 
                 for (int panelNum = 0; panelNum < 3; panelNum++) {
                     AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
 
-                    if (assetId == AcDbObjectId::kNull) {
-                        acutPrintf(_T("\nFailed to load asset for panel %s."), panel.id[panelNum].c_str());
-                        continue; // Skip this panel if asset loading fails
-                    }
+                    if (assetId != AcDbObjectId::kNull) {
+                        int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
 
-                    int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-                    if (numPanelsHeight <= 0) continue;
+                        //acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
+                        //for (int x = 0; x < numPanelsHeight; x++) {
+                        if (numPanelsHeight > 0) {
+                            //currentPoint = backupCurrentPoint;
+                            //distance = backupDistance;
 
-                    int numPanels = static_cast<int>(distance / panel.length);
-                    if (numPanels == 0) {
-                        acutPrintf(_T("\nInsufficient distance to place any panels: %f"), distance);
-                        continue; // Skip this panel if distance is insufficient
-                    }
-                    for (int i = 0; i < numPanels; i++) {
-                        AcGePoint3d currentPointWithHeight = currentPoint;
-                        currentPointWithHeight.z += currentHeight;
+                            int numPanels = static_cast<int>(distance / panel.length);
+                            //acutPrintf(_T("\nnumPanels = %d"), numPanels);
+                            for (int i = 0; i < numPanels; i++) {
+                                AcGePoint3d currentPointWithHeight = currentPoint;
+                                currentPointWithHeight.z += currentHeight;
+                                if (isOuter) {
+                                    currentPointWithHeight += direction * panel.length;
+                                }
+                                rotation = normalizeAngle(rotation);
+                                rotation = snapToExactAngle(rotation, TOLERANCE);
 
-                        if (isOuter) {
-                            currentPointWithHeight += direction * panel.length;
-                        }
+                                panelLength = panel.length;
+                                wallPanels.push_back({ currentPointWithHeight, assetId, rotation, panelLength, panelHeights[panelNum], loopIndex, isOuter });
 
-                        rotation = normalizeAngle(rotation);
-                        rotation = snapToExactAngle(rotation, TOLERANCE);
+                                totalPanelsPlaced++;
+                                currentPoint += direction * panelLength;
+                                distance -= panelLength;
+                            }
+                            // Place timber for remaining distance
+                            if (distance > 0 && distance < 50) {
+                                //acutPrintf(_T("\nPlacing timber at distance: %f, height: %d"), distance, panelHeights[panelNum]);
+                                AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
+                                if (timberAssetId == AcDbObjectId::kNull) {
+                                    acutPrintf(_T("\nFailed to place timber."));
+                                }
+                                else {
+                                    rotation = normalizeAngle(rotation);
 
-                        wallPanels.push_back(WallPanel{
-    currentPointWithHeight,  // position
-    assetId,                 // assetId
-    rotation,                // rotation
-    static_cast<double>(panel.length),  // length, ensure this is a double
-    panelHeights[panelNum],  // height
-    loopIndex,               // loopIndex
-    isOuter                  // isOuterLoop
-                            });
+                                    // Calculate the new position with the appropriate offsets based on rotation
+                                    AcGePoint3d timberPosition = currentPoint;
+                                    timberPosition.z += static_cast<double>(panelHeights[panelNum]) / 2.0;  // Z offset
 
-                        totalPanelsPlaced++;
-                        currentPoint += direction * panel.length;
-                        distance -= panel.length;
+                                    // Apply offsets based on the rotation to snap to neighboring base point
+                                    switch (static_cast<int>(round(rotation / M_PI_2))) {
+                                    case 0: // 0 degrees
+                                    case 4: // Normalize 360 degrees to 0 degrees
+                                        timberPosition.y += 50;  // Offset in the y direction
+                                        break;
+                                    case 1: // 90 degrees
+                                        timberPosition.x += 50;  // Offset in the x direction
+                                        break;
+                                    case 2: // 180 degrees
+                                        timberPosition.y -= 50;  // Offset in the y direction
+                                        break;
+                                    case 3: // 270 degrees
+                                    case -1: // Normalize -90 degrees to 270 degrees
+                                        timberPosition.x -= 50;  // Offset in the x direction
+                                        break;
+                                    default:
+                                        acutPrintf(_T("\nInvalid rotation angle detected: %f "), rotation);
+                                        continue;
+                                    }
 
-                        if (distance < 0) {
-                            acutPrintf(_T("\nInsufficient distance left for further panels."));
-                            break;
-                        }
-                    }
+                                    // Ensure that the timber connects correctly with the neighboring panel base point
+                                    timberPosition += AcGeVector3d(50 * cos(rotation), 50 * sin(rotation), 0);  // Apply offset considering rotation
 
-                    // Place timber for remaining distance
-                    if (distance > 0 && distance < 50) {
-                        AcDbObjectId timberAssetId = TimberAssetCreator::createTimberAsset(distance, panelHeights[panelNum]);
-                        if (timberAssetId != AcDbObjectId::kNull) {
-                            AcGePoint3d timberPosition = currentPoint;
-                            timberPosition.z += static_cast<double>(panelHeights[panelNum]) / 2.0;
+                                    // Add the timber panel with the calculated position and rotation
+                                    timber.push_back({ timberPosition, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
+                                    distance = 0;
+                                    /*AcDbBlockReference* pTimberRef = new AcDbBlockReference();
+                                    AcGePoint3d timberPosition = currentPoint;
+                                    timberPosition.z += currentHeight;
+                                    pTimberRef->setPosition(timberPosition);
+                                    pTimberRef->setBlockTableRecord(timberAssetId);
+                                    pTimberRef->setRotation(rotation);
+                                    pTimberRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
-                            timberPosition += AcGeVector3d(50 * cos(rotation), 50 * sin(rotation), 0);
+                                    if (pModelSpace->appendAcDbEntity(pTimberRef) == Acad::eOk) {
+                                        acutPrintf(_T("\nTimber placed successfully."));
+                                    }
+                                    else {
+                                        acutPrintf(_T("\nFailed to place timber."));
+                                    }
+                                    pTimberRef->close();*/
+                                }
+                            }
 
-                            timber.push_back({ timberPosition, timberAssetId, rotation, distance, panelHeights[panelNum], loopIndex, isOuter });
-                            distance = 0;
-                        }
-                        else {
-                            acutPrintf(_T("\nFailed to create timber asset."));
+                            //acutPrintf(_T("\n%d wall segments placed successfully."), numOfWallSegmentsPlaced);
+                            currentHeight = wallHeight;
                         }
                     }
                 }
             }
-
-            segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
-            loopIndex = loopIndexLastPanel;
         }
-
-        
-        
         segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
         loopIndex = loopIndexLastPanel;
     }
@@ -946,9 +1241,6 @@ void WallPlacer::placeWalls() {
             if (panel2.length == panel.length) {
                 for (int panelNum = 0; panelNum < 3; panelNum++) {
                     AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
-                    if(assetId == AcDbObjectId::kNull) {
-						acutPrintf(_T("\nFailed to load asset for panel %s."), panel2.id[panelNum].c_str());
-					}
 
                     if (assetId != AcDbObjectId::kNull) {
                         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
@@ -1012,9 +1304,6 @@ void WallPlacer::placeWalls() {
         for (const auto& panel2 : panelSizes) {
             for (int panelNum = 0; panelNum < 3; panelNum++) {
                 AcDbObjectId assetId = loadAsset(panel2.id[panelNum].c_str());
-                if (assetId == AcDbObjectId::kNull) {
-                    acutPrintf(_T("\nFailed to load asset for panel %s."), panel2.id[panelNum].c_str());
-                }
 
                 if (assetId != AcDbObjectId::kNull) {
                     int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
@@ -1082,3 +1371,4 @@ void WallPlacer::placeWalls() {
     pBlockTable->close();
     acutPrintf(_T("\nCompleted placing walls."));
 }
+

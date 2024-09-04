@@ -18,6 +18,7 @@
 #include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"
+#include "SharedConfigs.h"
 #include <vector>
 #include <map>
 #include <set>
@@ -39,8 +40,6 @@
 
 // Static member definition
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
-
-std::vector<CornerConfig> g_cornerConfigs;
 
 const int BATCH_SIZE = 30; // Process 30 entities at a time
 
@@ -656,16 +655,18 @@ std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::ve
         AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
         AcGePoint3d next = corners[(cornerNum + 1) % corners.size()];
 
+        cornerConfig.startPoint = prev;
+        cornerConfig.endPoint = next;
+
         AcGeVector3d prevDirection = (cornerConfig.position - prev).normal();
         AcGeVector3d nextDirection = (next - cornerConfig.position).normal();
 
         // Determine if it's an inside (concave) or outside (convex) corner
         double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
 
-        if (crossProductZ > 0) {
-            // Convex corner, typically an outside corner
-            cornerConfig.isInside = false;
+        cornerConfig.isInside = crossProductZ < 0;  // True if it's an inside corner
 
+        if (!cornerConfig.isInside) {
             // Calculate the adjustment for outside corners
             double adjustment = 0.0;
             if (config.outsidePanelIds[0]) adjustment += config.outsidePanelIds[0]->width;
@@ -676,8 +677,6 @@ std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::ve
             cornerConfig.outsideCornerAdjustment = adjustment;
         }
         else {
-            // Concave corner, typically an inside corner
-            cornerConfig.isInside = true;
             cornerConfig.outsideCornerAdjustment = 250.0;  // For inside corners, use a fixed adjustment
         }
 
@@ -1041,7 +1040,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
     }
 
     std::vector<CornerConfig> cornerConfigs = generateCornerConfigs(corners, config);
-    g_cornerConfigs = generateCornerConfigs(corners, config);
+    g_cornerConfigs = cornerConfigs;  // Store the corner configurations for later use
 
     // Debug output to verify corner configurations
     //for (size_t i = 0; i < cornerConfigs.size(); ++i) {
@@ -1143,7 +1142,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             // Convex corner
             //acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to convex corners here if needed
-            if (isInside) {
+            if (!isInside) {
                 placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
             }
             else {
