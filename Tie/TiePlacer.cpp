@@ -48,6 +48,41 @@ struct Tie {
     std::wstring id;
 };
 
+bool isCornerConcaveTie(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
+    // Calculate cross product to determine corner type
+    AcGeVector3d v1 = current - prev;
+    AcGeVector3d v2 = next - current;
+    double cross = v1.x * v2.y - v1.y * v2.x;
+
+    double tolerance = 1e-6;
+
+    bool isConcave = cross < -tolerance;
+
+    //// Debugging information
+    //acutPrintf(_T("\nChecking corner at (%f, %f): "), current.x, current.y);
+    //acutPrintf(_T("Previous Point: (%f, %f), Next Point: (%f, %f)"), prev.x, prev.y, next.x, next.y);
+    //acutPrintf(_T("Cross Product: %f, Identified as Concave: %d"), cross, isConcave);
+
+    return isConcave;
+}
+
+bool isCornerConvexTie(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
+    AcGeVector3d v1 = current - prev;
+    AcGeVector3d v2 = next - current;
+    double cross = v1.x * v2.y - v1.y * v2.x;
+
+    // Tolerance to handle floating-point errors
+    double tolerance = 1e-6;
+
+    bool isConvex = cross > tolerance;
+
+    //acutPrintf(_T("\nChecking corner at (%f, %f): Previous Point: (%f, %f), Next Point: (%f, %f)"),
+    //    current.x, current.y, prev.x, prev.y, next.x, next.y);
+    //acutPrintf(_T("Cross Product: %f, Identified as Convex: %d"), cross, isConvex);
+
+    return isConvex;
+}
+
 //Detect polylines
 std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
     acutPrintf(_T("\nDetecting polylines..."));
@@ -699,6 +734,7 @@ void TiePlacer::placeTies() {
         {50, {L"128287X", L"Null", L"129879X"}}
     };
 
+    AcGePoint3d first_start;
 
     // Second Pass: Save all positions, asset IDs, and rotations
     for (int cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
@@ -706,6 +742,10 @@ void TiePlacer::placeTies() {
         cornerLocations.push_back(static_cast<int>(totalPanelsPlaced));
         AcGePoint3d start = corners[cornerNum];
         AcGePoint3d end = corners[cornerNum + 1];
+        if (cornerNum == 0) {
+            first_start = start;
+            acutPrintf(_T("\nFirst Start: %f, %f"), first_start.x, first_start.y);
+        }
         AcGeVector3d direction = (end - start).normal();
         AcGeVector3d reverseDirection = (start - end).normal();
 
@@ -724,7 +764,48 @@ void TiePlacer::placeTies() {
 
         // Get previous and next corners
         AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
-        AcGePoint3d next = corners[(cornerNum + 2) % corners.size()];
+        AcGePoint3d current = corners[cornerNum];
+        AcGePoint3d next;
+        AcGePoint3d nextNext;
+        if (cornerNum + 1 < corners.size()) {
+            //acutPrintf(_T("\nIfTest"));
+            next = corners[(cornerNum + 1) % corners.size()];
+        }
+        else {
+            //acutPrintf(_T("\nElseTest"));
+            next = corners[cornerNum + 1 - closeLoopCounter];
+        }
+        if (cornerNum + 2 < corners.size()) {
+            nextNext = corners[(cornerNum + 2) % corners.size()]; //
+        }
+        else {
+            nextNext = corners[cornerNum + 2 - (corners.size() / 2)];
+        }
+
+        bool isConcave = isCornerConcave(prev, current, next);
+        bool isConvex = !isConcave && isCornerConvexTie(prev, current, next);
+
+        // Flagging adjacent corners
+        //bool isAdjacentConvex = false;
+        //bool isAdjacentConcave = false;
+        bool isAdjacentConcave = isCornerConcave(current, next, nextNext);
+        bool isAdjacentConvex = !isAdjacentConcave && isCornerConvexTie(current, next, nextNext);
+
+        if (isConvex) {
+            // Flag previous and next corners as adjacent to a convex corner
+            acutPrintf(_T("\nConvex"));
+            size_t prevIndex = (cornerNum + corners.size() - 1) % corners.size();
+            size_t nextIndex = (cornerNum + 1) % corners.size();
+
+            //isAdjacentConvex = true;
+            // Set flag for adjacent corners
+            //isAdjacentConcave = false;  // Reset any concave flag if the previous corner was marked incorrectly
+        }
+        else if (isConcave) {
+            acutPrintf(_T("\nConcave"));
+            //isAdjacentConvex = false;  // Reset any convex flag if the previous corner was marked incorrectly
+            // Flagging adjacent corners as adjacent to concave is not needed in this approach
+        }
 
         bool prevClockwise = isThisClockwise(prev, start, end);
         bool nextClockwise = isThisClockwise(start, end, next);
@@ -736,6 +817,11 @@ void TiePlacer::placeTies() {
             isInner = !isInner;
             isOuter = !isOuter;
         }
+
+
+
+
+
         AcGePoint3d currentPointWithHeight;
         double rotation;
         bool firstOrLast;
@@ -754,29 +840,328 @@ void TiePlacer::placeTies() {
             if (!nextClockwise) {
                 skipLastTie = true;
             }
-            // Adjust start point
-            if (loopIsClockwise[loopIndex]) {
-                if (!prevClockwise && isInner) {
-                    //start += direction * 500;
-                    adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+            //// Adjust start point
+            //if (loopIsClockwise[loopIndex]) {
+            //    if (!isConvex && isInner) {
+            //        adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+            //    }
+            //    // Adjust end point
+            //    if (!isAdjacentConvex && isInner) {
+            //        adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+            //    }
+            //}
+            //else {
+            //    if (isConvex && isInner) {
+            //        adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+            //    }
+            //    // Adjust end point
+            //    if (isAdjacentConvex && isInner) {
+ 
+            int adjustment = 0;
+
+            if (isOuter) {
+                isConvex = !isConvex;
+                isAdjacentConvex = !isAdjacentConvex;
+            }
+
+            if (!isConvex) {
+                if (distanceBetweenPolylines == 150) {
+                    start += direction * 0;
                 }
-                // Adjust end point
-                if (!nextClockwise && isInner) {
-                    //end -= direction * 500;
-                    adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                else {
+                    start += direction * 0;
                 }
             }
             else {
-                if (prevClockwise && isInner) {
-                    //start += direction * 500;
-                    adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
+                // Using the provided table for outer loop adjustments
+
+                if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
+                    adjustment = 500;
                 }
-                // Adjust end point
-                if (nextClockwise && isInner) {
-                    //end -= direction * 500;
-                    adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+                else if (distanceBetweenPolylines == 250) {
+                    adjustment = 600;
+                }
+                else if (distanceBetweenPolylines == 300) {
+                    adjustment = 650;
+                }
+                else if (distanceBetweenPolylines == 350) {
+                    adjustment = 700;
+                }
+                else if (distanceBetweenPolylines == 400) {
+                    adjustment = 750;
+                }
+                else if (distanceBetweenPolylines == 450) {
+                    adjustment = 800;
+                }
+                else if (distanceBetweenPolylines == 500) {
+                    adjustment = 850;
+                }
+                else if (distanceBetweenPolylines == 550) {
+                    adjustment = 900;
+                }
+                else if (distanceBetweenPolylines == 600) {
+                    adjustment = 950;
+                }
+                else if (distanceBetweenPolylines == 650) {
+                    adjustment = 1000;
+                }
+                else if (distanceBetweenPolylines == 700) {
+                    adjustment = 1050;
+                }
+                else if (distanceBetweenPolylines == 750) {
+                    adjustment = 1100;
+                }
+                else if (distanceBetweenPolylines == 800) {
+                    adjustment = 1150;
+                }
+                else if (distanceBetweenPolylines == 850) {
+                    adjustment = 1200;
+                }
+                else if (distanceBetweenPolylines == 900) {
+                    adjustment = 1250;
+                }
+                else if (distanceBetweenPolylines == 950) {
+                    adjustment = 1300;
+                }
+                else if (distanceBetweenPolylines == 1000) {
+                    adjustment = 1350;
+                }
+                else if (distanceBetweenPolylines == 1050) {
+                    adjustment = 1400;
+                }
+                else if (distanceBetweenPolylines == 1100) {
+                    adjustment = 1450;
+                }
+                else if (distanceBetweenPolylines == 1150) {
+                    adjustment = 1500;
+                }
+                else if (distanceBetweenPolylines == 1200) {
+                    adjustment = 1550;
+                }
+                else if (distanceBetweenPolylines == 1250) {
+                    adjustment = 1600;
+                }
+                else if (distanceBetweenPolylines == 1300) {
+                    adjustment = 1650;
+                }
+                else if (distanceBetweenPolylines == 1350) {
+                    adjustment = 1700;
+                }
+                else if (distanceBetweenPolylines == 1400) {
+                    adjustment = 1750;
+                }
+                else if (distanceBetweenPolylines == 1450) {
+                    adjustment = 1800;
+                }
+                else if (distanceBetweenPolylines == 1500) {
+                    adjustment = 1850;
+                }
+                else if (distanceBetweenPolylines == 1550) {
+                    adjustment = 1900;
+                }
+                else if (distanceBetweenPolylines == 1600) {
+                    adjustment = 1950;
+                }
+                else if (distanceBetweenPolylines == 1650) {
+                    adjustment = 2000;
+                }
+                else if (distanceBetweenPolylines == 1700) {
+                    adjustment = 2050;
+                }
+                else if (distanceBetweenPolylines == 1750) {
+                    adjustment = 2100;
+                }
+                else if (distanceBetweenPolylines == 1800) {
+                    adjustment = 2150;
+                }
+                else if (distanceBetweenPolylines == 1850) {
+                    adjustment = 2200;
+                }
+                else if (distanceBetweenPolylines == 1900) {
+                    adjustment = 2250;
+                }
+                else if (distanceBetweenPolylines == 1950) {
+                    adjustment = 2300;
+                }
+                else if (distanceBetweenPolylines == 2000) {
+                    adjustment = 2350;
+                }
+                else if (distanceBetweenPolylines == 2050) {
+                    adjustment = 2400;
+                }
+                else if (distanceBetweenPolylines == 2100) {
+                    adjustment = 2450;
+                }
+                else {
+                    adjustment = 150; // Default case for any unexpected distance value
+                }
+
+                adjustment -= 350;
+
+                //if (!isInnerCorner) {
+                //    // Flip the adjustment for outside corners
+                //    adjustment = -adjustment;
+                //}
+
+                start += direction * adjustment;
+
+            }
+
+
+            if (!isAdjacentConvex) {
+                acutPrintf(_T("\nnot AdjacentConvex"));
+                if (distanceBetweenPolylines == 150) {
+                    end -= direction * 50;
+                }
+                else {
+                    acutPrintf(_T("\nnot AdjacentConvex ELSE"));
+                    end -= direction * 0;
                 }
             }
+            else {
+                // Using the provided table for outer loop adjustments
+
+                acutPrintf(_T("\n!!!!AdjacentConvex"));
+                acutPrintf(_T("\ndistanceBetweenPolylines %f"), distanceBetweenPolylines);
+                if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
+                    adjustment = 500;
+                }
+                else if (distanceBetweenPolylines == 250) {
+                    adjustment = 600;
+                }
+                else if (distanceBetweenPolylines == 300) {
+                    adjustment = 650;
+                }
+                else if (distanceBetweenPolylines == 350) {
+                    acutPrintf(_T("\n350 poly"));
+                    adjustment = 700;
+                }
+                else if (distanceBetweenPolylines == 400) {
+                    adjustment = 750;
+                }
+                else if (distanceBetweenPolylines == 450) {
+                    adjustment = 800;
+                }
+                else if (distanceBetweenPolylines == 500) {
+                    adjustment = 850;
+                }
+                else if (distanceBetweenPolylines == 550) {
+                    adjustment = 900;
+                }
+                else if (distanceBetweenPolylines == 600) {
+                    adjustment = 950;
+                }
+                else if (distanceBetweenPolylines == 650) {
+                    adjustment = 1000;
+                }
+                else if (distanceBetweenPolylines == 700) {
+                    adjustment = 1050;
+                }
+                else if (distanceBetweenPolylines == 750) {
+                    adjustment = 1100;
+                }
+                else if (distanceBetweenPolylines == 800) {
+                    adjustment = 1150;
+                }
+                else if (distanceBetweenPolylines == 850) {
+                    adjustment = 1200;
+                }
+                else if (distanceBetweenPolylines == 900) {
+                    adjustment = 1250;
+                }
+                else if (distanceBetweenPolylines == 950) {
+                    adjustment = 1300;
+                }
+                else if (distanceBetweenPolylines == 1000) {
+                    adjustment = 1350;
+                }
+                else if (distanceBetweenPolylines == 1050) {
+                    adjustment = 1400;
+                }
+                else if (distanceBetweenPolylines == 1100) {
+                    adjustment = 1450;
+                }
+                else if (distanceBetweenPolylines == 1150) {
+                    adjustment = 1500;
+                }
+                else if (distanceBetweenPolylines == 1200) {
+                    adjustment = 1550;
+                }
+                else if (distanceBetweenPolylines == 1250) {
+                    adjustment = 1600;
+                }
+                else if (distanceBetweenPolylines == 1300) {
+                    adjustment = 1650;
+                }
+                else if (distanceBetweenPolylines == 1350) {
+                    adjustment = 1700;
+                }
+                else if (distanceBetweenPolylines == 1400) {
+                    adjustment = 1750;
+                }
+                else if (distanceBetweenPolylines == 1450) {
+                    adjustment = 1800;
+                }
+                else if (distanceBetweenPolylines == 1500) {
+                    adjustment = 1850;
+                }
+                else if (distanceBetweenPolylines == 1550) {
+                    adjustment = 1900;
+                }
+                else if (distanceBetweenPolylines == 1600) {
+                    adjustment = 1950;
+                }
+                else if (distanceBetweenPolylines == 1650) {
+                    adjustment = 2000;
+                }
+                else if (distanceBetweenPolylines == 1700) {
+                    adjustment = 2050;
+                }
+                else if (distanceBetweenPolylines == 1750) {
+                    adjustment = 2100;
+                }
+                else if (distanceBetweenPolylines == 1800) {
+                    adjustment = 2150;
+                }
+                else if (distanceBetweenPolylines == 1850) {
+                    adjustment = 2200;
+                }
+                else if (distanceBetweenPolylines == 1900) {
+                    adjustment = 2250;
+                }
+                else if (distanceBetweenPolylines == 1950) {
+                    adjustment = 2300;
+                }
+                else if (distanceBetweenPolylines == 2000) {
+                    adjustment = 2350;
+                }
+                else if (distanceBetweenPolylines == 2050) {
+                    adjustment = 2400;
+                }
+                else if (distanceBetweenPolylines == 2100) {
+                    adjustment = 2450;
+                }
+                else {
+                    adjustment = 150; // Default case for any unexpected distance value
+                }
+
+                adjustment -= 300;
+
+                //if (!isInnerCorner) {
+                //    // Flip the adjustment for outside corners
+                //    adjustment = -adjustment;
+                //}
+
+                acutPrintf(_T("\nEnd: %f and %f"), end.x, end.y);
+                end -= direction * adjustment;
+            }
+
+
+
+
+            //        adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
+            //    }
+            //}
 
             double distance = start.distanceTo(end) - 500;
             AcGePoint3d currentPoint = start + direction * 250;

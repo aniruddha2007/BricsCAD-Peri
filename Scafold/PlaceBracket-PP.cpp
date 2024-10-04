@@ -27,7 +27,7 @@
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, PlaceBracket::Point3dComparator> PlaceBracket::wallMap;
 
-const int BATCH_SIZE = 30; // Batch size for processing entities
+const int BATCH_SIZE = 1000; // Batch size for processing entities
 
 const double TOLERANCE = 0.1; // Tolerance for comparing angles
 
@@ -291,6 +291,12 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
     }
 
     acedSSFree(ss);
+    //print the block info
+    for (const auto& block : blocksInfo) {
+		acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
+		acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
+		acutPrintf(_T("\nRotation: %f"), block.rotation);
+	}
     return blocksInfo;
 }
 
@@ -319,47 +325,47 @@ AcDbObjectId PlaceBracket::loadAsset(const wchar_t* blockName) {
     return assetId;
 }
 
-// Function to add a text annotation
-void PlaceBracket::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-    AcDbText* pText = new AcDbText();
-    pText->setPosition(position);
-    pText->setHeight(5.0);
-    pText->setTextString(text);
-
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    if (!pDb) {
-        acutPrintf(_T("\nNo working database found."));
-        delete pText;
-        return;
-    }
-
-    AcDbBlockTable* pBlockTable;
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
-        delete pText;
-        return;
-    }
-
-    AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
-        delete pText;
-        return;
-    }
-
-    if (pModelSpace->appendAcDbEntity(pText) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append text."));
-        pModelSpace->close();
-        pBlockTable->close();
-        delete pText;
-        return;
-    }
-
-    pText->close();
-    pModelSpace->close();
-    pBlockTable->close();
-}
+//// Function to add a text annotation
+//void PlaceBracket::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
+//    AcDbText* pText = new AcDbText();
+//    pText->setPosition(position);
+//    pText->setHeight(5.0);
+//    pText->setTextString(text);
+//
+//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+//    if (!pDb) {
+//        acutPrintf(_T("\nNo working database found."));
+//        delete pText;
+//        return;
+//    }
+//
+//    AcDbBlockTable* pBlockTable;
+//    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get block table."));
+//        delete pText;
+//        return;
+//    }
+//
+//    AcDbBlockTableRecord* pModelSpace;
+//    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get model space."));
+//        pBlockTable->close();
+//        delete pText;
+//        return;
+//    }
+//
+//    if (pModelSpace->appendAcDbEntity(pText) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to append text."));
+//        pModelSpace->close();
+//        pBlockTable->close();
+//        delete pText;
+//        return;
+//    }
+//
+//    pText->close();
+//    pModelSpace->close();
+//    pBlockTable->close();
+//}
 
 // Function to place an asset
 void PlaceBracket::placeAsset(const AcGePoint3d& position, const wchar_t* blockName, double rotation, double scale) {
@@ -492,7 +498,7 @@ void PlaceBracket::placeBrackets() {
     int wallHeight = globalVarHeight;
     int panelHeights[] = { 1350, 1200, 600 };
 
-    int numHeights = sizeof(panelHeights) / sizeof(panelHeights[0]);
+    int numHeights = 3;
 
     int maxHeight = 0;
 
@@ -526,7 +532,7 @@ void PlaceBracket::placeBrackets() {
         {50, {L"128287X", L"Null", L"129879X"}}
     };
 
-    int lastPanelLength;
+    int lastPanelLength = 0;
 
     for (const auto& panel : panelSizes) {
         for (const auto& panelId : panel.id) {
@@ -657,8 +663,8 @@ void PlaceBracket::placeBrackets() {
         AcGeMatrix3d rotationMatrixZ;
         AcGePoint3d currentPoint = panel.position;
         AcGePoint3d currentPointPP = panel.position;
-        currentPoint.z += maxHeight;
-        currentPointPP.z += maxHeight;
+        currentPoint.z = maxHeight;
+        currentPointPP.z = maxHeight;
         switch (static_cast<int>(round(rotation / M_PI_2))) {
         case 0: // 0 degrees TOP
             currentPoint.x += (panel.length - bracketXOffset);

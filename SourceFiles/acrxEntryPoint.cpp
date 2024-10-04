@@ -109,7 +109,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
+        //acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
@@ -184,7 +184,7 @@ public:
 		SpecialCaseCorners::handleSpecialCases();
 	}
 
-    // PlaceConnectors command
+     //PlaceConnectors command
     static void BrxAppPlaceConnectors(void)
     {
         acutPrintf(_T("\nRunning PlaceConnectors."));
@@ -206,7 +206,7 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.h5");
+		PlaceColumn("C:\\Users\\carvalho\\OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\blocks.json");
 	}
 
     //ExtractColumn command
@@ -240,24 +240,24 @@ public:
     }
 
     // DoAll command
-    static void BrxAppDoApp(void)
-    {
-        acutPrintf(_T("\nRunning Peri Automation."));
-        CornerAssetPlacer::placeAssetsAtCorners();
-        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+    //static void BrxAppDoApp(void)
+    //{
+    //    acutPrintf(_T("\nRunning Peri Automation."));
+    //    CornerAssetPlacer::placeAssetsAtCorners();
+    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
-        WallPlacer::placeWalls();
-        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+    //    WallPlacer::placeWalls();
+    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
-        WallPanelConnector::placeConnectors();
-        StackedWallPanelConnectors::placeStackedWallConnectors();
-        Stacked15PanelConnector::place15panelConnectors();
-        WalerConnector::placeConnectors();
-        std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
+    //    WallPanelConnector::placeConnectors();
+    //    StackedWallPanelConnectors::placeStackedWallConnectors();
+    //    Stacked15PanelConnector::place15panelConnectors();
+    //    WalerConnector::placeConnectors();
+    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
 
-        TiePlacer::placeTies();
-        acutPrintf(_T("\nPeri Automation completed."));
-    }
+    //    TiePlacer::placeTies();
+    //    acutPrintf(_T("\nPeri Automation completed."));
+    //}
 
     // ListCMDS command
     static void BrxListCMDS(void)

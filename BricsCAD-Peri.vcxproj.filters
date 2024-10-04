@@ -7,21 +7,22 @@
     <ClCompile Include="SourceFiles\StdAfx.cpp" />
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
-    <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
     <ClCompile Include="AssetPlacer\GeometryUtils.cpp" />
     <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="DefineScale.cpp" />
     <ClCompile Include="SettingsCommands.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
-    <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
     <ClCompile Include="SharedDefinations.cpp" />
-    <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
     <ClCompile Include="Timber\TimberAssetCreator.cpp" />
     <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
-    <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
     <ClCompile Include="Scafold\PlaceBracket-PP.cpp" />
-    <ClCompile Include="Columns\ExtractColumn.cpp" />
+    <ClCompile Include="AssetPlacer\SharedConfigs.cpp" />
     <ClCompile Include="Columns\PlaceColumn.cpp" />
+    <ClCompile Include="Columns\ExtractColumn.cpp" />
+    <ClCompile Include="WallPanelConnectors\Stacked15PanelConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
+    <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -29,21 +30,22 @@
     <ClInclude Include="SourceFiles\StdAfx.h" />
     <ClInclude Include="AssetPlacer\WallAssetPlacer.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
-    <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
     <ClInclude Include="SharedDefinations.h" />
     <ClInclude Include="AssetPlacer\GeometryUtils.h" />
     <ClInclude Include="DefineHeight.h" />
     <ClInclude Include="DefineScale.h" />
     <ClInclude Include="SettingsCommands.h" />
     <ClInclude Include="Tie\TiePlacer.h" />
-    <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
-    <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
     <ClInclude Include="Timber\TimberAssetCreator.h" />
     <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
-    <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
     <ClInclude Include="Scafold\PlaceBracket-PP.h" />
+    <ClInclude Include="AssetPlacer\SharedConfigs.h" />
     <ClInclude Include="Columns\ExtractColumn.h" />
     <ClInclude Include="Columns\PlaceColumn.h" />
+    <ClInclude Include="WallPanelConnectors\Stacked15PanelConnector.h" />
+    <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
+    <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
+    <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

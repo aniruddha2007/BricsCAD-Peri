@@ -690,7 +690,6 @@ std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::ve
     return cornerConfigs;
 }
 
-
 // Function to check if a double value is an integer within a tolerance
 bool isItInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
@@ -1138,7 +1137,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
         double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
 
-        if (crossProductZ > 0) {
+        if (crossProductZ < 0) {
             // Convex corner
             //acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to convex corners here if needed
@@ -1154,10 +1153,11 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             //acutPrintf(_T("\nConcave corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to concave corners here if needed
             if (!isInside) {
-                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
+                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
             }
             else {
-                placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
+                
             }
         }
 
