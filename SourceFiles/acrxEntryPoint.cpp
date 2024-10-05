@@ -34,10 +34,66 @@
 #include "Columns/ExtractColumn.h"
 #include "AssetPlacer/SpecialCaseCorners.h"
 #include "Scafold/PlaceBracket-PP.h"
-//#include <openssl/sha.h>
+#include <openssl/sha.h>
+#include <wininet.h>
 
 
 #pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Wininet.lib")
+
+// Function to compute the hash of the license file content
+std::string hashFileContent(const std::string& content) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(content.c_str()), content.size(), hash);
+
+    // Convert hash to a readable string
+    std::string fileHash;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
+        char buf[3];
+        sprintf(buf, "%02x", hash[i]);
+        fileHash += buf;
+    }
+    return fileHash;
+}
+
+// Function to verify the license file
+bool verifyLicenseFile(const std::string& filePath) {
+    const std::string expectedHash = "c26a715d9349ff25fb13ee5100f3c090f382782b24f279f6f43514419d84ddfc";
+
+    // Open and read the license file
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) {
+        acutPrintf(_T("\nLicense file not found: %s"), filePath.c_str());
+        return false;
+    }
+
+    std::string fileContents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    // Compute the hash of the file contents
+    std::string fileHash = hashFileContent(fileContents);
+
+    // Compare the file hash with the expected hash
+    return fileHash == expectedHash;
+}
+
+bool isTimezoneTaiwan() {
+    TIME_ZONE_INFORMATION tzInfo;
+    DWORD result = GetTimeZoneInformation(&tzInfo);
+
+    if (result == TIME_ZONE_ID_INVALID) {
+        acutPrintf(_T("Failed to verify a genuine copy."));
+        return false;
+    }
+
+    // Check if the timezone name is Taiwan's "Taipei Standard Time" (CST)
+    std::wstring timezoneName = tzInfo.StandardName;
+
+    if (timezoneName == L"Taipei Standard Time") {
+        return true;
+    }
+
+    return false;
+}
 
 class CBrxApp : public AcRxArxApp
 {
@@ -46,55 +102,31 @@ public:
 
     virtual void RegisterServerComponents() {}
 
-    //// Function to compute the hash of the file content
-    //std::string hashFileContent(const std::string& content) {
-    //    unsigned char hash[SHA256_DIGEST_LENGTH];
-    //    SHA256(reinterpret_cast<const unsigned char*>(content.c_str()), content.size(), hash);
-
-    //    // Convert hash to string for comparison
-    //    std::string fileHash;
-    //    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
-    //        char buf[3];
-    //        sprintf(buf, "%02x", hash[i]);
-    //        fileHash += buf;
-    //    }
-    //    return fileHash;
-    //}
-
-    //// Function to verify the license file
-    //bool verifyLicenseFile(const std::string& filePath) {
-    //    const std::string expectedHash = "c26a715d9349ff25fb13ee5100f3c090f382782b24f279f6f43514419d84ddfc";
-
-    //    // Open and read the license file
-    //    std::ifstream file(filePath, std::ios::binary);
-    //    if (!file.is_open()) {
-    //        acutPrintf(_T("\nLicense file not found: %s"), filePath.c_str());
-    //        return false;
-    //    }
-
-    //    std::string fileContents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-    //    // Compute the hash of the file contents
-    //    std::string fileHash = hashFileContent(fileContents);
-
-    //    // Compare the file hash with the expected hash
-    //    return fileHash == expectedHash;
-    //}
-
     virtual AcRx::AppRetCode On_kInitAppMsg(void* pAppData)
     {
-        //const std::string licenseFilePath = "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\license.apdg";
+        const std::string licenseFilePath = "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\license.apdg";
 
-        //if (!verifyLicenseFile(licenseFilePath)) {
-        //    acutPrintf(_T("\nInvalid or missing license file. Plugin cannot be loaded."));
-        //    return AcRx::kRetError; // Return an error if the license check fails
-        //}
+        //check for valid license file
+        if (!verifyLicenseFile(licenseFilePath)) {
+			acutPrintf(_T("\nInvalid license file, Please contact ani@aniruddhapandit.com ."));
+			return AcRx::kRetError;
+		}
+
+        //check if computer is located in Taiwan
+        if (!isTimezoneTaiwan()) {
+			acutPrintf(_T("\nThis plugin is only authorized to be used in Taiwan by PERI TAIWAN. ."));
+			return AcRx::kRetError;
+		}
+
 
         AcRx::AppRetCode result = AcRxArxApp::On_kInitAppMsg(pAppData);
         acrxRegisterAppMDIAware(pAppData); // is able to work in MDI context
         acrxUnlockApplication(pAppData);   // allows to unload the module during session
 
         // Place your initialization code and base info here
+        acutPrintf(_T("\nLoading PERICAD plugin..."));
+        acutPrintf(_T("\nVersion: 1.0.0"));
+        acutPrintf(_T("\n License file verified successfully for PERI TAIWAN."));
         acutPrintf(_T("\nWelcome to PERICAD plugin developed for BRICSCAD V24 by Ani."));
         acutPrintf(_T("\nType 'ListCmds' to see the available commands."));
         acutPrintf(_T("\nFor more information please contact ani@aniruddhapandit.com\n"));
@@ -206,7 +238,7 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		PlaceColumn("C:\\Users\\carvalho\\OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\blocks.json");
+		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
 	}
 
     //ExtractColumn command

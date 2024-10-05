@@ -112,7 +112,7 @@ bool isCornerConvex(const AcGePoint3d& prev, const AcGePoint3d& current, const A
 
 //Detect polylines
 std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
-    acutPrintf(_T("\nDetecting polylines..."));
+    //acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
     wallMap.clear();  // Clear previous data
 
@@ -161,7 +161,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
             entityCount++;
 
             if (entityCount % BATCH_SIZE == 0) {
-                acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                //acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
                 std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
             }
         }
@@ -174,7 +174,7 @@ std::vector<AcGePoint3d> WallPlacer::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
 
 }
@@ -513,7 +513,7 @@ void WallPlacer::placeWalls() {
         else if (tempSawToothIndex.size() == 2)
         {
             if (loopIndex != outerLoopIndexValue) {
-                acutPrintf(_T("\nFound a tooth?"));
+                //acutPrintf(_T("\nFound a tooth?"));
                 //AcGeVector3d rotatedDirection = rotateVector(direction, -M_PI);
                 corners[tempSawToothIndex[0]] -= direction * 35;
                 //rotatedDirection = rotateVector(direction, M_PI_2);
@@ -559,7 +559,7 @@ void WallPlacer::placeWalls() {
         AcGePoint3d end = corners[cornerNum + 1];
         if (cornerNum == 0) {
 			first_start = start;
-            acutPrintf(_T("\nFirst Start: %f, %f"), first_start.x, first_start.y);
+            //acutPrintf(_T("\nFirst Start: %f, %f"), first_start.x, first_start.y);
 		}
 
         AcGeVector3d direction = (end - start).normal();
@@ -622,7 +622,7 @@ void WallPlacer::placeWalls() {
 
             if (isConvex) {
                 // Flag previous and next corners as adjacent to a convex corner
-                acutPrintf(_T("\nConvex"));
+                //acutPrintf(_T("\nConvex"));
                 size_t prevIndex = (cornerNum + corners.size() - 1) % corners.size();
                 size_t nextIndex = (cornerNum + 1) % corners.size();
 
@@ -631,7 +631,7 @@ void WallPlacer::placeWalls() {
                 //isAdjacentConcave = false;  // Reset any concave flag if the previous corner was marked incorrectly
             }
             else if (isConcave) {
-                acutPrintf(_T("\nConcave"));
+                //acutPrintf(_T("\nConcave"));
                 //isAdjacentConvex = false;  // Reset any convex flag if the previous corner was marked incorrectly
                 // Flagging adjacent corners as adjacent to concave is not needed in this approach
             }
@@ -802,20 +802,20 @@ void WallPlacer::placeWalls() {
 
 
             if (!isAdjacentConvex) {
-                acutPrintf(_T("\nnot AdjacentConvex"));
+                //acutPrintf(_T("\nnot AdjacentConvex"));
                 if (distanceBetweenPolylines == 150) {
                     end -= direction * 300;
                 }
                 else {
-                    acutPrintf(_T("\nnot AdjacentConvex ELSE"));
+                    //acutPrintf(_T("\nnot AdjacentConvex ELSE"));
                     end -= direction * 250;
                 }
             }
             else {
                 // Using the provided table for outer loop adjustments
 
-                acutPrintf(_T("\n!!!!AdjacentConvex"));
-                acutPrintf(_T("\ndistanceBetweenPolylines %f"), distanceBetweenPolylines);
+                //acutPrintf(_T("\n!!!!AdjacentConvex"));
+                //acutPrintf(_T("\ndistanceBetweenPolylines %f"), distanceBetweenPolylines);
                 if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
                     adjustment = 550;
                 }
@@ -826,7 +826,6 @@ void WallPlacer::placeWalls() {
                     adjustment = 650;
                 }
                 else if (distanceBetweenPolylines == 350) {
-                    acutPrintf(_T("\n350 poly"));
                     adjustment = 700;
                 }
                 else if (distanceBetweenPolylines == 400) {
@@ -945,7 +944,7 @@ void WallPlacer::placeWalls() {
                 //    adjustment = -adjustment;
                 //}
 
-                acutPrintf(_T("\nEnd: %f and %f"), end.x, end.y);
+                //acutPrintf(_T("\nEnd: %f and %f"), end.x, end.y);
                 end -= direction * adjustment;
             }
 
@@ -970,7 +969,7 @@ void WallPlacer::placeWalls() {
 
 
             double distance = start.distanceTo(end);
-            acutPrintf(_T("\nDistance: %f"), distance);
+            //acutPrintf(_T("\nDistance: %f"), distance);
             AcGePoint3d currentPoint = start;
 
             double rotation = atan2(direction.y, direction.x);

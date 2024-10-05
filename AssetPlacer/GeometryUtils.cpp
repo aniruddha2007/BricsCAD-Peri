@@ -443,15 +443,15 @@ bool isPolylineClockwise(const std::vector<AcGePoint3d>& points) {
     }
 
     if (sum > tolerance) {
-        acutPrintf(_T("\nPolyline is Clockwise\n"));
+        //acutPrintf(_T("\nPolyline is Clockwise\n"));
         return true;
     }
     else if (sum < -tolerance) {
-        acutPrintf(_T("\nPolyline is Counterclockwise\n"));
+        //acutPrintf(_T("\nPolyline is Counterclockwise\n"));
         return false;
     }
     else {
-        acutPrintf(_T("\nPolyline is nearly collinear\n"));
+        //acutPrintf(_T("\nPolyline is nearly collinear\n"));
         return false; // Handle as needed
     }
 }
@@ -470,26 +470,26 @@ bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t curre
     double crossProductZ = vec1.x * vec2.y - vec1.y * vec2.x;
 
     // Print debug information for each corner
-    acutPrintf(_T("\nCorner %d: Prev(%.2f, %.2f), Current(%.2f, %.2f), Next(%.2f, %.2f)"),
-        currentIndex, polylinePoints[prevIndex].x, polylinePoints[prevIndex].y,
-        polylinePoints[currentIndex].x, polylinePoints[currentIndex].y,
-        polylinePoints[nextIndex].x, polylinePoints[nextIndex].y);
+    //acutPrintf(_T("\nCorner %d: Prev(%.2f, %.2f), Current(%.2f, %.2f), Next(%.2f, %.2f)"),
+        //currentIndex, polylinePoints[prevIndex].x, polylinePoints[prevIndex].y,
+        //polylinePoints[currentIndex].x, polylinePoints[currentIndex].y,
+        //polylinePoints[nextIndex].x, polylinePoints[nextIndex].y);
 
-    acutPrintf(_T("\nVector 1: (%.2f, %.2f), Vector 2: (%.2f, %.2f)"), vec1.x, vec1.y, vec2.x, vec2.y);
-    acutPrintf(_T("\nCross Product Z: %.2f"), crossProductZ);
+   //acutPrintf(_T("\nVector 1: (%.2f, %.2f), Vector 2: (%.2f, %.2f)"), vec1.x, vec1.y, vec2.x, vec2.y);
+   //acutPrintf(_T("\nCross Product Z: %.2f"), crossProductZ);
 
     // Inside/Outside determination based on polyline direction
     bool isInside = isClockwise ? (crossProductZ < 0) : (crossProductZ > 0);
 
     // Print the final determination for this corner
-    acutPrintf(_T("\nCorner %d is %s"), currentIndex, isInside ? "Inside" : "Outside");
+    //acutPrintf(_T("\nCorner %d is %s"), currentIndex, isInside ? "Inside" : "Outside");
 
     return isInside;
 }
 
 void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance) {
     std::vector<AcGePoint3d> filteredVertices;
-    acutPrintf(_T("\nFiltering points with tolerance: %f"), tolerance);
+    //acutPrintf(_T("\nFiltering points with tolerance: %f"), tolerance);
 
     for (size_t i = 0; i < vertices.size(); ++i) {
         // Check if the current vertex is too close to the previous vertex
@@ -497,14 +497,14 @@ void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance) {
             filteredVertices.push_back(vertices[i]);
         }
         else {
-            acutPrintf(_T("\nSkipping vertex at (%f, %f, %f) due to proximity to the previous vertex"),
-                vertices[i].x, vertices[i].y, vertices[i].z);
+            //acutPrintf(_T("\nSkipping vertex at (%f, %f, %f) due to proximity to the previous vertex"),
+                //vertices[i].x, vertices[i].y, vertices[i].z);
         }
     }
 
     // Handle case where the last vertex might be too close to the first one (for closed polylines)
     if (filteredVertices.size() > 1 && filteredVertices.back().distanceTo(filteredVertices.front()) <= tolerance) {
-        acutPrintf(_T("\nSkipping last vertex due to proximity to the first vertex"));
+        //acutPrintf(_T("\nSkipping last vertex due to proximity to the first vertex"));
         filteredVertices.pop_back();
     }
 

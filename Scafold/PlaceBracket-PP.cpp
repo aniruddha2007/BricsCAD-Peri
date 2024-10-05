@@ -37,7 +37,7 @@ bool isIntegerPp(double value, double tolerance = 1e-9) {
 
 //Detect polylines
 std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
-    acutPrintf(_T("\nDetecting polylines..."));
+    //acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
     wallMap.clear();  // Clear previous data
 
@@ -99,7 +99,7 @@ std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
 
 }
@@ -292,11 +292,11 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
 
     acedSSFree(ss);
     //print the block info
-    for (const auto& block : blocksInfo) {
-		acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
-		acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
-		acutPrintf(_T("\nRotation: %f"), block.rotation);
-	}
+ //   for (const auto& block : blocksInfo) {
+	//	acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
+	//	acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
+	//	acutPrintf(_T("\nRotation: %f"), block.rotation);
+	//}
     return blocksInfo;
 }
 
@@ -467,11 +467,11 @@ void PlaceBracket::placeBrackets() {
     std::wstring id;
 
     for (const auto& panel : blocksInfo) {
-            acutPrintf(_T("\n name %s"), panel.blockName);
-            acutPrintf(_T("\n rotation %f"), panel.rotation);
-            acutPrintf(_T("\n position x %f"), panel.position.x);
-            acutPrintf(_T("\n position y %f"), panel.position.y);
-            acutPrintf(_T("\n position z %f"), panel.position.z);
+            //acutPrintf(_T("\n name %s"), panel.blockName);
+            //acutPrintf(_T("\n rotation %f"), panel.rotation);
+            //acutPrintf(_T("\n position x %f"), panel.position.x);
+            //acutPrintf(_T("\n position y %f"), panel.position.y);
+            //acutPrintf(_T("\n position z %f"), panel.position.z);
             if (i == 0) {
                 start = panel.position;
                 rotation = panel.rotation;
@@ -514,7 +514,7 @@ void PlaceBracket::placeBrackets() {
             maxHeight = currentHeight;
         }
     }
-    acutPrintf(_T("\n maxHeight %d"), maxHeight);
+    //acutPrintf(_T("\n maxHeight %d"), maxHeight);
     
 
     // Structure to hold panel information
@@ -542,11 +542,11 @@ void PlaceBracket::placeBrackets() {
         }
     }
 
-    acutPrintf(_T("\n lastPanelLength %d"), lastPanelLength);
+    //acutPrintf(_T("\n lastPanelLength %d"), lastPanelLength);
 
     
     double distance = start.distanceTo(end) + lastPanelLength;
-    acutPrintf(_T("\n distance %f"), distance);
+    //acutPrintf(_T("\n distance %f"), distance);
     AcGePoint3d currentPoint = start;
     double panelLength;
     

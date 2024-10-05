@@ -681,8 +681,8 @@ std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::ve
         }
 
         // Debug output
-        acutPrintf(_T("\nCorner %d: Position: %f, %f, Is Inside: %d, Adjustment: %f"),
-            cornerNum, cornerConfig.position.x, cornerConfig.position.y, cornerConfig.isInside, cornerConfig.outsideCornerAdjustment);
+        //acutPrintf(_T("\nCorner %d: Position: %f, %f, Is Inside: %d, Adjustment: %f"),
+        //    cornerNum, cornerConfig.position.x, cornerConfig.position.y, cornerConfig.isInside, cornerConfig.outsideCornerAdjustment);
 
         cornerConfigs.push_back(cornerConfig);
     }
@@ -737,7 +737,7 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
 }
 
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
-    acutPrintf(_T("\nDetecting polylines..."));
+    //acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
     wallMap.clear();  // Clear previous data
 
@@ -783,7 +783,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
             entityCount++;
 
             if (entityCount % BATCH_SIZE == 0) {
-                acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
+                //acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Adjusted sleep time for potentially better performance
             }
         }
@@ -801,7 +801,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
     return corners;
 }
 

@@ -5,11 +5,14 @@
 #include <dbsymtb.h>
 #include <dbapserv.h>
 #include <aced.h>
-#include <hdf5.h>
+#include <nlohmann/json.hpp> // Include nlohmann JSON header
+#include <fstream>
 #include <string>
 #include <vector>
 #include <locale>
 #include <codecvt>
+
+using json = nlohmann::json;
 
 void ExtractColumn()
 {
@@ -58,39 +61,12 @@ void ExtractColumn()
         return;
     }
 
-    // Prepare HDF5 file
-    hid_t file_id, group_id, dataset_id, dataspace_id;
-    herr_t status;
-
-    // Open or create the HDF5 file
-    file_id = H5Fopen("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.h5", H5F_ACC_RDWR, H5P_DEFAULT);
-
-    if (file_id < 0) {
-        file_id = H5Fcreate("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\columns.h5", H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-        if (file_id < 0) {
-            acutPrintf(_T("\nFailed to create HDF5 file."));
-            delete pIter;
-            pModelSpace->close();
-            pBlockTable->close();
-            return;
-        }
-    }
-
-    // Create or open a group for the column
-    std::string groupName = "/columns/" + columnNameStr + "_" + std::to_string(columnHeight);
-    group_id = H5Gcreate2(file_id, groupName.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    if (group_id < 0) {
-        acutPrintf(_T("\nFailed to create group in HDF5 file."));
-        H5Fclose(file_id);
-        delete pIter;
-        pModelSpace->close();
-        pBlockTable->close();
-        return;
-    }
+    json columnJson; // JSON object to store the column data
+    columnJson["blockname"] = columnNameStr;
+    columnJson["height"] = columnHeight;  // Store the height information in JSON
+    columnJson["blocks"] = json::array();
 
     // Iterate through model space and extract block data
-    std::vector<std::vector<double>> blockDataList;
-
     for (pIter->start(); !pIter->done(); pIter->step())
     {
         AcDbEntity* pEntity;
@@ -111,19 +87,27 @@ void ExtractColumn()
             AcString blockName;
             pBlockDef->getName(blockName);
 
+            // Convert AcString to std::string
+            std::string blockNameStr;
+#ifdef UNICODE
+            blockNameStr = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(blockName.kwszPtr());
+#else
+            blockNameStr = blockName.kACharPtr(); // Direct conversion for ANSI builds
+#endif
+
             // Get position, rotation, and scale
             AcGePoint3d position = pBlockRef->position();
             double rotation = pBlockRef->rotation();
             AcGeScale3d scale = pBlockRef->scaleFactors();
 
-            // Store block data in vector for HDF5 writing
-            std::vector<double> blockData = {
-                position.x, position.y, position.z,
-                rotation,
-                scale.sx, scale.sy, scale.sz
-            };
+            // Create JSON object for the block
+            json blockData;
+            blockData["name"] = blockNameStr;
+            blockData["position"] = { {"x", position.x}, {"y", position.y}, {"z", position.z} };
+            blockData["rotation"] = rotation;
+            blockData["scale"] = { {"x", scale.sx}, {"y", scale.sy}, {"z", scale.sz} };
 
-            blockDataList.push_back(blockData);
+            columnJson["blocks"].push_back(blockData);
 
             pBlockDef->close();
         }
@@ -131,30 +115,34 @@ void ExtractColumn()
         pEntity->close();
     }
 
-    // Create dataspace for dataset
-    hsize_t dims[2] = { blockDataList.size(), 7 };
-    dataspace_id = H5Screate_simple(2, dims, NULL);
-
-    // Write each block as a separate dataset in the group
-    for (size_t i = 0; i < blockDataList.size(); ++i) {
-        std::string datasetName = "block_" + std::to_string(i);
-        dataset_id = H5Dcreate2(group_id, datasetName.c_str(), H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-        if (dataset_id >= 0) {
-            // Write the block data to the dataset
-            status = H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, blockDataList[i].data());
-            H5Dclose(dataset_id);
-        }
-    }
-
-    // Close resources
-    H5Sclose(dataspace_id);
-    H5Gclose(group_id);
-    H5Fclose(file_id);
-
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
 
-    acutPrintf(_T("\nColumn data saved successfully to HDF5."));
+    // Load the existing JSON file or create a new one
+    std::ifstream inFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+    json blocksJson;
+    if (inFile.is_open()) {
+        acutPrintf(_T("\nJSON file opened successfully."));
+        inFile >> blocksJson;
+        inFile.close();
+    }
+    else {
+        acutPrintf(_T("\nJSON file not found, creating a new one."));
+    }
+
+    // Append the new column data to the existing JSON structure
+    blocksJson["columns"].push_back(columnJson);
+
+    // Save the updated JSON structure back to the file
+    std::ofstream outFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+    if (outFile.is_open()) {
+        outFile << blocksJson.dump(4); // Write with 4-space indentation
+        outFile.close();
+        acutPrintf(_T("\nColumn data saved successfully."));
+    }
+    else {
+        acutPrintf(_T("\nFailed to open the JSON file for writing."));
+    }
 }
+
