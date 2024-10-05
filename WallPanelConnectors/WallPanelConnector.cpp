@@ -22,13 +22,15 @@ const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
 // List of panels with three connectors
 const std::vector<std::wstring> panelsWithThreeConnectors = {
     ASSET_128285, ASSET_128280, ASSET_128283,
-    ASSET_128281, ASSET_128284, ASSET_128282
+    ASSET_128281, ASSET_128284, ASSET_128282,
+    ASSET_128286
 };
 
 // List of panels with two connectors
 const std::vector<std::wstring> panelsWithTwoConnectors = {
     ASSET_129840, ASSET_129838, ASSET_129842,
-    ASSET_129841, ASSET_129839, ASSET_129837
+    ASSET_129841, ASSET_129839, ASSET_129837,
+    ASSET_129864
 };
 
 // GET WALL PANEL POSITIONS
@@ -98,6 +100,29 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
     return positions;
 }
 
+// Function to adjust connector position based on rotation and offsets
+void adjustConnectorPosition(AcGePoint3d& connectorPos, double panelRotation, double xOffset, double yOffset) {
+    //0 degrees
+    if (fabs(panelRotation - 0.0) < TOLERANCE) {
+        connectorPos.x += xOffset;
+        //connectorPos.y += yOffset;
+    }
+    //90 degrees
+    else if (fabs(panelRotation - M_PI_2) < TOLERANCE) {
+        //connectorPos.x += xOffset;
+        connectorPos.y += yOffset;
+    }
+    //180 degrees
+    else if (fabs(panelRotation - M_PI) < TOLERANCE) {
+        connectorPos.x -= xOffset;
+    }
+    //270 degrees
+    else if (fabs(panelRotation - 3 * M_PI_2) < TOLERANCE) {
+        //connectorPos.x -= xOffset;
+        connectorPos.y -= yOffset;
+    }
+}
+
 // CALCULATE CONNECTOR POSITIONS
 std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double>> connectorPositions;
@@ -115,6 +140,11 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
         for (int i = 0; i < connectorCount; ++i) {
             AcGePoint3d connectorPos = pos;
             connectorPos.z += zOffsets[i];
+
+            if (panelName == ASSET_128286) {
+                // Apply the offset adjustments based on rotation
+                adjustConnectorPosition(connectorPos, panelRotation, 100.0, 100.0);
+            }
 
             // Adjust positions based on the rotation and apply the Y-axis offset
             switch (static_cast<int>(round(panelRotation / M_PI_2))) {
