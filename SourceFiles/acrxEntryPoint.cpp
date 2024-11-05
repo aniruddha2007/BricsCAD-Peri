@@ -26,6 +26,7 @@
 #include "WallPanelConnectors/StackedWallPanelConnector.h" // Include the header for the StackedWallPanelConnector class
 #include "WallPanelConnectors/Stacked15PanelConnector.h"   // Include the header for the Stacked15PanelConnector class
 #include "WallPanelConnectors/WalerConnector.h"     // Include the header for the WalerConnector class
+#include "Props/props.h"
 #include "Tie/TiePlacer.h" 				            // Include the header for the TiePlacer class
 #include "DefineHeight.h"                           // Include the header for the DefineHeight class
 #include "DefineScale.h"                            // Include the header for the DefineScale class
@@ -95,29 +96,31 @@ bool isTimezoneTaiwan() {
     return false;
 }
 
+
 class CBrxApp : public AcRxArxApp
 {
 public:
     CBrxApp() : AcRxArxApp() {}
 
+    const std::string LICENSE_FILE_NAME = "license.apdg";
+
     virtual void RegisterServerComponents() {}
 
     virtual AcRx::AppRetCode On_kInitAppMsg(void* pAppData)
     {
-        const std::string licenseFilePath = "C:\\Users\\aniru\\OneDrive\\Desktop\\work\\license.apdg";
+		//add license file verification here
+        // Get the current working directory
+        char currentDir[MAX_PATH];
+        GetCurrentDirectoryA(MAX_PATH, currentDir);
 
-        //check for valid license file
-        if (!verifyLicenseFile(licenseFilePath)) {
-			acutPrintf(_T("\nInvalid license file, Please contact ani@aniruddhapandit.com ."));
-			return AcRx::kRetError;
-		}
+        // Construct the full path for the license file
+        std::string licenseFilePath = std::string(currentDir) + "\\" + LICENSE_FILE_NAME;
 
-        //check if computer is located in Taiwan
-        if (!isTimezoneTaiwan()) {
-			acutPrintf(_T("\nThis plugin is only authorized to be used in Taiwan by PERI TAIWAN. ."));
-			return AcRx::kRetError;
-		}
-
+        // Verify the license file using the constructed path
+        //if (!verifyLicenseFile(licenseFilePath)) {
+        //    acutPrintf(_T("\nLicense verification failed. Exiting application."));
+        //    return AcRx::kRetError; // Return an error if the verification fails
+        //}
 
         AcRx::AppRetCode result = AcRxArxApp::On_kInitAppMsg(pAppData);
         acrxRegisterAppMDIAware(pAppData); // is able to work in MDI context
@@ -141,12 +144,12 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineHeight"), _T("DefineHeight"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineHeight(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("DoAll"), _T("DoAll"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDoApp(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
-
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceProps"), _T("PlaceProps"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlacePushPullProps(); });
+      
         BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
         return result;
@@ -186,6 +189,13 @@ public:
 		acutPrintf(_T("\nRunning PlaceBrackets."));
         PlaceBracket::placeBrackets();
 	}
+
+    // PlaceBrackets command
+    static void BrxAppPlacePushPullProps(void)
+    {
+        acutPrintf(_T("\nRunning PlaceProps."));
+        PlaceProps::placeProps();
+    }
 
     // PlaceCorners command
     static void BrxAppPlaceCorners(void)
@@ -238,7 +248,8 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+        PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+		//PlaceColumn("C:\\Users\\carvalho\\OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\blocks.json");
 	}
 
     //ExtractColumn command

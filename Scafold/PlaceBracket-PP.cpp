@@ -120,11 +120,18 @@ bool directionOfDrawingPp(std::vector<AcGePoint3d>& points) {
         totalTurns += crossProductPp(points[i - 1], points[i], points[i + 1]);
     }
 
+    // If totalTurns is negative, the shape is drawn clockwise
     if (totalTurns < 0) {
-        return true;
+        return true;  // Clockwise
     }
+    // If totalTurns is positive, the shape is drawn counterclockwise
     else if (totalTurns > 0) {
-        return false;
+        return false; // Counterclockwise
+    }
+    // Handle the case where totalTurns is zero (indicating an undefined direction)
+    else {
+        acutPrintf(_T("Warning: The shape does not have a defined direction. Defaulting to clockwise.\n"));
+        return true;  // Default to clockwise if direction cannot be determined
     }
 }
 
@@ -437,7 +444,7 @@ void PlaceBracket::placeBrackets() {
             if (cornerNum < corners.size() - 1) {
                 closeLoopCounter = -1;
                 loopIndex = 1;
-                firstLoopEnd = cornerNum;
+                firstLoopEnd = static_cast<int>(cornerNum);
             }
         }
     }
@@ -598,7 +605,7 @@ void PlaceBracket::placeBrackets() {
             double panelLength = wallPanels[panelPosition].length;
 
             // Calculate the center index in wallPanels
-            int centerIndex = wallPanels.size() / 2;
+            int centerIndex = static_cast<int>(wallPanels.size() / 2);
 
             // Get positions of centerIndex and detectedPanel
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;

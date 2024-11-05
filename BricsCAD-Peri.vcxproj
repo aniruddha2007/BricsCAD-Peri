@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="PERI|x64">
+      <Configuration>PERI</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
@@ -20,6 +24,7 @@
     <ClCompile Include="Columns\PlaceColumn.cpp" />
     <ClCompile Include="DefineHeight.cpp" />
     <ClCompile Include="DefineScale.cpp" />
+    <ClCompile Include="Props\Props.cpp" />
     <ClCompile Include="Scafold\PlaceBracket-PP.cpp" />
     <ClCompile Include="SettingsCommands.cpp" />
     <ClCompile Include="SourceFiles\acrxEntryPoint.cpp" />
@@ -27,6 +32,7 @@
     <ClCompile Include="SourceFiles\StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='PERI|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="AssetPlacer\WallAssetPlacer.cpp" />
     <ClCompile Include="Tie\TiePlacer.cpp" />
@@ -47,6 +53,7 @@
     <ClInclude Include="Columns\PlaceColumn.h" />
     <ClInclude Include="DefineHeight.h" />
     <ClInclude Include="DefineScale.h" />
+    <ClInclude Include="Props\Props.h" />
     <ClInclude Include="Scafold\PlaceBracket-PP.h" />
     <ClInclude Include="SettingsCommands.h" />
     <ClInclude Include="SharedDefinations.h" />
@@ -73,6 +80,9 @@
     <None Include="packages.config" />
     <None Include="README.md" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="config.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1FB87889-FE0E-44BB-879F-1509EA785744}</ProjectGuid>
     <RootNamespace>BricsCAD_Peri</RootNamespace>
@@ -94,6 +104,14 @@
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PERI|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -103,12 +121,21 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='PERI|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)\$(Configuration)\$(Platform)\</OutDir>
+    <IntDir>$(Configuration)\$(Platform)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+    <LibraryPath>"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib";$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PERI|x64'">
     <OutDir>$(SolutionDir)\$(Configuration)\$(Platform)\</OutDir>
     <IntDir>$(Configuration)\$(Platform)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
@@ -153,6 +180,39 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>false</FunctionLevelLinking>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>
+      </SDLCheck>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>./;$(BRX24_SDK_PATH)/inc$(PlatformArchitecture);$(BRX24_SDK_PATH)/inc;C:\Program Files\OpenSSL-Win64\include;C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions>BRX_APP;__BRXTARGET=24;_AFXEXT;NDEBUG;H5_BUILT_AS_DYNAMIC_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAsManaged>false</CompileAsManaged>
+      <StringPooling>true</StringPooling>
+      <DisableSpecificWarnings>4192;</DisableSpecificWarnings>
+      <CompileAsWinRT>false</CompileAsWinRT>
+      <LanguageStandard>Default</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+      <OptimizeReferences>false</OptimizeReferences>
+      <SubSystem>Windows</SubSystem>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <AdditionalLibraryDirectories>$(BRX24_SDK_PATH)/lib$(PlatformArchitecture);C:\Program Files\OpenSSL-Win64\lib;C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libssl.lib";"C:\Program Files\OpenSSL-Win64\lib\VC\x64\MTd\libcrypto.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_cpp.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_hl.lib";"C:\Users\aniru\Downloads\hdf5-1.14.4-3-win-vs2022_intel\hdf5\HDF5-1.14.4-win64\lib\hdf5_hl_cpp.lib";%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='PERI|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Full</Optimization>

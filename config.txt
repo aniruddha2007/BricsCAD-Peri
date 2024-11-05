@@ -1,0 +1,2 @@
+license_file_path=C:\Users\carvalho\OneDrive - PERI Group\Documents\AP-PeriCAD-Automation-Tools\license.apdg
+blocks_file_path=C:\Users\aniru\source\repos\BricsCAD-Peri\Release\x64\blocks.json

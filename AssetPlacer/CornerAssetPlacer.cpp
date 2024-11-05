@@ -739,6 +739,8 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     //acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
+	//print all corners numbers with it's coordinates
+
     wallMap.clear();  // Clear previous data
 
     auto pDb = acdbHostApplicationServices()->workingDatabase();
@@ -894,7 +896,7 @@ int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corn
     int loopIndex = 0;
     double outerPointCounter = corners[0].x;
     int outerLoopIndexValue = 0;
-    int firstLoopEnd = corners.size() - 1;
+    int firstLoopEnd = static_cast<int>(corners.size() - 1);
 
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
@@ -911,7 +913,7 @@ int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corn
             if (cornerNum < corners.size() - 1) {
                 closeLoopCounter = -1;
                 loopIndex = 1;
-                firstLoopEnd = cornerNum;
+                firstLoopEnd = static_cast<int>(cornerNum);
             }
         }
     }
@@ -1018,6 +1020,11 @@ void CornerAssetPlacer::adjustRotationForCorner(double& rotation, const std::vec
 // Function to place the corner post and panels for an inside corner
 void CornerAssetPlacer::placeAssetsAtCorners() {
     std::vector<AcGePoint3d> corners = detectPolylines();
+
+    //print all corners numbers with it's coordinates
+	for (size_t i = 0; i < corners.size(); ++i) {
+		acutPrintf(_T("\nCorner %d: %f, %f"), i, corners[i].x, corners[i].y);
+	}
 
     if (corners.empty()) {
         acutPrintf(_T("\nNo corners detected."));

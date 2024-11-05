@@ -98,11 +98,6 @@ void PlaceColumn(const std::string& jsonFilePath)
             // Place all blocks associated with this height
             for (const auto& block : blockData["blocks"]) {
                 std::string blockNameStr = block["name"];
-                AcGePoint3d blockPos(
-                    block["position"]["x"].get<double>(),
-                    block["position"]["y"].get<double>(),
-                    block["position"]["z"].get<double>()
-                );
                 double blockRotation = block["rotation"];
                 AcGeScale3d blockScale(
                     block["scale"]["x"].get<double>(),
@@ -110,11 +105,7 @@ void PlaceColumn(const std::string& jsonFilePath)
                     block["scale"]["z"].get<double>()
                 );
 
-                // Calculate the final insertion point relative to the user-specified base point
-                AcGePoint3d insertionPoint = basePoint + blockPos.asVector();
-                insertionPoint.z += currentHeight; // Adjust Z for stacking
-
-                // Check if the block name exists in the block table
+                // Retrieve the block definition from the block table
                 AcDbBlockTableRecord* pBlockDef;
 #ifdef UNICODE
                 std::wstring wBlockName = std::wstring(blockNameStr.begin(), blockNameStr.end());
@@ -129,17 +120,31 @@ void PlaceColumn(const std::string& jsonFilePath)
                 }
 #endif
 
+                // Get the block's base point (insertion point within the block definition)
+                AcGePoint3d blockBasePoint;
+                // Correct version:
+                AcGePoint3d originPoint;
+                if (!blockBasePoint.isEqualTo(originPoint)) {
+                    blockBasePoint = originPoint; // Update the base point
+                }
+
+
                 // Create a new block reference
                 AcDbBlockReference* pBlockRef = new AcDbBlockReference();
                 pBlockRef->setBlockTableRecord(pBlockDef->objectId());
-                pBlockRef->setPosition(insertionPoint);
+
+                // Adjust the insertion point relative to the block's base point
+                AcGePoint3d adjustedInsertionPoint = basePoint - blockBasePoint.asVector();
+                adjustedInsertionPoint.z += currentHeight; // Adjust Z for stacking
+
+                pBlockRef->setPosition(adjustedInsertionPoint);
                 pBlockRef->setRotation(blockRotation);
                 pBlockRef->setScaleFactors(blockScale);
 
                 // Add the block reference to model space
                 if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
                     acutPrintf(_T("\nBlock '%s' inserted successfully at (%.2f, %.2f, %.2f)."),
-                        blockNameStr.c_str(), insertionPoint.x, insertionPoint.y, insertionPoint.z);
+                        blockNameStr.c_str(), adjustedInsertionPoint.x, adjustedInsertionPoint.y, adjustedInsertionPoint.z);
                 }
                 else {
                     acutPrintf(_T("\nFailed to insert block '%s'."), blockNameStr.c_str());

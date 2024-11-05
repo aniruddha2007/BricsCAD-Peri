@@ -401,10 +401,10 @@ double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
         double deltaY = vertices2[i].y - vertices1[i].y;
 
         // Check if the absolute values of deltaX and deltaY are the same within a tolerance
-        if (fabs(fabs(deltaX) - fabs(deltaY)) > tolerance) {
-            acutPrintf(_T("\nError: Absolute deltaX and deltaY are not the same. deltaX = %f, deltaY = %f\n"), deltaX, deltaY);
-            return -1.0; // Return an error if they are not the same within the tolerance
-        }
+        //if (fabs(fabs(deltaX) - fabs(deltaY)) > tolerance) {
+        //    acutPrintf(_T("\nError: Absolute deltaX and deltaY are not the same. deltaX = %f, deltaY = %f\n"), deltaX, deltaY);
+        //    return -1.0; // Return an error if they are not the same within the tolerance
+        //}
 
         // If they are the same, return deltaX as an integer
         int deltaXInt = static_cast<int>(fabs(deltaX));

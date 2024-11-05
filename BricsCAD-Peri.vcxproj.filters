@@ -23,6 +23,7 @@
     <ClCompile Include="WallPanelConnectors\StackedWallPanelConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
+    <ClCompile Include="Props\Props.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -46,6 +47,7 @@
     <ClInclude Include="WallPanelConnectors\StackedWallPanelConnector.h" />
     <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
     <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
+    <ClInclude Include="Props\Props.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />
@@ -54,5 +56,8 @@
     <None Include="Menu\AP-Peri_Automation_Tools.cui" />
     <None Include="README.md" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="config.txt" />
   </ItemGroup>
 </Project>

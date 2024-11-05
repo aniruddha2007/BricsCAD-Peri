@@ -322,15 +322,23 @@ bool directionOfDrawing(std::vector<AcGePoint3d>& points) {
 
     double totalTurns = 0.0;
 
+    // Calculate the total turns using cross products
     for (size_t i = 1; i < points.size() - 1; ++i) {
         totalTurns += crossProduct(points[i - 1], points[i], points[i + 1]);
     }
 
+    // If totalTurns is negative, the shape is drawn clockwise
     if (totalTurns < 0) {
-        return true;
+        return true;  // Clockwise
     }
+    // If totalTurns is positive, the shape is drawn counterclockwise
     else if (totalTurns > 0) {
-        return false;
+        return false; // Counterclockwise
+    }
+    // Handle the case where totalTurns is zero (indicating an undefined direction)
+    else {
+        acutPrintf(_T("Warning: The shape does not have a defined direction. Defaulting to clockwise.\n"));
+        return true;  // Default to clockwise if direction cannot be determined
     }
 }
 
@@ -507,8 +515,8 @@ void WallPlacer::placeWalls() {
             }
         }
         if (start.distanceTo(end) < 100) {
-            tempSawToothIndex.push_back(startIndex);
-            tempSawToothIndex.push_back(endIndex);
+            tempSawToothIndex.push_back(static_cast<int>(startIndex));
+            tempSawToothIndex.push_back(static_cast<int>(endIndex));
         }
         else if (tempSawToothIndex.size() == 2)
         {

@@ -134,6 +134,18 @@
           <CLICommand UID="XLS_010_CLI" xlate="true">Help</CLICommand>
         </Macro>
       </MenuMacro>
+      <MenuMacro UID="MMU_011">
+        <Macro type="Any">
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
+          <Name UID="XLS_010" xlate="true">Push Pull Props</Name>
+          <Command>^C^CPlaceProps</Command>
+          <HelpString UID="XLS_010_HELP" xlate="true">Push Pull Props</HelpString>
+          <SmallImage Name="props.png"/>
+          <LargeImage Name="props.png"/>
+          <CLICommand UID="XLS_010_CLI" xlate="true">Push Pull Props</CLICommand>
+        </Macro>
+      </MenuMacro>
     </MacroGroup>
     <MenuRoot>
       <RibbonRoot>
@@ -182,6 +194,10 @@
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_010" UID="RBNU_021">
                 <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Help</TooltipTitle>
                 </RibbonCommandButton>
+              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_019"/>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_010" UID="RBNU_022">
+                <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Push Pull Props</TooltipTitle>
+              </RibbonCommandButton>
             </RibbonRow>
             <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_018"/>
           </RibbonPanelSource>
