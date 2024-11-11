@@ -1,32 +1,34 @@
 // Purpose: Implementation of the Props functions.
 #include "StdAfx.h"
-#include "Props.h"
-#include "SharedDefinations.h"
-#include "AssetPlacer/GeometryUtils.h"
 #include <vector>
-#include <map>
 #include <set>
 #include <cmath>
 #include <limits>
 #include <chrono>
 #include <thread>
+#include <dbapserv.h>
+#include <acutads.h>
+#include <fstream> // For file handling
+#include <iostream> // For console output
+#include <map>
+#include "Props.h"
+#include "SharedDefinations.h"
+#include "AssetPlacer/GeometryUtils.h"
 #include "dbapserv.h"
 #include "dbents.h"
 #include "dbsymtb.h"
 #include "AcDb.h"
 #include <AcDb/AcDbBlockTable.h>
 #include <AcDb/AcDbBlockTableRecord.h>
+#include <AcDb/AcDbAttribute.h>
 #include <AcDb/AcDbPolyline.h>
+#include <AcDb/AcDbDynBlockReference.h>
 #include "aced.h"
-#include "dbents.h"
-#include "dbsymtb.h"
 #include "gepnt3d.h"
 #include "DefineHeight.h"
 #include "DefineScale.h" 
 #include <nlohmann/json.hpp> // Include nlohmann JSON header
-#include <fstream> // For file handling
-#include <iostream> // For console output
-#include <map>
+#include "AcDb/AcDbSmartObjectPointer.h"  
 
 
 using json = nlohmann::json;
@@ -146,8 +148,8 @@ struct BlockInfoProps {
     std::wstring blockName;
     double rotation;
 
-    // Default constructor
-    BlockInfoProps() : position(AcGePoint3d()), blockName(L""), rotation(0.0) {}
+	// Default constructor
+	BlockInfoProps() : position(AcGePoint3d()), blockName(L""), rotation(0.0) {}
 
     // Parameterized constructor
     BlockInfoProps(const AcGePoint3d& pos, const std::wstring& name, double rot)
@@ -305,11 +307,11 @@ std::vector<BlockInfoProps> getSelectedBlocksInfo() {
 
     acedSSFree(ss);
     //print the block info
-    for (const auto& block : BlockInfoProps) {
-    	acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
-    	acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
-    	acutPrintf(_T("\nRotation: %f"), block.rotation);
-    }
+    //for (const auto& block : BlockInfoProps) {
+    //	acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
+    //	acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
+    //	acutPrintf(_T("\nRotation: %f"), block.rotation);
+    //}
     return BlockInfoProps;
 }
 
@@ -339,46 +341,199 @@ AcDbObjectId PlaceProps::loadAsset(const wchar_t* blockName) {
 }
 
 // Function to place an asset
-void PlaceProps::placeAsset(const AcGePoint3d& position, const wchar_t* blockName, double rotation, double scale) {
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    AcDbBlockTable* pBlockTable;
-    AcDbBlockTableRecord* pModelSpace;
+//void PlaceProps::placeAsset(const AcGePoint3d& position, const wchar_t* blockName, double rotation, double scale) {
+//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+//    AcDbBlockTable* pBlockTable;
+//    AcDbBlockTableRecord* pModelSpace;
+//
+//    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get block table."));
+//        return;
+//    }
+//    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to get model space."));
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    AcDbObjectId assetId = loadAsset(blockName);
+//    if (assetId == AcDbObjectId::kNull) {
+//        acutPrintf(_T("\nFailed to load asset."));
+//        pModelSpace->close();
+//        pBlockTable->close();
+//        return;
+//    }
+//
+//    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
+//    pBlockRef->setPosition(position);
+//    pBlockRef->setBlockTableRecord(assetId);
+//    pBlockRef->setRotation(rotation);
+//    pBlockRef->setScaleFactors(AcGeScale3d(scale));  // Apply scaling
+//
+//    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
+//        acutPrintf(_T("\nFailed to append block reference."));
+//    }
+//    pBlockRef->close();
+//
+//    pModelSpace->close();
+//    pBlockTable->close();
+//}
 
-    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get block table."));
+void listDynamicBlockProperties(AcDbObjectId blockRefId) {
+    // Ensure the ID is valid
+    if (blockRefId.isNull()) {
+        acutPrintf(_T("Invalid block reference ID.\n"));
         return;
     }
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to get model space."));
-        pBlockTable->close();
+
+    // Open the block reference for reading
+    AcDbBlockReference* pBlockRef;
+    if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForWrite) != Acad::eOk) {
+        acutPrintf(_T("Failed to open block reference.\n"));
         return;
     }
 
-    AcDbObjectId assetId = loadAsset(blockName);
-    if (assetId == AcDbObjectId::kNull) {
-        acutPrintf(_T("\nFailed to load asset."));
-        pModelSpace->close();
-        pBlockTable->close();
+    // Create an instance of AcDbDynBlockReference using the block reference
+    AcDbDynBlockReference dynBlockRef(blockRefId);
+
+    // Ensure the block is dynamic before proceeding
+    if (!AcDbDynBlockReference::isDynamicBlock(blockRefId)) {
+        acutPrintf(_T("This is not a dynamic block.\n"));
+        pBlockRef->close();
         return;
     }
 
-    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-    pBlockRef->setPosition(position);
-    pBlockRef->setBlockTableRecord(assetId);
-    pBlockRef->setRotation(rotation);
-    pBlockRef->setScaleFactors(AcGeScale3d(scale));  // Apply scaling
+    // Get the dynamic block properties
+    AcDbDynBlockReferencePropertyArray propArray;
+    dynBlockRef.getBlockProperties(propArray);
 
-    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to append block reference."));
+    // Check if there are any properties in the array
+    if (propArray.length() == 0) {
+        acutPrintf(_T("No dynamic properties found for the block reference.\n"));
+        pBlockRef->close();
+        return;
     }
+
+	//set property for dynamic block dynBlockRef and it's array propArray
+
+
+    // Iterate over the dynamic properties and print details
+    for (int i = 0; i < propArray.length(); i++) {
+        AcDbDynBlockReferenceProperty prop = propArray.at(i);
+        acutPrintf(_T("\nProperty: %s"), prop.propertyName().constPtr());
+        acutPrintf(_T("\nDescription: %s"), prop.description().constPtr());
+        acutPrintf(_T("\nValue: %s"), prop.value());
+        acutPrintf(_T("\nUnits Type: %d"), prop.unitsType());
+        acutPrintf(_T("\n"));
+    }
+
+    // Close the block reference
     pBlockRef->close();
-
-    pModelSpace->close();
-    pBlockTable->close();
 }
 
-//Function to place the props
+void getBlockXData(AcDbObjectId blockRefId) {
+    if (blockRefId.isNull()) {
+        acutPrintf(_T("Invalid block reference ID.\n"));
+        return;
+    }
+
+    AcDbBlockReference* pBlockRef = nullptr;
+    //if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForRead) != Acad::eOk) {
+    //    acutPrintf(_T("Failed to open block reference.\n"));
+    //    return;
+    //}
+
+    // Define a result buffer pointer to hold the XData
+    resbuf* pXData = nullptr;
+    pXData = pBlockRef->xData(_T("BRXAPP")); // Replace with your app name
+
+    if (pXData != nullptr) {
+        // Iterate through the result buffer to display XData
+        resbuf* pTemp = pXData;
+        while (pTemp != nullptr) {
+            acutPrintf(_T("\nGroup code: %d, Value: "), pTemp->restype);
+            if (pTemp->restype == AcDb::kDxfXdAsciiString) {
+                acutPrintf(_T("%s"), pTemp->resval.rstring);
+            }
+            else if (pTemp->restype == AcDb::kDxfXdReal) {
+                acutPrintf(_T("%f"), pTemp->resval.rreal);
+            }
+            else if (pTemp->restype == AcDb::kDxfXdInteger32) {
+                acutPrintf(_T("%d"), pTemp->resval.rlong);
+            }
+            pTemp = pTemp->rbnext;
+        }
+        acutRelRb(pXData); // Release the memory allocated for the result buffer
+    }
+    else {
+        acutPrintf(_T("No XData found for this block reference.\n"));
+    }
+
+    pBlockRef->close();
+}
+
+//void checkBlockType(AcDbObjectId blockRefId) {
+//    if (blockRefId.isNull()) {
+//        acutPrintf(_T("Invalid block reference ID.\n"));
+//        return;
+//    }
+//
+//    // Open the block reference for reading
+//    AcDbBlockReference* pBlockRef;
+//  //  if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForRead) != Acad::eOk) {
+//  //      //print blockRefId
+//		//acutPrintf(_T("Block reference ID: %s\n"), pBlockRef);
+//  //      acutPrintf(_T("Failed to open block reference here.\n"));
+//  //      return;
+//  //  }
+//
+//    // Check if the block reference is a dynamic block using AcDbDynBlockReference::isDynamicBlock()
+//    if (AcDbDynBlockReference::isDynamicBlock(blockRefId)) {
+//        //print block Properties  using getBlockProperties
+//		//close the block reference
+//		//pBlockRef->close();
+//        getBlockXData(blockRefId);
+//        acutPrintf(_T("The block is a dynamic block.\n"));
+//    }
+//    else {
+//        acutPrintf(_T("The block is not a dynamic block.\n"));
+//    }
+//
+//    // Get the block table record ID from the block reference
+//    AcDbObjectId blockTableRecordId = pBlockRef->blockTableRecord();
+//
+//    // Close the block reference as we are done with it
+//    pBlockRef->close();
+//
+//    // Open the block table record for reading
+//    AcDbBlockTableRecord* pBlockTableRecord;
+//    if (acdbOpenObject(pBlockTableRecord, blockTableRecordId, AcDb::kForRead) != Acad::eOk) {
+//        acutPrintf(_T("Failed to open block table record.\n"));
+//        return;
+//    }
+//
+//    // Check if the block is anonymous
+//    if (pBlockTableRecord->isAnonymous()) {
+//        acutPrintf(_T("The block is anonymous.\n"));
+//    }
+//    else {
+//        acutPrintf(_T("The block is not anonymous.\n"));
+//    }
+//
+//    // Check if the block is an external reference (xref)
+//    if (pBlockTableRecord->isFromExternalReference()) {
+//        acutPrintf(_T("The block is an external reference (xref).\n"));
+//    }
+//    else {
+//        acutPrintf(_T("The block is not an external reference.\n"));
+//    }
+//
+//    // Close the block table record
+//    pBlockTableRecord->close();
+//}
+//Function to place brackets
 void PlaceProps::placeProps() {
+    //step: 1 detect Polylines
     std::vector<AcGePoint3d> corners = detectPolylines();
 
     if (corners.empty()) {
@@ -386,13 +541,14 @@ void PlaceProps::placeProps() {
         return;
     }
 
+	//step: 2 detect the direction of drawing
     int closeLoopCounter = -1;
     int loopIndex = 0;
     double outerPointCounter = corners[0].x;
-    int outerLoopIndexValue = 0;
+	int outerLoopIndexValue = 0;
     int firstLoopEnd;
 
-    // First Pass: Determine inner and outer loops
+	// Pass 1: Determine inner and outer loops
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
@@ -412,20 +568,21 @@ void PlaceProps::placeProps() {
             }
         }
     }
-    if (outerLoopIndexValue == 0) {
-        std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
+
+	if (outerLoopIndexValue == 0) {
+		std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
         bool firstLoopIsClockwise = directionOfDrawingProps(firstLoop);
-    }
+	}
     else if (outerLoopIndexValue == 1) {
         std::vector<AcGePoint3d> firstLoop(corners.begin() + firstLoopEnd + 1, corners.end());
-        bool firstLoopIsClockwise = directionOfDrawingProps(firstLoop);
+		bool firstLoopIsClockwise = directionOfDrawingProps(firstLoop);
     }
-
     std::vector<BlockInfoProps> BlockInfoProps = getSelectedBlocksInfo();
     if (BlockInfoProps.empty()) {
-        acutPrintf(_T("\nNo blocks selected. Please Try Again."));
+        acutPrintf(_T("\nNo block references selected."));
         return;
     }
+
     int i = 0;
     AcGePoint3d start;
     AcGePoint3d end;
@@ -453,24 +610,23 @@ void PlaceProps::placeProps() {
 
     struct WallPanel {
         AcGePoint3d position;
-		AcDbObjectId assetId;
-		double rotation;
+        AcDbObjectId assetId;
+        double rotation;
         double length;
     };
 
-	std::vector<WallPanel> wallPanels;
+    std::vector<WallPanel> wallPanels;
 
-	int wallHeight = globalVarHeight;
-	//print globalVarHeight
-	acutPrintf(_T("\nGlobal Var Height: %d"), wallHeight);
+    int wallHeight = globalVarHeight;
     int panelHeights[] = { 1350, 1200, 600 };
 
     int numHeights = 3;
-	int maxHeight = 0;
+
+    int maxHeight = 0;
 
     // Iterate through all combinations of panel heights
     for (int i = 0; i < (1 << numHeights); ++i) {
-        int currentHeight = 0;
+		int currentHeight = 0;
         for (int j = 0; j < numHeights; ++j) {
             if (i & (1 << j)) {
                 currentHeight += panelHeights[j];
@@ -480,21 +636,20 @@ void PlaceProps::placeProps() {
             maxHeight = currentHeight;
         }
     }
-    //acutPrintf(_T("\n maxHeight %d"), maxHeight);
 
-        // Structure to hold panel information
+    // Structure to hold panel information
     struct Panel {
         int length;
         std::wstring id[3];
     };
 
     std::vector<Panel> panelSizes = {
-        {600, {L"128282X", L"136096X", L"129839X"}},
-        {450, {L"128283X", L"Null", L"129840X"}},
-        {300, {L"128284X", L"Null", L"129841X"}},
-        {150, {L"128285X", L"Null", L"129842X"}},
-        {100, {L"128292X", L"Null", L"129884X"}},
-        {50, {L"128287X", L"Null", L"129879X"}}
+{600, {L"128282X", L"129839X"}},
+{450, {L"128283X", L"129840X"}},
+{300, {L"128284X", L"129841X"}},
+{150, {L"128285X", L"129842X"}},
+{100, {L"128292X", L"129884X"}},
+{50, {L"128287X", L"129879X"}}
     };
 
     int lastPanelLength = 0;
@@ -512,35 +667,37 @@ void PlaceProps::placeProps() {
     AcGePoint3d currentPoint = start;
     double panelLength;
 
-    //Pass : Save all postions, asset IDs and rotations
+	//Pass 2: Save all positions, asset IDs, and rotations
     for (const auto& panel : panelSizes) {
 
-        for (int panelNum = 0; panelNum < 3; panelNum++) {
+        for (int panelNum = 0; panelNum < 2; panelNum++) {
             AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
+			//acutPrintf(_T("\n assetId %s"), panel.id[panelNum].c_str());
 
             if (assetId != AcDbObjectId::kNull) {
-                int numPanels = static_cast<int>(distance / panel.length);
-                if (numPanels != 0) {
-                    for (int i = 0; i < numPanels; i++) {
+                    int numPanels = static_cast<int>(distance / panel.length);
+                    if (numPanels != 0) {
+                        for (int i = 0; i < numPanels; i++) {
 
-                        panelLength = panel.length;
-                        wallPanels.push_back({ currentPoint, assetId, rotation, panelLength });
+                            panelLength = panel.length;
+                            wallPanels.push_back({ currentPoint, assetId, rotation, panelLength });
 
-                        currentPoint += direction * panelLength;
-                        distance -= panelLength;
+                            currentPoint += direction * panelLength;
+                            distance -= panelLength;
+                        }
                     }
-                }
             }
         }
     }
-    // Second Pass: Remove specific asset
+
+    //Pass 3: Remove specific assets
     std::vector<AcDbObjectId> centerAssets = {
-        loadAsset(L"128285X"),
-        loadAsset(L"129842X"),
-        loadAsset(L"129879X"),
-        loadAsset(L"129884X"),
-        loadAsset(L"128287X"),
-        loadAsset(L"128292X")
+    loadAsset(L"128285X"),
+    loadAsset(L"129842X"),
+    loadAsset(L"129879X"),
+    loadAsset(L"129884X"),
+    loadAsset(L"128287X"),
+    loadAsset(L"128292X")
     };
 
     int prevStartCornerIndex = -1;
@@ -574,7 +731,6 @@ void PlaceProps::placeProps() {
             }
 
             movedCompensators++;
-
         }
     }
 
@@ -589,7 +745,7 @@ void PlaceProps::placeProps() {
         wallPanels.end()
     );
 
-    // Fourth Pass: Place all ties
+	//Pass 4: Place all assets
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -608,40 +764,57 @@ void PlaceProps::placeProps() {
         pBlockTable->close();
         return;
     }
-    //const wchar_t ASSETPROP[] = { "117466X", "117467X", "117468X", "117469X"};
-    if (globalVarHeight >= 600 || globalVarHeight <= 1350) // 66
+
+    //Step 3: Define all the Assets
+    AcDbObjectId PushPullProp;
+    AcDbObjectId PushPullKicker = loadAsset(L"117466X");
+    AcDbObjectId BraceConnector = loadAsset(L"128294X");
+	AcDbObjectId BasePlate = loadAsset(L"126666X");
+	AcDbObjectId Anchor = loadAsset(L"124777X");
+
+    //Props case
+    if (globalVarHeight >= 600 && globalVarHeight <= 1350)
     {
-        AcDbObjectId PushPullProp = loadAsset(L"117466X");
+        PushPullProp = loadAsset(L"117466X");
     }
-    else if (globalVarHeight >= 1800 || globalVarHeight <= 2700) // 67
+
+    else if (globalVarHeight >= 1800 && globalVarHeight <= 2700)
     {
-        AcDbObjectId PushPullProp = loadAsset(L"117467X");
+        PushPullProp = loadAsset(L"117467X");
     }
-    else if (globalVarHeight >= 3000 || globalVarHeight <= 3300) // 68
+
+    else if (globalVarHeight >= 3000 && globalVarHeight <= 3300)
     {
-        AcDbObjectId PushPullProp = loadAsset(L"117468X");
+        PushPullProp = loadAsset(L"117468X");
     }
-    else if (globalVarHeight >= 3600 || globalVarHeight <= 5400) // 69
+
+    else if (globalVarHeight >= 3600 && globalVarHeight <= 5400)
     {
-        AcDbObjectId PushPullProp = loadAsset(L"117469X");
+        PushPullProp = loadAsset(L"117469X");
     }
+
     else {
         //print Invalid Height
         acutPrintf(_T("\n Invalid Height detected for props, Please follow the height from Catalogue."));
     }
-	//AcDbObjectId BraceConnector = loadAsset(L"128294X");
-    AcDbObjectId PushPullProp = loadAsset(L"117466X");
+	acutPrintf(_T("\n PushPullProp: %d\n"), PushPullProp);
+
+    listDynamicBlockProperties(PushPullProp);
 
     struct TableData {
-		int HeightProps;  // Height of the props 
+        int HeightProps;  // Height of the props 
         double xOffset;      // X offset for the panel
         double yOffset;      // Y offset for the panel
         double cOffset;      // Some configuration offset
         double wOffset;      // Width offset of the panel
         double resultAngle;  // Angle of the panel after placement
-		double resultAngle2;  // Angle of the panel after placement
+        double resultAngle2;  // Angle of the panel after placement
+		double Distance;	 // Distance as Custom Variable
+		double Distance1;	 // Distance as Custom Variable
+		double Distance2;	 // Distance as Custom Variable
     };
 
+	//import the json file
     std::ifstream jsonFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\props.json");
     std::string jsonData;
 
@@ -662,214 +835,192 @@ void PlaceProps::placeProps() {
     std::vector<TableData> tableDataList;
 
     for (const auto& item : json["props"]) {
-		TableData tableData;
+        TableData tableData;
 
-		tableData.HeightProps = item["height"].get<int>();
+        tableData.HeightProps = item["height"].get<int>();
 
-		const auto& data = item["data"];
+        const auto& data = item["data"];
         tableData.xOffset = data["x"].get<double>();
         tableData.yOffset = data["y"].get<double>();
         tableData.cOffset = data["c"].get<double>();
         tableData.wOffset = data["w"].get<double>();
         tableData.resultAngle = data["resultAngle"].get<double>();
-		tableData.resultAngle2 = data["resultAngle2"].get<double>();
+        tableData.resultAngle2 = data["resultAngle2"].get<double>();
+        tableData.Distance = data["Distance"].get<double>();
+        tableData.Distance1 = data["Distance1"].get<double>();
+        tableData.Distance2 = data["Distance2"].get<double>();
 
         tableDataList.push_back(tableData);
-		//print table data
-		//acutPrintf(_T("\nHeight: %d"), tableData.HeightProps);
-		//acutPrintf(_T("\nX Offset: %f"), tableData.xOffset);
-		//acutPrintf(_T("\nY Offset: %f"), tableData.yOffset);
-		//acutPrintf(_T("\nC Offset: %f"), tableData.cOffset);
-		//acutPrintf(_T("\nW Offset: %f"), tableData.wOffset);
-		//acutPrintf(_T("\nResult Angle: %f"), tableData.resultAngle);
     }
-
-    // Load assets for BraceConnector and BasePlate
-    AcDbObjectId BraceConnector = loadAsset(L"128294X");
-    AcDbObjectId BasePlate = loadAsset(L"126666X");
 
     // Define offsets
     int basePlateOffset;
-	int braceConnectorOffsetBottom;
-	int braceConnectorOffsetTop;
+    int braceConnectorOffsetBottom;
+    int braceConnectorOffsetTop;
     double propAngle;
-	double kickerAngle;
+    double kickerAngle;
+    double braceConnectorOffset = 1200;
+    double braceConnectorWidthOfset = 100;
+	double braceConnectorlengthOfset = 150;
     int propWidth;
+    // Define these variables outside the loop so they can be accessed in the second loop
+    std::wstring Distance;
+    std::wstring Distance1;
+    std::wstring Distance2;
 
-	// get xOffset as basePlateOffset using for loop
-	for (const auto& tableData : tableDataList) {
-		if (tableData.HeightProps == globalVarHeight) {
+    // get xOffset as basePlateOffset using for loop
+    for (const auto& tableData : tableDataList) {
+        if (tableData.HeightProps == globalVarHeight) {
 
             basePlateOffset = static_cast<int>(std::round(tableData.xOffset));
-			braceConnectorOffsetBottom = static_cast<int>(std::round(tableData.cOffset));
-			braceConnectorOffsetTop = static_cast<int>(std::round(tableData.yOffset));
-			propAngle = tableData.resultAngle;
-			kickerAngle = tableData.resultAngle2;
-			propWidth = static_cast<int>(std::round(tableData.wOffset));
+            braceConnectorOffsetBottom = static_cast<int>(std::round(tableData.cOffset));
+            braceConnectorOffsetTop = static_cast<int>(std::round(tableData.yOffset));
+            propAngle = tableData.resultAngle;
+            kickerAngle = tableData.resultAngle2;
+            propWidth = static_cast<int>(std::round(tableData.wOffset));
+            Distance = std::to_wstring(tableData.Distance);
+            Distance1 = std::to_wstring(tableData.Distance1);
+            Distance2 = std::to_wstring(tableData.Distance2);
 
 
-			//print all the values
-			acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
-			acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
-			acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
-			acutPrintf(_T("\nProp Angle: %f"), propAngle);
-			acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
-			acutPrintf(_T("\nProp Width: %d"), propWidth);
-			break;
-		}
-	}
-    double braceConnectorOffset = 1200;
-    //
-	double braceConnectorWidthOffset = 100;
-	double rotationOffset = 0.0;  // Rotation angle in degrees
-    //
-	double braceConnectorlengthOffset = 150;
-
-    // Iterate through wall panels to place blocks
-    for (const auto& panel : wallPanels) {
-        // Create block references
-        AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-        AcDbBlockReference* pBlockRefBrace = new AcDbBlockReference();
-        AcDbBlockReference* pBlockRefprop = new AcDbBlockReference();
-
-        // Initialize rotation matrices
-        AcGeMatrix3d rotationMatrixX;
-        AcGeMatrix3d rotationMatrixY;
-        AcGeMatrix3d rotationMatrixZ;
-
-        // Set current points based on panel position
-        AcGePoint3d currentPoint = panel.position;
-        AcGePoint3d currentPointBraceTop = panel.position;
-		AcGePoint3d currentPointBraceBottom = panel.position;
-		AcGePoint3d currentPointProp = panel.position;
-        //currentPoint.z = maxHeight;
-        //currentPointPP.z = maxHeight;
-
-        // Determine rotation and adjust positions accordingly
-        switch (static_cast<int>(round(rotation / M_PI_2))) {
-        case 0: // 0 degrees TOP
-            currentPoint.y -= basePlateOffset;
-            //currentPoint.y -= braceConnectorWidthOffset;
-            currentPoint.x += braceConnectorlengthOffset;
-            currentPointBraceTop.z += braceConnectorOffsetTop;
-            currentPointBraceTop.y -= braceConnectorWidthOffset;
-            currentPointBraceTop.x += braceConnectorlengthOffset;
-			currentPointBraceBottom.z += braceConnectorOffsetBottom;
-			currentPointBraceBottom.y -= braceConnectorWidthOffset;
-			currentPointBraceBottom.x += braceConnectorlengthOffset;
-			//rotate the props by 90 degrees
-            currentPointProp.y -= basePlateOffset;
-			currentPointProp.y -= 55;
-            currentPointProp.z += 75;
-
-            //currentPointProp.y -= 145;
-            break;
-
-        case 1: // 90 degrees LEFT
-            currentPoint.x += basePlateOffset;
-            currentPointBraceTop.z += braceConnectorOffsetTop;
-            break;
-
-        case 2: // 180 degrees BOTTOM
-            currentPoint.y += basePlateOffset;
-            currentPointBraceTop.z += braceConnectorOffsetTop;
-            break;
-
-        case 3: // 270 degrees RIGHT
-            currentPoint.x -= basePlateOffset;
-            currentPointBraceTop.z += braceConnectorOffsetTop;
-            break;
-
-        case -1:
-            // No rotation needed
+            //print all the values
+            //acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
+            //acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
+            //acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
+            //acutPrintf(_T("\nProp Angle: %f"), propAngle);
+            //acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
+            //acutPrintf(_T("\nProp Width: %d"), propWidth);
+            //acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
+            //acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
+            //acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
             break;
         }
-
-        // Place the BraceConnector block
-        pBlockRef->setPosition(currentPoint);
-        pBlockRef->setBlockTableRecord(BasePlate);
-        pBlockRef->setRotation(rotation - M_PI_2);  // Apply rotation
-        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-        if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-            // Uncomment for debug output
-            // acutPrintf(_T("\nPlaced brace connector."));
-        }
-        else {
-            acutPrintf(_T("\nFailed to place bracket."));
-        }
-        pBlockRef->close();  // Decrement reference count
-
-        // Combine rotation matrices for Push-Pull Prop
-        AcGeMatrix3d combinedRotationMatrix = rotationMatrixX * rotationMatrixZ;
-        pBlockRefBrace->transformBy(combinedRotationMatrix);
-
-        // Place the Brace Top
-        pBlockRefBrace->setPosition(currentPointBraceTop);
-        pBlockRefBrace->setBlockTableRecord(BraceConnector);
-        pBlockRefBrace->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-        if (pModelSpace->appendAcDbEntity(pBlockRefBrace) == Acad::eOk) {
-            // Uncomment for debug output
-            // acutPrintf(_T("\nPlaced push-pull prop."));
-        }
-        else {
-            acutPrintf(_T("\nFailed to place push-pull prop."));
-        }
-        pBlockRefBrace->close();  // Decrement reference count
-
-		// Place the Brace Bottom
-		pBlockRefBrace->setPosition(currentPointBraceBottom);
-        pBlockRefBrace->setBlockTableRecord(BraceConnector);
-        pBlockRefBrace->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-        if (pModelSpace->appendAcDbEntity(pBlockRefBrace) == Acad::eOk) {
-            // Uncomment for debug output
-            // acutPrintf(_T("\nPlaced push-pull prop."));
-        }
-        else {
-            acutPrintf(_T("\nFailed to place push-pull prop."));
-        }
-        pBlockRefBrace->close();  // Decrement reference count
-
-
-		// Place the Props block
-		//use function rotateAroundZAxis to rotate the props by 31.5 degrees
-        
-       // 1. Rotate the prop 90 degrees around the X-axis
-        double angleX = 5.658;  // 60(set as 300)
-        //AcGeMatrix3d rotationMatrixX;
-        rotationMatrixY.setToRotation(angleX, AcGeVector3d::kYAxis, pBlockRefprop->position());
-
-        // 2. Rotate the prop 31.5 degrees around the Z-axis
-        double angleZ = (M_PI_2);  // 31.5 degrees to radians
-        //AcGeMatrix3d rotationMatrixZ;
-        rotationMatrixZ.setToRotation(angleZ, AcGeVector3d::kZAxis, pBlockRefprop->position());
-
-        // 3. Combine both rotation matrices (order matters here)
-        combinedRotationMatrix = rotationMatrixZ * rotationMatrixY;
-
-        // 4. Apply the combined transformation to the prop
-        pBlockRefprop->transformBy(combinedRotationMatrix);
-		
-
-		pBlockRefprop->setPosition(currentPoint);
-		pBlockRefprop->setBlockTableRecord(PushPullProp);
-		pBlockRefprop->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
-
-        if (pModelSpace->appendAcDbEntity(pBlockRefprop) == Acad::eOk) {
-            // Uncomment for debug output
-            // acutPrintf(_T("\nPlaced push-pull prop."));
-        }
-		else {
-			acutPrintf(_T("\nFailed to place push-pull prop."));
-		}
-		pBlockRefprop->close();  // Decrement reference count
     }
 
-    // Close model space and block table
-    pModelSpace->close();
-    pBlockTable->close();
+    for (const auto& panel : wallPanels) {
+        //Create block references
+		AcDbBlockReference* pBasePlate = new AcDbBlockReference();
+		AcDbBlockReference* pAnchor = new AcDbBlockReference();
+		AcDbBlockReference* pBraceConnectorTop = new AcDbBlockReference();
+		AcDbBlockReference* pBraceConnectorBottom = new AcDbBlockReference();
+		AcDbBlockReference* pPushPullProp = new AcDbBlockReference();
+		AcDbBlockReference* pPushPullKicker = new AcDbBlockReference();
+
+        //Initialize rotation Matrices
+        AcGeMatrix3d rotationMatrixX;
+		AcGeMatrix3d rotationMatrixY;
+		AcGeMatrix3d rotationMatrixZ;
+
+        //Set current points based on panel positions
+		AcGePoint3d BasePlatecurrentPoint = panel.position;
+		AcGePoint3d AnchorcurrentPoint = panel.position;
+		AcGePoint3d BraceConnectorTopcurrentPoint = panel.position;
+		AcGePoint3d BraceConnectorBottomcurrentPoint = panel.position;
+		AcGePoint3d PushPullPropcurrentPoint = panel.position;
+		AcGePoint3d PushPullKickercurrentPoint = panel.position;
+
+        switch (static_cast<int>(round(rotation / M_PI_2))) {
+        case 0:
+			//Baseplate offsets
+            BasePlatecurrentPoint.y -= basePlateOffset;
+			BasePlatecurrentPoint.x += braceConnectorlengthOfset;
+			//Anchor Offsets
+            AnchorcurrentPoint.y -= basePlateOffset;
+			AnchorcurrentPoint.x += braceConnectorlengthOfset;
+			//BraceConnector Offsets
+            BraceConnectorTopcurrentPoint.z += braceConnectorOffsetTop;
+			BraceConnectorTopcurrentPoint.x += braceConnectorlengthOfset;
+            BraceConnectorTopcurrentPoint.y -= braceConnectorWidthOfset;
+            BraceConnectorBottomcurrentPoint.z += braceConnectorOffsetBottom;
+            BraceConnectorBottomcurrentPoint.x += braceConnectorlengthOfset;
+            BraceConnectorBottomcurrentPoint.y -= braceConnectorWidthOfset;
+            //Prop Offsets
+            PushPullPropcurrentPoint.x += braceConnectorlengthOfset;
+			PushPullPropcurrentPoint.y -= basePlateOffset;
+            PushPullPropcurrentPoint.y += 55;
+			PushPullPropcurrentPoint.z += 75;
+			//Kicker Offsets
+			PushPullKickercurrentPoint.x += braceConnectorlengthOfset;
+			PushPullKickercurrentPoint.y -= basePlateOffset;
+			PushPullKickercurrentPoint.y += 145;
+			PushPullKickercurrentPoint.z += 75;
+			break;
+
+        case 1:
+            break;
+        case 2:
+            break;
+        case 3:
+        case -1:
+            break;
+
+        }
+
+        //place basePlate
+		pBasePlate->setPosition(BasePlatecurrentPoint);
+		pBasePlate->setBlockTableRecord(BasePlate);
+		pBasePlate->setRotation(rotation - M_PI_2);
+		if (pModelSpace->appendAcDbEntity(pBasePlate) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append BasePlate reference."));
+		}
+		pBasePlate->close();
+
+        //place anchor
+		pAnchor->setPosition(AnchorcurrentPoint);
+		pAnchor->setBlockTableRecord(Anchor);
+		if (pModelSpace->appendAcDbEntity(pAnchor) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append Anchor reference."));
+		}
+		pAnchor->close();
+
+		//place braceConnectorTop
+		pBraceConnectorTop->setPosition(BraceConnectorTopcurrentPoint);
+		pBraceConnectorTop->setBlockTableRecord(BraceConnector);
+		if (pModelSpace->appendAcDbEntity(pBraceConnectorTop) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append BraceConnectorTop reference."));
+		}
+		pBraceConnectorTop->close();
+
+		//place braceConnectorBottom
+		pBraceConnectorBottom->setPosition(BraceConnectorBottomcurrentPoint);
+		pBraceConnectorBottom->setBlockTableRecord(BraceConnector);
+		if (pModelSpace->appendAcDbEntity(pBraceConnectorBottom) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append BraceConnectorBottom reference."));
+		}
+		pBraceConnectorBottom->close();
+
+		acutPrintf(_T("\n brace Placed"));
+
+		//place PushPullProp
+		rotationMatrixY.setToRotation(propAngle, AcGeVector3d::kYAxis);
+        double angleZ = (M_PI_2);
+		rotationMatrixZ.setToRotation(angleZ, AcGeVector3d::kZAxis);
+        AcGeMatrix3d combinedRotationMatrix = rotationMatrixZ * rotationMatrixY;
+		pPushPullProp->setPosition(PushPullPropcurrentPoint);
+		pPushPullProp->setBlockTableRecord(PushPullProp);
+		pPushPullProp->transformBy(combinedRotationMatrix);
+        if (pModelSpace->appendAcDbEntity(pPushPullProp) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append PushPullProp reference."));
+		}
+		pPushPullProp->close();
+
+        acutPrintf(_T("\n Prop Placed"));
+
+		//place PushPullKicker
+		rotationMatrixY.setToRotation(kickerAngle, AcGeVector3d::kYAxis);
+		rotationMatrixZ.setToRotation(angleZ, AcGeVector3d::kZAxis);
+		combinedRotationMatrix = rotationMatrixZ * rotationMatrixY;
+		pPushPullKicker->setPosition(PushPullKickercurrentPoint);
+		pPushPullKicker->setBlockTableRecord(PushPullKicker);
+		pPushPullKicker->transformBy(combinedRotationMatrix);
+		if (pModelSpace->appendAcDbEntity(pPushPullKicker) != Acad::eOk) {
+			acutPrintf(_T("\nFailed to append PushPullKicker reference."));
+		}
+		pPushPullKicker->close();
+	}
+
+	pModelSpace->close();
+	pBlockTable->close();
 
 
 }
