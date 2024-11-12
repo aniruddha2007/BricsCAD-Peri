@@ -510,3 +510,18 @@ void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance) {
 
     vertices.swap(filteredVertices);
 }
+
+// Function to adjust the rotation for a corner based on the direction of the corner
+void adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum) {
+    AcGeVector3d prevDirection = corners[cornerNum] - corners[cornerNum > 0 ? cornerNum - 1 : corners.size() - 1];
+    AcGeVector3d nextDirection = corners[(cornerNum + 1) % corners.size()] - corners[cornerNum];
+    double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
+
+    if (crossProductZ > 0) {
+        rotation += M_PI_2;
+    }
+}
+
+bool isItInteger(double value, double tolerance) {
+    return std::abs(value - std::round(value)) < tolerance;
+}

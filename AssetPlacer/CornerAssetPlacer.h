@@ -57,16 +57,20 @@ class CornerAssetPlacer {
 public:
     // Public method to initiate asset placement at corners
     static void placeAssetsAtCorners();
+    static AcDbObjectId loadAsset(const wchar_t* blockName);
     // Public method to identify walls, ensuring declaration matches definition
     static void identifyWalls();
+    static int identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners);
+    // Helper method to split corners into two loops
+    static std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> splitLoops(const std::vector<AcGePoint3d>& corners, int firstLoopEnd);
     static PanelConfig getPanelConfig(double distance, PanelDimensions& panelDims);
     static std::vector<CornerConfig> generateCornerConfigs(const std::vector<AcGePoint3d>& corners, const PanelConfig& config);
-
+    static bool directionOfDrawing2(std::vector<AcGePoint3d>& points);
 private:
     // Method to detect polylines in the drawing
     static std::vector<AcGePoint3d> detectPolylines();
     // Method to load an asset block from the block table
-    static AcDbObjectId loadAsset(const wchar_t* blockName);
+    
     // Method to get panel configuration based on distance
    
     // Method to place an asset at a specific corner with a given rotation
@@ -81,9 +85,7 @@ private:
     // Helper method to calculate distance between first two polylines
     static double calculateDistanceBetweenPolylines();
     // Helper method to identify the end of the first loop
-    static int identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners);
-    // Helper method to split corners into two loops
-    static std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> splitLoops(const std::vector<AcGePoint3d>& corners, int firstLoopEnd);
+    
     // Helper method to process corners, determining rotation and inside/outside placement
     static void processCorners(const std::vector<AcGePoint3d>& corners, AcDbObjectId cornerPostId, const PanelConfig& config,
         double distance, const std::vector<bool>& loopIsClockwise, const std::vector<bool>& isInsideLoop);

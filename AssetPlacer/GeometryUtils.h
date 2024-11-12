@@ -24,3 +24,6 @@ bool isPolylineClockwise(const std::vector<AcGePoint3d>& points);
 double categorizeAngle(double angle);
 bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise);
 void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance);
+void adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& corners, size_t cornerNum);
+// GeometryUtils.h (or wherever the function is declared)
+bool isItInteger(double value, double tolerance = 1e-9);

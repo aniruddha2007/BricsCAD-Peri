@@ -16,6 +16,7 @@
 #include <chrono>
 #include "AssetPlacer/CornerAssetPlacer.h"          // Include the header for the CornerAssetPlacer class
 #include "AssetPlacer/WallAssetPlacer.h"            // Include the header for the WallPlacer class
+#include "AssetPlacer/InsideCorner.h"                 // Include the header for the WallPlacer class
 #include "Resource.h"                               // Include the header for the resource file
 #include "BrxSpecific/ribbon/AcRibbonCombo.h"       // Include the header for the AcRibbonCombo class
 #include "BrxSpecific/ribbon/AcRibbonTab.h"         // Include the header for the AcRibbonTab class
@@ -149,6 +150,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceProps"), _T("PlaceProps"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlacePushPullProps(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceInsideCorners"), _T("PlaceInsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxTEST(); });
       
         BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
@@ -181,6 +183,13 @@ public:
     static void BrxAppMySandboxCommand(void)
     {
         acutPrintf(_T("\nRunning MySandboxCommand."));
+    }
+
+	// Test command
+    static void BrxTEST(void)
+    {
+        acutPrintf(_T("\nRunning TEST."));
+        InsideCorner::placeAssetsAtCorners();
     }
 
     // PlaceBrackets command

@@ -24,6 +24,7 @@
     <ClCompile Include="WallPanelConnectors\WalerConnector.cpp" />
     <ClCompile Include="WallPanelConnectors\WallPanelConnector.cpp" />
     <ClCompile Include="Props\Props.cpp" />
+    <ClCompile Include="AssetPlacer\Test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
@@ -48,6 +49,7 @@
     <ClInclude Include="WallPanelConnectors\WalerConnector.h" />
     <ClInclude Include="WallPanelConnectors\WallPanelConnector.h" />
     <ClInclude Include="Props\Props.h" />
+    <ClInclude Include="AssetPlacer\Test.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SourceFiles\BrxApp.rc" />

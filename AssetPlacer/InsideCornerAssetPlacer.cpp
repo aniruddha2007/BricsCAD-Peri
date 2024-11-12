@@ -1,6 +1,7 @@
 
 
 #include "StdAfx.h"
+#include "InsideCorner.h"
 #include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"
@@ -23,16 +24,69 @@
 #include "gepnt3d.h"
 #include "DefineHeight.h"
 #include "DefineScale.h" 
+#include "aced.h"
 
 // Static member definition
-std::map<AcGePoint3d, std::vector<AcGePoint3d>, CornerAssetPlacer::Point3dComparator> CornerAssetPlacer::wallMap;
+std::map<AcGePoint3d, std::vector<AcGePoint3d>, InsideCorner::Point3dComparator> InsideCorner::wallMap;
 
 const int BATCH_SIZE = 30; // Process 30 entities at a time
 
 const double TOLERANCE = 0.19; // Tolerance for angle comparison
 
+// Function to handle user polyline selection and processing
+// Function to handle user polyline selection and process the corners
+std::vector<AcGePoint3d> handlePolylineSelection() {
+    // Declare variables for storing the selection
+    ads_name selectedEntity;
+    ads_point pt;
+
+    // Prompt the user to select a polyline
+    if (acedEntSel(_T("Select a polyline: "), selectedEntity, pt) != RTNORM) {
+        acutPrintf(_T("Failed to select a polyline.\n"));
+        return {}; // Return an empty vector if selection fails
+    }
+
+    // Open the selected entity for read
+    AcDbObjectId polylineId;
+    acdbGetObjectId(polylineId, selectedEntity);
+
+    AcDbEntity* pEntity = nullptr;
+    if (acdbOpenObject(pEntity, polylineId, AcDb::kForRead) != Acad::eOk) {
+        acutPrintf(_T("Failed to open the selected entity.\n"));
+        return {}; // Return an empty vector if the entity cannot be opened
+    }
+
+    // Check if the selected entity is a polyline
+    std::vector<AcGePoint3d> corners; // Vector to store detected corners
+    if (pEntity->isKindOf(AcDbPolyline::desc())) {
+        AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
+
+        // Define angle threshold and tolerance for corner detection
+        double angleThreshold = 45.0; // Example: 45-degree threshold for corners
+        double tolerance = 0.01; // Example: tolerance for close points
+
+        // Process the polyline to detect corners
+        processPolyline(pPolyline, corners, angleThreshold, tolerance);
+
+        // Output detected corners (for debugging or visualization)
+        acutPrintf(_T("Detected corners:\n"));
+        for (const auto& corner : corners) {
+            acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
+        }
+    }
+    else {
+        acutPrintf(_T("Selected entity is not a polyline.\n"));
+    }
+
+    // Close the entity after processing
+    pEntity->close();
+
+    // Return the detected corners
+    return corners;
+}
+
 // PLACE ASSETS AT INSIDE CORNERS
-void CornerAssetPlacer::placeInsideCornerPostAndPanels(
+void InsideCorner::placeInsideCornerPostAndPanels(
     const AcGePoint3d& corner,
     double rotation,
     AcDbObjectId cornerPostId,
@@ -193,53 +247,35 @@ void CornerAssetPlacer::placeInsideCornerPostAndPanels(
 }
 
 // Function to place the corner post and panels for an inside corner
-void CornerAssetPlacer::placeAssetsAtCorners() {
-    std::vector<AcGePoint3d> corners = detectPolylines();
-
-    //print all corners numbers with it's coordinates
-    for (size_t i = 0; i < corners.size(); ++i) {
-        acutPrintf(_T("\nCorner %d: %f, %f"), i, corners[i].x, corners[i].y);
-    }
-
+void InsideCorner::placeAssetsAtCorners() {
+    //Get Corners
+    std::vector<AcGePoint3d> corners = handlePolylineSelection();
     if (corners.empty()) {
-        acutPrintf(_T("\nNo corners detected."));
+        acutPrintf(_T("No corners detected or an error occurred.\n"));
         return;
     }
 
-    double distance = calculateDistanceBetweenPolylines();
-    if (distance < 0) {
-        acutPrintf(_T("\nFailed to calculate distance between polylines."));
-        return;
-    }
+    //get  Distance
+    double distance; // Example distance value
 
+    //get Panel Configuration
     PanelDimensions panelDims;
-    PanelConfig config = getPanelConfig(distance, panelDims);
+    PanelConfig config = CornerAssetPlacer::getPanelConfig(distance, panelDims);
 
     if (!config.panelIdA || !config.panelIdB) {
-        acutPrintf(_T("\nFailed to load panels for distance %f"), distance);
+        acutPrintf(_T("Panel configuration not found for Inside Corners.\n"));
         return;
     }
 
-    std::vector<CornerConfig> cornerConfigs = generateCornerConfigs(corners, config);
-    g_cornerConfigs = cornerConfigs;  // Store the corner configurations for later use
-
-    // Debug output to verify corner configurations
-    //for (size_t i = 0; i < cornerConfigs.size(); ++i) {
-    //    acutPrintf(_T("\nCorner %d: Position: %f, %f, Is Inside: %d, Adjustment: %f"),
-    //        i, cornerConfigs[i].position.x, cornerConfigs[i].position.y, cornerConfigs[i].isInside, cornerConfigs[i].outsideCornerAdjustment);
-    //}
-
-
-    // Load the corner post asset
-    AcDbObjectId cornerPostId = loadAsset(L"128286X");
+    //Load Panels, corner post and compensators
+    AcDbObjectId cornerPostId = CornerAssetPlacer::loadAsset(L"128286X");
     if (cornerPostId == AcDbObjectId::kNull) {
-        acutPrintf(_T("\nFailed to load corner post asset."));
+        acutPrintf(_T("Failed to load corner post asset.\n"));
         return;
     }
-
     // Convert Panel pointers to AcDbObjectId using loadAsset
-    AcDbObjectId panelIdA = loadAsset(config.panelIdA->blockName.c_str());
-    AcDbObjectId panelIdB = loadAsset(config.panelIdB->blockName.c_str());
+    AcDbObjectId panelIdA = CornerAssetPlacer::loadAsset(config.panelIdA->blockName.c_str());
+    AcDbObjectId panelIdB = CornerAssetPlacer::loadAsset(config.panelIdB->blockName.c_str());
 
     if (panelIdA == AcDbObjectId::kNull || panelIdB == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load panel assets."));
@@ -250,7 +286,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
     AcDbObjectId outsidePanelIds[6];
     for (int i = 0; i < 6; ++i) {
         if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
-            outsidePanelIds[i] = loadAsset(config.outsidePanelIds[i]->blockName.c_str());
+            outsidePanelIds[i] = CornerAssetPlacer::loadAsset(config.outsidePanelIds[i]->blockName.c_str());
             if (outsidePanelIds[i] == AcDbObjectId::kNull) {
                 acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
             }
@@ -260,14 +296,10 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         }
     }
 
-    AcDbObjectId compensatorIdA = loadAsset(config.compensatorIdA ? config.compensatorIdA->blockName.c_str() : L"");
-    AcDbObjectId compensatorIdB = loadAsset(config.compensatorIdB ? config.compensatorIdB->blockName.c_str() : L"");
+    AcDbObjectId compensatorIdA = CornerAssetPlacer::loadAsset(config.compensatorIdA ? config.compensatorIdA->blockName.c_str() : L"");
+    AcDbObjectId compensatorIdB = CornerAssetPlacer::loadAsset(config.compensatorIdB ? config.compensatorIdB->blockName.c_str() : L"");
 
-    int firstLoopEnd = identifyFirstLoopEnd(corners);
-    std::pair<std::vector<AcGePoint3d>, std::vector<AcGePoint3d>> loops = splitLoops(corners, firstLoopEnd);
-    std::vector<AcGePoint3d>& firstLoop = loops.first;
-    std::vector<AcGePoint3d>& secondLoop = loops.second;
-
+    //do concave/ convex check
     int loopIndex = 0;
     int loopIndexLastPanel = 0;
     int closeLoopCounter = -1;
@@ -281,10 +313,33 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
         AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];
         AcGeVector3d direction = (end - start).normal();
 
+        closeLoopCounter++;
+        bool isInside = false;
+
+        if (!isItInteger(direction.x) || !isItInteger(direction.y)) {
+            if (cornerNum < corners.size() - 1) {
+                start = corners[cornerNum];
+                end = corners[cornerNum - closeLoopCounter];
+                closeLoopCounter = -1;
+                loopIndexLastPanel = 1;
+            }
+        }
+
+        direction = (end - start).normal();
+        rotation = atan2(direction.y, direction.x);
+        //acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
+        rotation = normalizeAngle(rotation);
+        //acutPrintf(_T("\nRotation: %f"), rotation);
+        rotation = snapToExactAngle(rotation, TOLERANCE);
+        //acutPrintf(_T("\nRotation: %f"), rotation);
+
+       
+
         adjustRotationForCorner(rotation, corners, cornerNum);
+        //place assets using placeInsideCornerPostAndPanels
 
-        placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
-
-        loopIndex = loopIndexLastPanel;
+		placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
+        
     }
+    loopIndex = loopIndexLastPanel;
 }

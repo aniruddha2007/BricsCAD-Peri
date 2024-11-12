@@ -4,7 +4,6 @@
 #include "SharedDefinations.h"
 #include "AssetPlacer/GeometryUtils.h"
 #include <vector>
-#include <map>
 #include <set>
 #include <cmath>
 #include <limits>
@@ -18,8 +17,6 @@
 #include <AcDb/AcDbBlockTableRecord.h>
 #include <AcDb/AcDbPolyline.h>
 #include "aced.h"
-#include "dbents.h"
-#include "dbsymtb.h"
 #include "gepnt3d.h"
 #include "DefineHeight.h"
 #include "DefineScale.h" 

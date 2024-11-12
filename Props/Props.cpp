@@ -884,15 +884,15 @@ void PlaceProps::placeProps() {
 
 
             //print all the values
-            //acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
-            //acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
-            //acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
-            //acutPrintf(_T("\nProp Angle: %f"), propAngle);
-            //acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
-            //acutPrintf(_T("\nProp Width: %d"), propWidth);
-            //acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
-            //acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
-            //acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
+            acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
+            acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
+            acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
+            acutPrintf(_T("\nProp Angle: %f"), propAngle);
+            acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
+            acutPrintf(_T("\nProp Width: %d"), propWidth);
+            acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
+            acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
+            acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
             break;
         }
     }
@@ -907,9 +907,14 @@ void PlaceProps::placeProps() {
 		AcDbBlockReference* pPushPullKicker = new AcDbBlockReference();
 
         //Initialize rotation Matrices
-        AcGeMatrix3d rotationMatrixX;
-		AcGeMatrix3d rotationMatrixY;
-		AcGeMatrix3d rotationMatrixZ;
+        AcGeMatrix3d rotationMatrixXProp;
+		AcGeMatrix3d rotationMatrixYProp;
+		AcGeMatrix3d rotationMatrixZProp;
+
+		AcGeMatrix3d rotationMatrixXKicker;
+		AcGeMatrix3d rotationMatrixYKicker;
+		AcGeMatrix3d rotationMatrixZKicker;
+
 
         //Set current points based on panel positions
 		AcGePoint3d BasePlatecurrentPoint = panel.position;
@@ -921,30 +926,32 @@ void PlaceProps::placeProps() {
 
         switch (static_cast<int>(round(rotation / M_PI_2))) {
         case 0:
-			//Baseplate offsets
+            //Baseplate offsets
+ //print the current rotation
+            acutPrintf(_T("\n Rotation: %d"), rotation);
             BasePlatecurrentPoint.y -= basePlateOffset;
-			BasePlatecurrentPoint.x += braceConnectorlengthOfset;
-			//Anchor Offsets
+            BasePlatecurrentPoint.x += braceConnectorlengthOfset;
+            //Anchor Offsets
             AnchorcurrentPoint.y -= basePlateOffset;
-			AnchorcurrentPoint.x += braceConnectorlengthOfset;
-			//BraceConnector Offsets
+            AnchorcurrentPoint.x += braceConnectorlengthOfset;
+            //BraceConnector Offsets
             BraceConnectorTopcurrentPoint.z += braceConnectorOffsetTop;
-			BraceConnectorTopcurrentPoint.x += braceConnectorlengthOfset;
+            BraceConnectorTopcurrentPoint.x += braceConnectorlengthOfset;
             BraceConnectorTopcurrentPoint.y -= braceConnectorWidthOfset;
             BraceConnectorBottomcurrentPoint.z += braceConnectorOffsetBottom;
             BraceConnectorBottomcurrentPoint.x += braceConnectorlengthOfset;
             BraceConnectorBottomcurrentPoint.y -= braceConnectorWidthOfset;
             //Prop Offsets
             PushPullPropcurrentPoint.x += braceConnectorlengthOfset;
-			PushPullPropcurrentPoint.y -= basePlateOffset;
+            PushPullPropcurrentPoint.y -= basePlateOffset;
             PushPullPropcurrentPoint.y += 55;
-			PushPullPropcurrentPoint.z += 75;
-			//Kicker Offsets
-			PushPullKickercurrentPoint.x += braceConnectorlengthOfset;
-			PushPullKickercurrentPoint.y -= basePlateOffset;
-			PushPullKickercurrentPoint.y += 145;
-			PushPullKickercurrentPoint.z += 75;
-			break;
+            PushPullPropcurrentPoint.z += 75;
+            //Kicker Offsets
+            PushPullKickercurrentPoint.x += braceConnectorlengthOfset;
+            PushPullKickercurrentPoint.y -= basePlateOffset;
+            PushPullKickercurrentPoint.y += 145;
+            PushPullKickercurrentPoint.z += 65;
+            break;
 
         case 1:
             break;
@@ -968,6 +975,7 @@ void PlaceProps::placeProps() {
         //place anchor
 		pAnchor->setPosition(AnchorcurrentPoint);
 		pAnchor->setBlockTableRecord(Anchor);
+		pAnchor->setRotation(rotation - M_PI_2);
 		if (pModelSpace->appendAcDbEntity(pAnchor) != Acad::eOk) {
 			acutPrintf(_T("\nFailed to append Anchor reference."));
 		}
@@ -976,6 +984,7 @@ void PlaceProps::placeProps() {
 		//place braceConnectorTop
 		pBraceConnectorTop->setPosition(BraceConnectorTopcurrentPoint);
 		pBraceConnectorTop->setBlockTableRecord(BraceConnector);
+		pBraceConnectorTop->setRotation(rotation);
 		if (pModelSpace->appendAcDbEntity(pBraceConnectorTop) != Acad::eOk) {
 			acutPrintf(_T("\nFailed to append BraceConnectorTop reference."));
 		}
@@ -984,6 +993,7 @@ void PlaceProps::placeProps() {
 		//place braceConnectorBottom
 		pBraceConnectorBottom->setPosition(BraceConnectorBottomcurrentPoint);
 		pBraceConnectorBottom->setBlockTableRecord(BraceConnector);
+		pBraceConnectorBottom->setRotation(rotation);
 		if (pModelSpace->appendAcDbEntity(pBraceConnectorBottom) != Acad::eOk) {
 			acutPrintf(_T("\nFailed to append BraceConnectorBottom reference."));
 		}
@@ -992,13 +1002,14 @@ void PlaceProps::placeProps() {
 		acutPrintf(_T("\n brace Placed"));
 
 		//place PushPullProp
-		rotationMatrixY.setToRotation(propAngle, AcGeVector3d::kYAxis);
-        double angleZ = (M_PI_2);
-		rotationMatrixZ.setToRotation(angleZ, AcGeVector3d::kZAxis);
-        AcGeMatrix3d combinedRotationMatrix = rotationMatrixZ * rotationMatrixY;
-		pPushPullProp->setPosition(PushPullPropcurrentPoint);
-		pPushPullProp->setBlockTableRecord(PushPullProp);
-		pPushPullProp->transformBy(combinedRotationMatrix);
+        pPushPullProp->setPosition(BasePlatecurrentPoint);
+        pPushPullProp->setBlockTableRecord(PushPullProp);
+		rotationMatrixYProp.setToRotation(propAngle, AcGeVector3d::kYAxis, pPushPullProp->position());
+        double angleZProp = (M_PI_2);
+		rotationMatrixZProp.setToRotation(angleZProp, AcGeVector3d::kZAxis, pPushPullProp->position());
+        AcGeMatrix3d combinedRotationMatrixProp = rotationMatrixZProp * rotationMatrixYProp;
+		
+		pPushPullProp->transformBy(combinedRotationMatrixProp);
         if (pModelSpace->appendAcDbEntity(pPushPullProp) != Acad::eOk) {
 			acutPrintf(_T("\nFailed to append PushPullProp reference."));
 		}
@@ -1007,12 +1018,14 @@ void PlaceProps::placeProps() {
         acutPrintf(_T("\n Prop Placed"));
 
 		//place PushPullKicker
-		rotationMatrixY.setToRotation(kickerAngle, AcGeVector3d::kYAxis);
-		rotationMatrixZ.setToRotation(angleZ, AcGeVector3d::kZAxis);
-		combinedRotationMatrix = rotationMatrixZ * rotationMatrixY;
-		pPushPullKicker->setPosition(PushPullKickercurrentPoint);
-		pPushPullKicker->setBlockTableRecord(PushPullKicker);
-		pPushPullKicker->transformBy(combinedRotationMatrix);
+        pPushPullKicker->setPosition(PushPullKickercurrentPoint);
+        pPushPullKicker->setBlockTableRecord(PushPullKicker);
+		rotationMatrixYKicker.setToRotation(kickerAngle, AcGeVector3d::kYAxis, pPushPullKicker->position());
+		double angleZKicker = (M_PI_2);
+        rotationMatrixZKicker.setToRotation(angleZKicker, AcGeVector3d::kZAxis, pPushPullKicker->position());
+		AcGeMatrix3d combinedRotationMatrixKicker = rotationMatrixZKicker * rotationMatrixYKicker;
+
+		pPushPullKicker->transformBy(combinedRotationMatrixKicker);
 		if (pModelSpace->appendAcDbEntity(pPushPullKicker) != Acad::eOk) {
 			acutPrintf(_T("\nFailed to append PushPullKicker reference."));
 		}
