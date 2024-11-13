@@ -138,12 +138,12 @@
         <Macro type="Any">
           <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
           <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_010" xlate="true">Push Pull Props</Name>
+          <Name UID="XLS_011" xlate="true">Push Pull Props</Name>
           <Command>^C^CPlaceProps</Command>
-          <HelpString UID="XLS_010_HELP" xlate="true">Push Pull Props</HelpString>
+          <HelpString UID="XLS_011_PROPS" xlate="true">Push Pull Props</HelpString>
           <SmallImage Name="props.png"/>
           <LargeImage Name="props.png"/>
-          <CLICommand UID="XLS_010_CLI" xlate="true">Push Pull Props</CLICommand>
+          <CLICommand UID="XLS_011_CLI" xlate="true">Push Pull Props</CLICommand>
         </Macro>
       </MenuMacro>
     </MacroGroup>
@@ -195,11 +195,11 @@
                 <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Help</TooltipTitle>
                 </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_019"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_010" UID="RBNU_022">
-                <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Push Pull Props</TooltipTitle>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_011" UID="RBNU_022">
+                <TooltipTitle UID="XLS_011_TOOLTIP" xlate="true">Push Pull Props</TooltipTitle>
               </RibbonCommandButton>
             </RibbonRow>
-            <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_018"/>
+            <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_020"/>
           </RibbonPanelSource>
         </RibbonPanelSourceCollection>
         <RibbonTabSourceCollection>

@@ -97,6 +97,7 @@ bool isTimezoneTaiwan() {
     return false;
 }
 
+#define BLOCKS_FILE_NAME "AP-Columns_12-11-24.json"
 
 class CBrxApp : public AcRxArxApp
 {
@@ -104,24 +105,73 @@ public:
     CBrxApp() : AcRxArxApp() {}
 
     const std::string LICENSE_FILE_NAME = "license.apdg";
+	const std::string  PROPS_FILE_NAME = "source\\repos\\BricsCAD-Peri\\PERI\\Props\\props.json";
 
     virtual void RegisterServerComponents() {}
 
     virtual AcRx::AppRetCode On_kInitAppMsg(void* pAppData)
     {
+
+  //      // Get the current directory
+  //      char currentDir[MAX_PATH];
+  //      if (GetCurrentDirectoryA(MAX_PATH, currentDir) == 0) {
+  //          acutPrintf(_T("\nFailed to get current directory."));
+  //      }
+
+  //      // Get the current username
+  //      char username[UNLEN + 1];
+  //      DWORD username_len = UNLEN + 1;
+  //      if (!GetUserNameA(username, &username_len)) {
+  //          acutPrintf(_T("\nFailed to get username."));
+  //      }
+
+  //      //construct props path
+		//std::string propsFilePath = "C:\\Users\\" + std::string(username) + "\\" + PROPS_FILE_NAME;
+
+  //      // Write currentDir and username to an external text file for verification
+  //      std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
+  //      if (logFile.is_open()) {
+  //          logFile << "Current directory: " << currentDir << std::endl;
+  //          logFile << "Username: " << username << std::endl;
+		//	logFile << "Props file path: " << propsFilePath << std::endl;
+  //          logFile.close();
+  //          acutPrintf(_T("\nPath and username written to 'path_log.txt' for verification."));
+  //      }
+  //      else {
+  //          acutPrintf(_T("\nFailed to write to 'path_log.txt'."));
+  //      }
+
+  //      // Construct the full path for the props file
+  //      //std::string propsFilePath = "C:\\Users\\" + std::string(username) + "\\" + PROPS_FILE_NAME;
+
+  //      // Attempt to open the props file to verify the path is correct
+  //      std::ifstream propsFile(propsFilePath);
+  //      if (propsFile.is_open()) {
+  //          acutPrintf(_T("\nProps file opened successfully."));
+  //          propsFile.close();
+  //      }
+  //      else {
+  //          acutPrintf(_T("\nFailed to open props file. Check if the file exists and the path is correct."));
+  //      }
+
 		//add license file verification here
         // Get the current working directory
-        char currentDir[MAX_PATH];
-        GetCurrentDirectoryA(MAX_PATH, currentDir);
 
-        // Construct the full path for the license file
-        std::string licenseFilePath = std::string(currentDir) + "\\" + LICENSE_FILE_NAME;
 
-        // Verify the license file using the constructed path
-        //if (!verifyLicenseFile(licenseFilePath)) {
-        //    acutPrintf(_T("\nLicense verification failed. Exiting application."));
-        //    return AcRx::kRetError; // Return an error if the verification fails
-        //}
+  //      char currentDir[MAX_PATH];
+  //      GetCurrentDirectoryA(MAX_PATH, currentDir);
+
+  //      // Construct the full path for the license file
+  //      std::string licenseFilePath = std::string(currentDir) + "\\" + LICENSE_FILE_NAME;
+		////print license file path and props file path
+		//acutPrintf(_T("\nLicense file path: %s"), licenseFilePath.c_str());
+
+
+  //      // Verify the license file using the constructed path
+  //      if (!verifyLicenseFile(licenseFilePath)) {
+  //          acutPrintf(_T("\nLicense verification failed. Exiting application."));
+  //          return AcRx::kRetError; // Return an error if the verification fails
+  //      }
 
         AcRx::AppRetCode result = AcRxArxApp::On_kInitAppMsg(pAppData);
         acrxRegisterAppMDIAware(pAppData); // is able to work in MDI context
@@ -257,7 +307,11 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-        PlaceColumn("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+		char currentDir[MAX_PATH];
+		GetCurrentDirectoryA(MAX_PATH, currentDir);
+        // Construct the full path for the JSON file
+		std::string jsonFilePath = std::string(currentDir) + "\\" + BLOCKS_FILE_NAME;
+        PlaceColumn(jsonFilePath);
 		//PlaceColumn("C:\\Users\\carvalho\\OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\blocks.json");
 	}
 
@@ -321,6 +375,7 @@ public:
         acutPrintf(_T("\nPlaceTies: To only place Ties."));
         acutPrintf(_T("\nPlaceColunms: To only place Columns."));
         acutPrintf(_T("\nPlaceBrackets: To only place Brackets."));
+		acutPrintf(_T("\nPlaceProps: To only place Props."));
         acutPrintf(_T("\nDefineHeight: Define Height, specify height in mm."));
         acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));

@@ -10,6 +10,8 @@
 #include <acutads.h>
 #include <fstream> // For file handling
 #include <iostream> // For console output
+#include <string> // For string operations
+#include <iterator>
 #include <map>
 #include "Props.h"
 #include "SharedDefinations.h"
@@ -29,7 +31,8 @@
 #include "DefineScale.h" 
 #include <nlohmann/json.hpp> // Include nlohmann JSON header
 #include "AcDb/AcDbSmartObjectPointer.h"  
-
+#include <Windows.h>
+//#define PROPS_FILE_NAME "props.json"
 
 using json = nlohmann::json;
 
@@ -532,6 +535,9 @@ void getBlockXData(AcDbObjectId blockRefId) {
 //    pBlockTableRecord->close();
 //}
 //Function to place brackets
+
+const std::string  PROPS_FILE_NAME = "OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\[03]Plugin\\props.json";
+
 void PlaceProps::placeProps() {
     //step: 1 detect Polylines
     std::vector<AcGePoint3d> corners = detectPolylines();
@@ -767,39 +773,138 @@ void PlaceProps::placeProps() {
 
     //Step 3: Define all the Assets
     AcDbObjectId PushPullProp;
-    AcDbObjectId PushPullKicker = loadAsset(L"117466X");
+    AcDbObjectId PushPullKicker;
     AcDbObjectId BraceConnector = loadAsset(L"128294X");
 	AcDbObjectId BasePlate = loadAsset(L"126666X");
 	AcDbObjectId Anchor = loadAsset(L"124777X");
 
-    //Props case
-    if (globalVarHeight >= 600 && globalVarHeight <= 1350)
+    //Props and kicker cases heights are: 600, 900, 1200, 1350,1800, 1950, 2400,2550, 2700,3000, 31500, 3300, 3600, 3750, 3900, 4050, 4200, 4350, 4500, 4650, 4800, 4950, 5100, 5250, 5400
+    if (globalVarHeight == 600)
     {
-        PushPullProp = loadAsset(L"117466X");
+        PushPullKicker = loadAsset(L"117466X600Prop");
     }
-
-    else if (globalVarHeight >= 1800 && globalVarHeight <= 2700)
+    else if  ( globalVarHeight  == 900)
+	{
+        PushPullKicker = loadAsset(L"117466X900Prop");
+	}
+    else if (globalVarHeight == 1200)
     {
-        PushPullProp = loadAsset(L"117467X");
+        PushPullKicker = loadAsset(L"117466X1200Prop");
     }
-
-    else if (globalVarHeight >= 3000 && globalVarHeight <= 3300)
+    else if (globalVarHeight == 1350)
     {
-        PushPullProp = loadAsset(L"117468X");
+        PushPullProp = loadAsset(L"117466X1350Prop");
+		PushPullKicker = loadAsset(L"117466X1350Kicker");
     }
-
-    else if (globalVarHeight >= 3600 && globalVarHeight <= 5400)
+	else if (globalVarHeight == 1800)
+	{
+		PushPullProp = loadAsset(L"117467X1800Prop");
+		PushPullKicker = loadAsset(L"117466X1800Kicker");
+	}
+    else if (globalVarHeight == 1950)
     {
-        PushPullProp = loadAsset(L"117469X");
+        PushPullProp = loadAsset(L"117466X1950-2400Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
     }
-
-    else {
-        //print Invalid Height
-        acutPrintf(_T("\n Invalid Height detected for props, Please follow the height from Catalogue."));
+    else if (globalVarHeight == 2400)
+    {
+        PushPullProp = loadAsset(L"117466X1950-2400Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
     }
-	acutPrintf(_T("\n PushPullProp: %d\n"), PushPullProp);
-
-    listDynamicBlockProperties(PushPullProp);
+    else if (globalVarHeight == 2550)
+    {
+        PushPullProp = loadAsset(L"117466X2550-2700Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 2700)
+    {
+        PushPullProp = loadAsset(L"117466X2550-2700Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3000)
+    {
+        PushPullProp = loadAsset(L"117466X3000Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3150)
+    {
+        PushPullProp = loadAsset(L"117466X3150Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3300)
+    {
+        PushPullProp = loadAsset(L"117466X3300Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3600)
+    {
+        PushPullProp = loadAsset(L"117466X3600-3750Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3750)
+    {
+        PushPullProp = loadAsset(L"117466X3600-3750Prop");
+        PushPullKicker = loadAsset(L"117466X1950-3750Kicker");
+    }
+    else if (globalVarHeight == 3900)
+    {
+        PushPullProp = loadAsset(L"117466X3900Prop");
+        PushPullKicker = loadAsset(L"117466X3900Kicker");
+    }
+    else if (globalVarHeight == 4050)
+    {
+        PushPullProp = loadAsset(L"117466X4050Prop");
+        PushPullKicker = loadAsset(L"117466X4050Kicker");
+    }
+    else if (globalVarHeight == 4200)
+    {
+        PushPullProp = loadAsset(L"117466X4200Prop");
+        PushPullKicker = loadAsset(L"117466X4200Kicker");
+    }
+    else if (globalVarHeight == 4350)
+    {
+        PushPullProp = loadAsset(L"117466X4350Prop");
+        PushPullKicker = loadAsset(L"117466X4350Kicker");
+    }
+    else if (globalVarHeight == 4500)
+    {
+        PushPullProp = loadAsset(L"117466X4500Prop");
+        PushPullKicker = loadAsset(L"117466X4500Kicker");
+    }
+    else if (globalVarHeight == 4650)
+    {
+        PushPullProp = loadAsset(L"117466X4650Prop");
+        PushPullKicker = loadAsset(L"117466X4650Kicker");
+    }
+    else if (globalVarHeight == 4800)
+    {
+        PushPullProp = loadAsset(L"117466X4800-5100Prop");
+        PushPullKicker = loadAsset(L"117466X4800-5100Kicker");
+    }
+    else if (globalVarHeight == 4950)
+    {
+        PushPullProp = loadAsset(L"117466X4800-5100Prop");
+        PushPullKicker = loadAsset(L"117466X4800-5100Kicker");
+    }
+    else if (globalVarHeight == 5100)
+    {
+        PushPullProp = loadAsset(L"117466X4800-5100Prop");
+        PushPullKicker = loadAsset(L"117466X4800-5100Kicker");
+    }
+    else if (globalVarHeight == 5250)
+    {
+        PushPullProp = loadAsset(L"117466X5250Prop");
+        PushPullKicker = loadAsset(L"117466X5250Kicker");
+    }
+    else if (globalVarHeight == 5400)
+    {
+        PushPullProp = loadAsset(L"117466X5400Prop");
+        PushPullKicker = loadAsset(L"117466X5400Kicker");
+    }
+    else
+    {
+        acutPrintf(_T("\nError: Invalid height, Not from Catalogue"));
+    }
 
     struct TableData {
         int HeightProps;  // Height of the props 
@@ -815,7 +920,30 @@ void PlaceProps::placeProps() {
     };
 
 	//import the json file
-    std::ifstream jsonFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\props.json");
+    char username[UNLEN + 1];
+    DWORD username_len = UNLEN + 1;
+	GetUserNameA(username, &username_len);
+
+    //set a variable as username
+	std::string usernameW(username, username + strlen(username));
+    
+    // Construct the full path for the JSON file
+    //construct props path
+    std::string jsonFilePath = "C:\\Users\\" + usernameW + "\\" + PROPS_FILE_NAME;
+    acutPrintf(_T("\nJSON file path: %s"), jsonFilePath.c_str());
+    // Write currentDir and username to an external text file for verification
+    std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
+    if (logFile.is_open()) {
+        logFile << "jsonFilePath: " << jsonFilePath << std::endl;
+        logFile.close();
+        acutPrintf(_T("\nPath and username written to 'path_log.txt' for verification."));
+    }
+    else {
+        acutPrintf(_T("\nFailed to write to 'path_log.txt'."));
+    }
+
+    std::ifstream jsonFile(jsonFilePath);
+	//std::ifstream jsonFile("C:\\Users\\anir\\OneDrive\\Desktop\\work\\props.json");
     std::string jsonData;
 
     if (jsonFile.is_open()) {
@@ -824,7 +952,7 @@ void PlaceProps::placeProps() {
         jsonFile.close();
     }
     else {
-        std::cout << "Failed to open JSON file." << std::endl;
+		acutPrintf(_T("\nFailed to open JSON file."));
         return;
     }
 
@@ -923,12 +1051,13 @@ void PlaceProps::placeProps() {
 		AcGePoint3d BraceConnectorBottomcurrentPoint = panel.position;
 		AcGePoint3d PushPullPropcurrentPoint = panel.position;
 		AcGePoint3d PushPullKickercurrentPoint = panel.position;
+        double angleZProp;
+        double angleZKicker;
 
         switch (static_cast<int>(round(rotation / M_PI_2))) {
         case 0:
-            //Baseplate offsets
- //print the current rotation
-            acutPrintf(_T("\n Rotation: %d"), rotation);
+			//Base Plate Offsets
+            //acutPrintf(_T("\n Rotation: %d"), rotation);
             BasePlatecurrentPoint.y -= basePlateOffset;
             BasePlatecurrentPoint.x += braceConnectorlengthOfset;
             //Anchor Offsets
@@ -946,19 +1075,97 @@ void PlaceProps::placeProps() {
             PushPullPropcurrentPoint.y -= basePlateOffset;
             PushPullPropcurrentPoint.y += 55;
             PushPullPropcurrentPoint.z += 75;
+			//acutPrintf(_T("\n PushPullPropcurrentPoint: %f, %f, %f"), PushPullPropcurrentPoint.x, PushPullPropcurrentPoint.y, PushPullPropcurrentPoint.z);
+			angleZProp = (M_PI_2);
             //Kicker Offsets
             PushPullKickercurrentPoint.x += braceConnectorlengthOfset;
             PushPullKickercurrentPoint.y -= basePlateOffset;
             PushPullKickercurrentPoint.y += 145;
             PushPullKickercurrentPoint.z += 65;
+            angleZKicker = (M_PI_2);
             break;
 
-        case 1:
+		case 1://90 degree
+            //acutPrintf(_T("\n Rotation: %d"), rotation);
+            BasePlatecurrentPoint.x += basePlateOffset;
+            BasePlatecurrentPoint.y += braceConnectorlengthOfset;
+            //Anchor Offsets
+            AnchorcurrentPoint.x += basePlateOffset;
+            AnchorcurrentPoint.y += braceConnectorlengthOfset;
+            //BraceConnector Offsets
+            BraceConnectorTopcurrentPoint.z += braceConnectorOffsetTop;
+            BraceConnectorTopcurrentPoint.y += braceConnectorlengthOfset;
+            BraceConnectorTopcurrentPoint.x += braceConnectorWidthOfset;
+            BraceConnectorBottomcurrentPoint.z += braceConnectorOffsetBottom;
+            BraceConnectorBottomcurrentPoint.y += braceConnectorlengthOfset;
+            BraceConnectorBottomcurrentPoint.x += braceConnectorWidthOfset;
+            //Prop Offsets
+            PushPullPropcurrentPoint.y += braceConnectorlengthOfset;
+            PushPullPropcurrentPoint.x += basePlateOffset;
+            PushPullPropcurrentPoint.x -= 55;
+            PushPullPropcurrentPoint.z += 75;
+            //acutPrintf(_T("\n PushPullPropcurrentPoint: %f, %f, %f"), PushPullPropcurrentPoint.x, PushPullPropcurrentPoint.y, PushPullPropcurrentPoint.z);
+            angleZProp = (M_PI_2+M_PI_2);
+            //Kicker Offsets
+            PushPullKickercurrentPoint.y += braceConnectorlengthOfset;
+            PushPullKickercurrentPoint.x += basePlateOffset;
+            PushPullKickercurrentPoint.x -= 145;
+            PushPullKickercurrentPoint.z += 65;
+            angleZKicker = (M_PI_2+M_PI_2);
             break;
-        case 2:
+		case 2: //180 degree
+            BasePlatecurrentPoint.y += basePlateOffset;
+            BasePlatecurrentPoint.x -= braceConnectorlengthOfset;
+            //Anchor Offsets
+            AnchorcurrentPoint.y += basePlateOffset;
+            AnchorcurrentPoint.x -= braceConnectorlengthOfset;
+            //BraceConnector Offsets
+            BraceConnectorTopcurrentPoint.z += braceConnectorOffsetTop;
+            BraceConnectorTopcurrentPoint.x -= braceConnectorlengthOfset;
+            BraceConnectorTopcurrentPoint.y += braceConnectorWidthOfset;
+            BraceConnectorBottomcurrentPoint.z += braceConnectorOffsetBottom;
+            BraceConnectorBottomcurrentPoint.x -= braceConnectorlengthOfset;
+            BraceConnectorBottomcurrentPoint.y += braceConnectorWidthOfset;
+            //Prop Offsets
+            PushPullPropcurrentPoint.x -= braceConnectorlengthOfset;
+            PushPullPropcurrentPoint.y += basePlateOffset;
+            PushPullPropcurrentPoint.y -= 55;
+            PushPullPropcurrentPoint.z += 75;
+            angleZProp = (M_PI_2 + M_PI_2 + M_PI_2);
+            //Kicker Offsets
+            PushPullKickercurrentPoint.x -= braceConnectorlengthOfset;
+            PushPullKickercurrentPoint.y += basePlateOffset;
+            PushPullKickercurrentPoint.y -= 145;
+            PushPullKickercurrentPoint.z += 65;
+            angleZKicker = (M_PI_2 + M_PI_2+ M_PI_2);
             break;
-        case 3:
-        case -1:
+        case 3: //270 degree
+		case -1: // -90 degree
+            BasePlatecurrentPoint.x -= basePlateOffset;
+            BasePlatecurrentPoint.y -= braceConnectorlengthOfset;
+            //Anchor Offsets
+            AnchorcurrentPoint.x -= basePlateOffset;
+            AnchorcurrentPoint.y -= braceConnectorlengthOfset;
+            //BraceConnector Offsets
+            BraceConnectorTopcurrentPoint.z += braceConnectorOffsetTop;
+            BraceConnectorTopcurrentPoint.y -= braceConnectorlengthOfset;
+            BraceConnectorTopcurrentPoint.x -= braceConnectorWidthOfset;
+            BraceConnectorBottomcurrentPoint.z += braceConnectorOffsetBottom;
+            BraceConnectorBottomcurrentPoint.y -= braceConnectorlengthOfset;
+            BraceConnectorBottomcurrentPoint.x -= braceConnectorWidthOfset;
+            //Prop Offsets
+            PushPullPropcurrentPoint.y -= braceConnectorlengthOfset;
+            PushPullPropcurrentPoint.x -= basePlateOffset;
+            PushPullPropcurrentPoint.x += 55;
+            PushPullPropcurrentPoint.z += 75;
+            //acutPrintf(_T("\n PushPullPropcurrentPoint: %f, %f, %f"), PushPullPropcurrentPoint.x, PushPullPropcurrentPoint.y, PushPullPropcurrentPoint.z);
+            angleZProp = (M_PI_2 + M_PI_2 + M_PI_2 + M_PI_2);
+            //Kicker Offsets
+            PushPullKickercurrentPoint.y -= braceConnectorlengthOfset;
+            PushPullKickercurrentPoint.x -= basePlateOffset;
+            PushPullKickercurrentPoint.x += 145;
+            PushPullKickercurrentPoint.z += 65;
+            angleZKicker = (M_PI_2 + M_PI_2 + M_PI_2 + M_PI_2);
             break;
 
         }
@@ -990,46 +1197,55 @@ void PlaceProps::placeProps() {
 		}
 		pBraceConnectorTop->close();
 
-		//place braceConnectorBottom
-		pBraceConnectorBottom->setPosition(BraceConnectorBottomcurrentPoint);
-		pBraceConnectorBottom->setBlockTableRecord(BraceConnector);
-		pBraceConnectorBottom->setRotation(rotation);
-		if (pModelSpace->appendAcDbEntity(pBraceConnectorBottom) != Acad::eOk) {
-			acutPrintf(_T("\nFailed to append BraceConnectorBottom reference."));
-		}
-		pBraceConnectorBottom->close();
+        if (globalVarHeight == 600 || globalVarHeight == 900 || globalVarHeight == 1200) {
+            acutPrintf(_T("\n Second Brace Not required"));
+        }
+        else {
+            // Place braceConnectorBottom logic
+            pBraceConnectorBottom->setPosition(BraceConnectorBottomcurrentPoint);
+            pBraceConnectorBottom->setBlockTableRecord(BraceConnector);
+            pBraceConnectorBottom->setRotation(rotation);
 
-		acutPrintf(_T("\n brace Placed"));
+            if (pModelSpace->appendAcDbEntity(pBraceConnectorBottom) != Acad::eOk) {
+                acutPrintf(_T("\nFailed to append BraceConnectorBottom reference."));
+            }
+            pBraceConnectorBottom->close();
 
-		//place PushPullProp
-        pPushPullProp->setPosition(BasePlatecurrentPoint);
-        pPushPullProp->setBlockTableRecord(PushPullProp);
-		rotationMatrixYProp.setToRotation(propAngle, AcGeVector3d::kYAxis, pPushPullProp->position());
-        double angleZProp = (M_PI_2);
-		rotationMatrixZProp.setToRotation(angleZProp, AcGeVector3d::kZAxis, pPushPullProp->position());
-        AcGeMatrix3d combinedRotationMatrixProp = rotationMatrixZProp * rotationMatrixYProp;
-		
-		pPushPullProp->transformBy(combinedRotationMatrixProp);
-        if (pModelSpace->appendAcDbEntity(pPushPullProp) != Acad::eOk) {
-			acutPrintf(_T("\nFailed to append PushPullProp reference."));
-		}
-		pPushPullProp->close();
+            acutPrintf(_T("\n brace Placed"));
+        }
 
-        acutPrintf(_T("\n Prop Placed"));
+        if (globalVarHeight == 600 || globalVarHeight == 900 || globalVarHeight == 1200) {
+            acutPrintf(_T("\n Kicker Not required"));
+        }
+        else {
+            //place PushPullProp
+            pPushPullProp->setPosition(PushPullPropcurrentPoint);
+            pPushPullProp->setBlockTableRecord(PushPullProp);
+            rotationMatrixYProp.setToRotation(propAngle, AcGeVector3d::kYAxis, pPushPullProp->position());
+            rotationMatrixZProp.setToRotation(angleZProp, AcGeVector3d::kZAxis, pPushPullProp->position());
+            AcGeMatrix3d combinedRotationMatrixProp = rotationMatrixZProp * rotationMatrixYProp;
 
-		//place PushPullKicker
-        pPushPullKicker->setPosition(PushPullKickercurrentPoint);
-        pPushPullKicker->setBlockTableRecord(PushPullKicker);
-		rotationMatrixYKicker.setToRotation(kickerAngle, AcGeVector3d::kYAxis, pPushPullKicker->position());
-		double angleZKicker = (M_PI_2);
-        rotationMatrixZKicker.setToRotation(angleZKicker, AcGeVector3d::kZAxis, pPushPullKicker->position());
-		AcGeMatrix3d combinedRotationMatrixKicker = rotationMatrixZKicker * rotationMatrixYKicker;
+            pPushPullProp->transformBy(combinedRotationMatrixProp);
+            if (pModelSpace->appendAcDbEntity(pPushPullProp) != Acad::eOk) {
+                acutPrintf(_T("\nFailed to append PushPullProp reference."));
+            }
+            pPushPullProp->close();
 
-		pPushPullKicker->transformBy(combinedRotationMatrixKicker);
-		if (pModelSpace->appendAcDbEntity(pPushPullKicker) != Acad::eOk) {
-			acutPrintf(_T("\nFailed to append PushPullKicker reference."));
-		}
-		pPushPullKicker->close();
+            acutPrintf(_T("\n Prop Placed"));
+        }
+
+            //place PushPullKicker
+            pPushPullKicker->setPosition(PushPullKickercurrentPoint);
+            pPushPullKicker->setBlockTableRecord(PushPullKicker);
+            rotationMatrixYKicker.setToRotation(kickerAngle, AcGeVector3d::kYAxis, pPushPullKicker->position());
+            rotationMatrixZKicker.setToRotation(angleZKicker, AcGeVector3d::kZAxis, pPushPullKicker->position());
+            AcGeMatrix3d combinedRotationMatrixKicker = rotationMatrixZKicker * rotationMatrixYKicker;
+
+            pPushPullKicker->transformBy(combinedRotationMatrixKicker);
+            if (pModelSpace->appendAcDbEntity(pPushPullKicker) != Acad::eOk) {
+                acutPrintf(_T("\nFailed to append PushPullKicker reference."));
+            }
+            pPushPullKicker->close();
 	}
 
 	pModelSpace->close();
