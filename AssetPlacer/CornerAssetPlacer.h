@@ -66,6 +66,8 @@ public:
     static PanelConfig getPanelConfig(double distance, PanelDimensions& panelDims);
     static std::vector<CornerConfig> generateCornerConfigs(const std::vector<AcGePoint3d>& corners, const PanelConfig& config);
     static bool directionOfDrawing2(std::vector<AcGePoint3d>& points);
+    // Helper method to calculate distance between first two polylines
+    static double calculateDistanceBetweenPolylines();
 private:
     // Method to detect polylines in the drawing
     static std::vector<AcGePoint3d> detectPolylines();
@@ -81,9 +83,6 @@ private:
     static void placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, const PanelConfig& config, AcDbObjectId outsidePanelIdA, AcDbObjectId outsidePanelIdB, AcDbObjectId outsidePanelIdC, AcDbObjectId outsidePanelIdD, AcDbObjectId outsidePanelIdE, AcDbObjectId outsidePanelIdF, AcDbObjectId outsideCompensatorIdA, AcDbObjectId outsideCompensatorIdB, double distance);
     // Method to add text annotation at a specific position
     static void addTextAnnotation(const AcGePoint3d& position, const wchar_t* text);
-
-    // Helper method to calculate distance between first two polylines
-    static double calculateDistanceBetweenPolylines();
     // Helper method to identify the end of the first loop
     
     // Helper method to process corners, determining rotation and inside/outside placement

@@ -16,7 +16,8 @@
 #include <chrono>
 #include "AssetPlacer/CornerAssetPlacer.h"          // Include the header for the CornerAssetPlacer class
 #include "AssetPlacer/WallAssetPlacer.h"            // Include the header for the WallPlacer class
-#include "AssetPlacer/InsideCorner.h"                 // Include the header for the WallPlacer class
+#include "AssetPlacer/InsideCorner.h"                 // Include the header for the InsideCorner class
+#include "AssetPlacer/OutsideCorner.h"                 // Include the header for the OutsideCorner class
 #include "Resource.h"                               // Include the header for the resource file
 #include "BrxSpecific/ribbon/AcRibbonCombo.h"       // Include the header for the AcRibbonCombo class
 #include "BrxSpecific/ribbon/AcRibbonTab.h"         // Include the header for the AcRibbonTab class
@@ -97,81 +98,36 @@ bool isTimezoneTaiwan() {
     return false;
 }
 
-#define BLOCKS_FILE_NAME "AP-Columns_12-11-24.json"
+const std::string  BLOCKS_FILE_NAME = "OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\[03]Plugin\\AP-Columns_12-11-24.json";
+const std::string  LICENSE_FILE_NAME = "OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\license.apdg";
+
+char username[UNLEN + 1];
+DWORD username_len = UNLEN + 1;
+
 
 class CBrxApp : public AcRxArxApp
 {
 public:
     CBrxApp() : AcRxArxApp() {}
 
-    const std::string LICENSE_FILE_NAME = "license.apdg";
-	const std::string  PROPS_FILE_NAME = "source\\repos\\BricsCAD-Peri\\PERI\\Props\\props.json";
-
     virtual void RegisterServerComponents() {}
 
     virtual AcRx::AppRetCode On_kInitAppMsg(void* pAppData)
     {
-
-  //      // Get the current directory
-  //      char currentDir[MAX_PATH];
-  //      if (GetCurrentDirectoryA(MAX_PATH, currentDir) == 0) {
-  //          acutPrintf(_T("\nFailed to get current directory."));
-  //      }
-
-  //      // Get the current username
-  //      char username[UNLEN + 1];
-  //      DWORD username_len = UNLEN + 1;
-  //      if (!GetUserNameA(username, &username_len)) {
-  //          acutPrintf(_T("\nFailed to get username."));
-  //      }
-
-  //      //construct props path
-		//std::string propsFilePath = "C:\\Users\\" + std::string(username) + "\\" + PROPS_FILE_NAME;
-
-  //      // Write currentDir and username to an external text file for verification
-  //      std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
-  //      if (logFile.is_open()) {
-  //          logFile << "Current directory: " << currentDir << std::endl;
-  //          logFile << "Username: " << username << std::endl;
-		//	logFile << "Props file path: " << propsFilePath << std::endl;
-  //          logFile.close();
-  //          acutPrintf(_T("\nPath and username written to 'path_log.txt' for verification."));
-  //      }
-  //      else {
-  //          acutPrintf(_T("\nFailed to write to 'path_log.txt'."));
-  //      }
-
-  //      // Construct the full path for the props file
-  //      //std::string propsFilePath = "C:\\Users\\" + std::string(username) + "\\" + PROPS_FILE_NAME;
-
-  //      // Attempt to open the props file to verify the path is correct
-  //      std::ifstream propsFile(propsFilePath);
-  //      if (propsFile.is_open()) {
-  //          acutPrintf(_T("\nProps file opened successfully."));
-  //          propsFile.close();
-  //      }
-  //      else {
-  //          acutPrintf(_T("\nFailed to open props file. Check if the file exists and the path is correct."));
-  //      }
-
 		//add license file verification here
         // Get the current working directory
+        GetUserNameA(username, &username_len);
 
+        //set a variable as username
+        std::string usernameW(username, username + strlen(username));
+        // Construct the full path for the license file
+        std::string licenseFilePath = "C:\\Users\\" + usernameW + "\\" + LICENSE_FILE_NAME;
 
-  //      char currentDir[MAX_PATH];
-  //      GetCurrentDirectoryA(MAX_PATH, currentDir);
-
-  //      // Construct the full path for the license file
-  //      std::string licenseFilePath = std::string(currentDir) + "\\" + LICENSE_FILE_NAME;
-		////print license file path and props file path
-		//acutPrintf(_T("\nLicense file path: %s"), licenseFilePath.c_str());
-
-
-  //      // Verify the license file using the constructed path
-  //      if (!verifyLicenseFile(licenseFilePath)) {
-  //          acutPrintf(_T("\nLicense verification failed. Exiting application."));
-  //          return AcRx::kRetError; // Return an error if the verification fails
-  //      }
+        // Verify the license file using the constructed path
+        if (!verifyLicenseFile(licenseFilePath)) {
+            acutPrintf(_T("\nLicense verification failed. Exiting application."));
+            return AcRx::kRetError; // Return an error if the verification fails
+        }
 
         AcRx::AppRetCode result = AcRxArxApp::On_kInitAppMsg(pAppData);
         acrxRegisterAppMDIAware(pAppData); // is able to work in MDI context
@@ -186,7 +142,7 @@ public:
         acutPrintf(_T("\nFor more information please contact ani@aniruddhapandit.com\n"));
 
         // Register the commands
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
+        //acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceTies"), _T("PlaceTies"), ACRX_CMD_MODAL, []() { TiePlacer::placeTies(); });
@@ -196,11 +152,12 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
+        //acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
+        //acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceProps"), _T("PlaceProps"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlacePushPullProps(); });
-        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceInsideCorners"), _T("PlaceInsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxTEST(); });
+        acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceInsideCorners"), _T("PlaceInsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceInsideCorners(); });
+		acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceOutsideCorners"), _T("PlaceOutsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceOutsideCorners(); });
       
         BlockLoader::loadBlocksFromJson(); // Load blocks from the database
 
@@ -229,18 +186,19 @@ public:
         return AcRx::kRetOK; // Return OK if no action is needed
     }
 
-    // SandBox Command for testing the SDK
-    static void BrxAppMySandboxCommand(void)
+	//PlaceInsideCorners command
+    static void BrxPlaceInsideCorners(void)
     {
-        acutPrintf(_T("\nRunning MySandboxCommand."));
-    }
-
-	// Test command
-    static void BrxTEST(void)
-    {
-        acutPrintf(_T("\nRunning TEST."));
+        acutPrintf(_T("\nRunning PlaceInsideCorners."));
         InsideCorner::placeAssetsAtCorners();
     }
+
+	//PlaceOutsideCorners command
+	static void BrxPlaceOutsideCorners(void)
+	{
+		acutPrintf(_T("\nRunning PlaceOutsideCorners."));
+		OutsideCorner::placeAssetsAtCorners();
+	}
 
     // PlaceBrackets command
     static void BrxAppPlaceBrackets(void)
@@ -249,14 +207,14 @@ public:
         PlaceBracket::placeBrackets();
 	}
 
-    // PlaceBrackets command
+    // PlaceProps command
     static void BrxAppPlacePushPullProps(void)
     {
         acutPrintf(_T("\nRunning PlaceProps."));
         PlaceProps::placeProps();
     }
 
-    // PlaceCorners command
+    // PlaceCorners command only for testing
     static void BrxAppPlaceCorners(void)
     {
         acutPrintf(_T("\nRunning PlaceCorners."));
@@ -270,20 +228,20 @@ public:
         WallPlacer::placeWalls();
     }
 
-    // Settings command need to be defined
-    static void BrxAppSettings(void)
-    {
-        acutPrintf(_T("\nRunning BrxAppSettings."));
-        SettingsCommands::openSettings();
-        // Add settings dialog here
-    }
+    //// Settings command need to be defined
+    //static void BrxAppSettings(void)
+    //{
+    //    acutPrintf(_T("\nRunning BrxAppSettings."));
+    //    SettingsCommands::openSettings();
+    //    // Add settings dialog here
+    //}
 
-    // handle special cases
-    static void BrxAppSpecialCaseCorners(void)
-	{
-		acutPrintf(_T("\nRunning SpecialCaseCorners."));
-		SpecialCaseCorners::handleSpecialCases();
-	}
+ //   // handle special cases need to delete
+ //   static void BrxAppSpecialCaseCorners(void)
+	//{
+	//	acutPrintf(_T("\nRunning SpecialCaseCorners."));
+	//	SpecialCaseCorners::handleSpecialCases();
+	//}
 
      //PlaceConnectors command
     static void BrxAppPlaceConnectors(void)
@@ -307,12 +265,13 @@ public:
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
-		char currentDir[MAX_PATH];
-		GetCurrentDirectoryA(MAX_PATH, currentDir);
+        GetUserNameA(username, &username_len);
+
+        //set a variable as username
+        std::string usernameW(username, username + strlen(username));
         // Construct the full path for the JSON file
-		std::string jsonFilePath = std::string(currentDir) + "\\" + BLOCKS_FILE_NAME;
-        PlaceColumn(jsonFilePath);
-		//PlaceColumn("C:\\Users\\carvalho\\OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\blocks.json");
+		std::string jsonFilePath = "C:\\Users\\" + usernameW + "\\" + BLOCKS_FILE_NAME;
+		PlaceColumn(jsonFilePath);
 	}
 
     //ExtractColumn command
@@ -320,7 +279,6 @@ public:
 	{
 		acutPrintf(_T("\nRunning ExtractColumn."));
         ExtractColumn();
-		//SaveBlocksToJson("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\blocks.json");
 	}
 
     // LoadBlocks command
@@ -333,11 +291,11 @@ public:
     // DefineHeight command
     static void BrxAppDefineHeight(void)
     {
-        acutPrintf(_T("\nDefining Height....."));
+        acutPrintf(_T("\nDefining Height..."));
         DefineHeight::defineHeight();
     }
 
-    // DefineScale command
+    // DefineScale command NOT TO BE USED
     static void BrxAppDefineScale(void)
     {
         acutPrintf(_T("\nRunning DefineScale."));
@@ -345,31 +303,13 @@ public:
         DefineScale::defineScale();
     }
 
-    // DoAll command
-    //static void BrxAppDoApp(void)
-    //{
-    //    acutPrintf(_T("\nRunning Peri Automation."));
-    //    CornerAssetPlacer::placeAssetsAtCorners();
-    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
-
-    //    WallPlacer::placeWalls();
-    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
-
-    //    WallPanelConnector::placeConnectors();
-    //    StackedWallPanelConnectors::placeStackedWallConnectors();
-    //    Stacked15PanelConnector::place15panelConnectors();
-    //    WalerConnector::placeConnectors();
-    //    std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait for 1 second
-
-    //    TiePlacer::placeTies();
-    //    acutPrintf(_T("\nPeri Automation completed."));
-    //}
-
     // ListCMDS command
     static void BrxListCMDS(void)
     {
         acutPrintf(_T("\nAvailable commands:"));
-        acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners."));
+        //acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners., WILL BE REMOVED FOR FINAL VERSION"));
+		acutPrintf(_T("\nPlaceInsideCorners: To only place Inside Corner Assets at the corners."));
+		acutPrintf(_T("\nPlaceOutsideCorners: To only place Outside Corner Assets at the corners."));
         acutPrintf(_T("\nPlaceWalls: To only place Walls."));
         acutPrintf(_T("\nPlaceConnectors: To Place all types of Connectors. Duo Couplers, Waler, Duo Grip DW 15. "));
         acutPrintf(_T("\nPlaceTies: To only place Ties."));
@@ -377,9 +317,9 @@ public:
         acutPrintf(_T("\nPlaceBrackets: To only place Brackets."));
 		acutPrintf(_T("\nPlaceProps: To only place Props."));
         acutPrintf(_T("\nDefineHeight: Define Height, specify height in mm."));
-        acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1))"));
+        acutPrintf(_T("\nDefineScale: Define Scale factor (e.g., 1 for (1,1,1) or 0.1 for (0.1,0.1,0.1)), NOT IMPLEMENTED CORRECTLY"));
         acutPrintf(_T("\nLoadBlocks: To load custom blocks database."));
-        acutPrintf(_T("\nDoAll: only for testing purposes"));
+        acutPrintf(_T("\nDoAll: only for testing purposes, NOT IMPLEMENTED"));
         acutPrintf(_T("\nListCMDS: Prints this Menu"));
         acutPrintf(_T("\nPeriSettings: Settings"));
     }
@@ -410,10 +350,19 @@ public:
 IMPLEMENT_ARX_ENTRYPOINT(CBrxApp)
 
 // Define the commands
-ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, MySandboxCommand, MySandboxCommand, ACRX_CMD_TRANSPARENT, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceCorners, PlaceCorners, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceWalls, PlaceWalls, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, LoadBlocks, LoadBlocks, ACRX_CMD_MODAL, NULL)
-ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, Settings, Settings, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceConnectors, PlaceConnectors, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceTies, PlaceTies, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceColumns, PlaceColumns, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, ExtractColumn, ExtractColumn, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, DefineHeight, DefineHeight, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, DefineScale, DefineScale, ACRX_CMD_MODAL, NULL)
+ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceBrackets, PlaceBrackets, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceProps, PlaceProps, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceInsideCorners, PlaceInsideCorners, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceOutsideCorners, PlaceOutsideCorners, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, SpecialCaseCorners, SpecialCaseCorners, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, ListCMDS, ListCMDS, ACRX_CMD_MODAL, NULL)
+//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PeriSettings, PeriSettings, ACRX_CMD_MODAL, NULL)

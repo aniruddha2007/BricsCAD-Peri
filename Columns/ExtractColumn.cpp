@@ -17,11 +17,7 @@ using json = nlohmann::json;
 void ExtractColumn()
 {
     // Ask the user for the column height
-    int columnHeight;
-    if (acedGetInt(_T("\nEnter the column height (e.g., 1350 or 600): "), &columnHeight) != RTNORM) {
-        acutPrintf(_T("\nOperation canceled."));
-        return;
-    }
+    int columnHeight = 1350;
 
     // Ask the user for the column name
     ACHAR columnName[256];
@@ -38,26 +34,21 @@ void ExtractColumn()
     columnNameStr = columnName;
 #endif
 
-    // Start a transaction to access the model space
-    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-    AcDbBlockTable* pBlockTable;
-    if (pDb->getSymbolTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to open the block table."));
+
+    // Prompt the user to select entities
+    ads_name selectionSet;
+    int result = acedSSGet(NULL, NULL, NULL, NULL, selectionSet);
+    if (result != RTNORM) {
+        acutPrintf(_T("\nNo entities selected or selection canceled."));
         return;
     }
 
-    AcDbBlockTableRecord* pModelSpace;
-    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to open the model space."));
-        pBlockTable->close();
-        return;
-    }
-
-    AcDbBlockTableRecordIterator* pIter;
-    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
-        acutPrintf(_T("\nFailed to create a model space iterator."));
-        pModelSpace->close();
-        pBlockTable->close();
+    // Get the number of selected entities
+    long length = 0;
+    acedSSLength(selectionSet, &length);
+    if (length == 0) {
+        acutPrintf(_T("\nNo entities selected."));
+        acedSSFree(selectionSet);
         return;
     }
 
@@ -66,11 +57,20 @@ void ExtractColumn()
     columnJson["height"] = columnHeight;  // Store the height information in JSON
     columnJson["blocks"] = json::array();
 
-    // Iterate through model space and extract block data
-    for (pIter->start(); !pIter->done(); pIter->step())
-    {
+    // Iterate through the selected entities
+    for (long i = 0; i < length; i++) {
+        ads_name entityName;
+        acedSSName(selectionSet, i, entityName);
+
+        AcDbObjectId entityId;
+        if (acdbGetObjectId(entityId, entityName) != Acad::eOk) {
+            continue;
+        }
+
         AcDbEntity* pEntity;
-        pIter->getEntity(pEntity, AcDb::kForRead);
+        if (acdbOpenObject(pEntity, entityId, AcDb::kForRead) != Acad::eOk) {
+            continue;
+        }
 
         if (pEntity->isKindOf(AcDbBlockReference::desc())) {
             AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEntity);
@@ -78,8 +78,9 @@ void ExtractColumn()
             // Get block name using AcString
             AcDbObjectId blockId = pBlockRef->blockTableRecord();
             AcDbBlockTableRecord* pBlockDef;
-            if (acdbOpenObject(pBlockDef, blockId, AcDb::kForRead) != Acad::eOk) {
-                acutPrintf(_T("\nFailed to open block definition."));
+            Acad::ErrorStatus es = acdbOpenObject(pBlockDef, blockId, AcDb::kForRead);
+            if (es != Acad::eOk) {
+                acutPrintf(_T("\nFailed to open block definition: %s"), (es));
                 pEntity->close();
                 continue;
             }
@@ -96,9 +97,9 @@ void ExtractColumn()
 #endif
 
             // Get position, rotation, and scale
-            AcGePoint3d position = pBlockRef->position();
-            double rotation = pBlockRef->rotation();
-            AcGeScale3d scale = pBlockRef->scaleFactors();
+            AcGePoint3d position = pBlockRef->position(); // Position of the block
+            double rotation = pBlockRef->rotation();      // Rotation of the block
+            AcGeScale3d scale = pBlockRef->scaleFactors(); // Scale of the block
 
             // Create JSON object for the block
             json blockData;
@@ -115,12 +116,10 @@ void ExtractColumn()
         pEntity->close();
     }
 
-    delete pIter;
-    pModelSpace->close();
-    pBlockTable->close();
+    acedSSFree(selectionSet); // Free the selection set
 
     // Load the existing JSON file or create a new one
-    std::ifstream inFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+    std::ifstream inFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_12-11-24.json");
     json blocksJson;
     if (inFile.is_open()) {
         acutPrintf(_T("\nJSON file opened successfully."));
@@ -135,7 +134,7 @@ void ExtractColumn()
     blocksJson["columns"].push_back(columnJson);
 
     // Save the updated JSON structure back to the file
-    std::ofstream outFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_05-10-24.json");
+    std::ofstream outFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_12-11-24.json");
     if (outFile.is_open()) {
         outFile << blocksJson.dump(4); // Write with 4-space indentation
         outFile.close();
@@ -145,4 +144,3 @@ void ExtractColumn()
         acutPrintf(_T("\nFailed to open the JSON file for writing."));
     }
 }
-

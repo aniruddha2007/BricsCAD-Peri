@@ -38,8 +38,6 @@ struct Point2D {
     double x, y;
 };
 
-bool isCornerConcave(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next);
-
 // Function to calculate the area of a right-angled polygon using the Shoelace formula
 double calculateRightAngledPolygonArea(const std::vector<Point2D>& vertices);
 

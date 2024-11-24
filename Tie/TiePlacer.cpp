@@ -789,13 +789,13 @@ void TiePlacer::placeTies() {
             nextNext = corners[cornerNum + 2 - (corners.size() / 2)];
         }
 
-        bool isConcave = isCornerConcave(prev, current, next);
+        bool isConcave = isCornerConcaveTie(prev, current, next);
         bool isConvex = !isConcave && isCornerConvexTie(prev, current, next);
 
         // Flagging adjacent corners
         //bool isAdjacentConvex = false;
         //bool isAdjacentConcave = false;
-        bool isAdjacentConcave = isCornerConcave(current, next, nextNext);
+        bool isAdjacentConcave = isCornerConcaveTie(current, next, nextNext);
         bool isAdjacentConvex = !isAdjacentConcave && isCornerConvexTie(current, next, nextNext);
 
         if (isConvex) {

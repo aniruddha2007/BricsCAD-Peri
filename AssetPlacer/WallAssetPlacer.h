@@ -13,10 +13,25 @@
 #undef min
 #endif
 
+#ifndef POLYLINE_INFO_H
+#define POLYLINE_INFO_H
+
+#include <vector>
+#include <AcDb.h>
+
+struct PolylineInfo {
+	AcDbPolyline* polyline;
+	std::vector<AcGePoint3d> corners;
+	bool isOuterLoop;
+};
+
+#endif // POLYLINE_INFO_H
+
+
 class WallPlacer {
 public:
     static void placeWalls();
-	static std::vector<AcGePoint3d> detectPolylines();
+	void detectPolylines(std::vector<PolylineInfo>& polylineInfos, double angleThreshold = 90.0, double tolerance = 1e-6);
 
 private:
     

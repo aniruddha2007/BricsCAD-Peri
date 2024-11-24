@@ -1,4 +1,5 @@
 #pragma once
+#include "CornerAssetPlacer.h"
 
 class InsideCorner {
 public:
@@ -13,6 +14,7 @@ public:
         double distance,
         AcDbObjectId compensatorIdA,
         AcDbObjectId compensatorIdB);
+    static void InsideCorner::placeOutsideCornerPostAndPanels(const AcGePoint3d& corner, double rotation, AcDbObjectId cornerPostId, const PanelConfig& config, AcDbObjectId outsidePanelIdA, AcDbObjectId outsidePanelIdB, AcDbObjectId outsidePanelIdC, AcDbObjectId outsidePanelIdD, AcDbObjectId outsidePanelIdE, AcDbObjectId outsidePanelIdF, AcDbObjectId outsideCompensatorIdA, AcDbObjectId outsideCompensatorIdB, double distance);
 private:
     // Comparator for AcGePoint3d to be used in the map
     struct Point3dComparator {

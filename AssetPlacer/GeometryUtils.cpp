@@ -29,7 +29,8 @@
 #include <sstream>
 #include <iostream>
 
-const double TOLERANCE = 0.19; // Tolerance for comparing angles
+// Tolerance for comparing angles
+const double TOLERANCE = 0.19;
 
 // Manual clamp function
 template <typename T>
@@ -53,9 +54,33 @@ double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2) {
     return acos(dotProduct);
 }
 
-// Determine if an angle is a corner based on a threshold
-bool isCorner(double angle, double threshold) {
-    return fabs(angle - threshold) <= TOLERANCE;
+// Function to calculate cardinal direction between start and end points
+AcGeVector3d calculateCardinalDirection(const AcGePoint3d& start, const AcGePoint3d& end, double tolerance) {
+    double dx = end.x - start.x;
+    double dy = end.y - start.y;
+
+    // Snap the direction to the closest cardinal direction (horizontal or vertical)
+    if (std::abs(dx) < tolerance) dx = 0;  // Snap to vertical direction if difference is small
+    if (std::abs(dy) < tolerance) dy = 0;  // Snap to horizontal direction if difference is small
+
+    // Normalize the direction vector to cardinal directions (-1, 0, or 1)
+    if (dx != 0) dx /= std::abs(dx);  // Normalize to either -1 or 1 for horizontal direction
+    if (dy != 0) dy /= std::abs(dy);  // Normalize to either -1 or 1 for vertical direction
+
+    return AcGeVector3d(dx, dy, 0); // Return the normalized direction vector (x, y direction)
+}
+
+// Adjust the start and end points to snap them to a grid or cardinal directions
+void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, double tolerance) {
+    // Snap both start and end points to nearest grid or cardinal direction
+    start.x = std::round(start.x / tolerance) * tolerance;
+    start.y = std::round(start.y / tolerance) * tolerance;
+
+    end.x = std::round(end.x / tolerance) * tolerance;
+    end.y = std::round(end.y / tolerance) * tolerance;
+
+    // Debug output to confirm snapping
+    acutPrintf(L"\nSnapped Start: %.2f, %.2f, Snapped End: %.2f, %.2f", start.x, start.y, end.x, end.y);
 }
 
 // Normalize an angle to the range [0, 2*PI]
@@ -69,17 +94,41 @@ double normalizeAngle(double angle) {
     return angle;
 }
 
-// Snap an angle to the nearest exact angle (0, 90, 180, 270 degrees)
-double snapToExactAngle(double angle, double tolerance = 0.19) {
-    const double snapAngles[] = { 0, M_PI_2, M_PI, 3 * M_PI_2 };
+double snapToPredefinedValues(double distance) {
+    // Predefined snap values
+    std::vector<double> predefinedValues = {
+        150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850,
+        900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500,
+        1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100
+    };
 
+    // Find the nearest predefined value
+    auto closest = *std::min_element(predefinedValues.begin(), predefinedValues.end(),
+        [distance](double a, double b) {
+            return std::abs(a - distance) < std::abs(b - distance);
+        });
+	//print the distance we are snapping to
+	acutPrintf(_T("\nDistance snapped to: %f\n"), closest);
+
+    return closest;
+}
+
+//Snap to predefined angles
+double snapToExactAngle(double angle, double tolerance = 0.01) {
+    const double snapAngles[] = { 0, M_PI_2, M_PI, 3 * M_PI_2, 2 * M_PI };
+
+    // Normalize the angle to the range [0, 2 * PI]
+    angle = fmod(angle, 2 * M_PI);
+    if (angle < 0) angle += 2 * M_PI;
+
+    // Snap to nearest exact angle within tolerance
     for (double snapAngle : snapAngles) {
         if (fabs(angle - snapAngle) < tolerance) {
             return snapAngle;
         }
     }
 
-    // Special case handling
+    // Handle special case where angle is near 2 * PI or 0
     if (fabs(angle - 2 * M_PI) < tolerance || fabs(angle) < tolerance) {
         return 0;
     }
@@ -134,12 +183,6 @@ bool areAnglesEqual(double angle1, double angle2, double tolerance = 0.1) {
     angle2 = normalizeAngle(angle2);
     return fabs(angle1 - angle2) < tolerance;
 }
-
-//// Use the cross product to check for perpendicularity
-//bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
-//    double crossProductZ = v1.crossProduct(v2).z;
-//    return fabs(crossProductZ) < tolerance;
-//}
 
 // Calculate the direction vector between two points
 AcGeVector3d calculateDirection(const AcGePoint3d& start, const AcGePoint3d& end) {
@@ -230,67 +273,6 @@ void processPolyline(const AcDbPolyline* pPolyline, std::vector<AcGePoint3d>& co
     }
 }
 
-//// Function to classify polyline entities
-//void classifyPolylineEntities(AcDbDatabase* pDb, std::vector<AcGePoint3d>& detectedCorners, double angleThreshold) {
-//    AcDbBlockTable* pBlockTable;
-//    AcDbBlockTableRecord* pBlockTableRecord;
-//
-//    acutPrintf(_T("\nAttempting to get block table.\n"));
-//    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
-//        return;
-//    }
-//
-//    acutPrintf(_T("\nAttempting to get model space.\n"));
-//    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pBlockTableRecord, AcDb::kForRead);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    acutPrintf(_T("\nSuccessfully accessed model space.\n"));
-//
-//    AcDbBlockTableRecordIterator* pIterator;
-//    es = pBlockTableRecord->newIterator(pIterator);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to create block table record iterator. Error status: %d\n"), es);
-//        pBlockTableRecord->close();
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    acutPrintf(_T("\nIterating through entities.\n"));
-//    for (; !pIterator->done(); pIterator->step()) {
-//        AcDbEntity* pEntity;
-//        es = pIterator->getEntity(pEntity, AcDb::kForRead);
-//        if (es != Acad::eOk) {
-//            acutPrintf(_T("\nFailed to get entity. Error status: %d\n"), es);
-//            continue;
-//        }
-//
-//        if (pEntity->isKindOf(AcDbPolyline::desc())) {
-//            AcDbPolyline* pPolyline = AcDbPolyline::cast(pEntity);
-//            acutPrintf(_T("\nPolyline detected.\n"));
-//            if (pPolyline->isClosed() || pPolyline->numVerts() == 4) { // Treat 4-vertex polylines as closed rectangles
-//                acutPrintf(_T("\nClosed or 4-vertex polyline detected. Processing...\n"));
-//                processPolyline(pPolyline, detectedCorners, angleThreshold, TOLERANCE);
-//            }
-//            else {
-//                acutPrintf(_T("\nDetected open polyline. Skipping...\n"));
-//            }
-//        }
-//        pEntity->close();
-//    }
-//
-//    delete pIterator;
-//    pBlockTableRecord->close();
-//    pBlockTable->close();
-//
-//    acutPrintf(_T("\nDetected %d corners from lines.\n"), detectedCorners.size());
-//}
-
 // Function to apply rotation around the x-axis
 void rotateAroundXAxis(AcDbBlockReference* pBlockRef, double angle) {
     // Get the current position of the block
@@ -372,48 +354,53 @@ std::vector<AcGePoint3d> getPolylineVertices(AcDbPolyline* pPolyline) {
 
 // Function to calculate the shift between corresponding vertices of two polylines
 double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
-    //acutPrintf(_T("\nEntering getPolylineDistance...\n"));
-
     // Get vertices of the first polyline
     std::vector<AcGePoint3d> vertices1 = getPolylineVertices(pPolyline1);
-    //acutPrintf(_T("Number of vertices in first polyline: %d\n"), vertices1.size());
 
     // Get vertices of the second polyline
     std::vector<AcGePoint3d> vertices2 = getPolylineVertices(pPolyline2);
-    //acutPrintf(_T("Number of vertices in second polyline: %d\n"), vertices2.size());
 
-    // Determine the minimum number of vertices to use for comparison
+    // Determine the minimum number of vertices
     size_t minSize = std::min(vertices1.size(), vertices2.size());
-    size_t maxSize = std::max(vertices1.size(), vertices2.size());
 
-    // If the difference in vertex counts is greater than 1, log an error and return
-    if (maxSize - minSize > 1) {
-        acutPrintf(_T("\nThe polylines have significantly different numbers of vertices and cannot be directly compared.\n"));
-        return -1.0;
-    }
+    // Predetermined distances
+    std::vector<double> predeterminedValues = { 150, 200, 250, 300, 350, 400, 450, 500, 550, 600,
+                                                650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100,
+                                                1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500,
+                                                1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000,
+                                                2050, 2100 };
 
-    //acutPrintf(_T("\nCalculating shift between corresponding vertices...\n"));
-
-    const double tolerance = 1e-6;  // Define a small tolerance for floating-point comparison
+    double totalDistance = 0.0;
 
     for (size_t i = 0; i < minSize; ++i) {
         double deltaX = vertices2[i].x - vertices1[i].x;
         double deltaY = vertices2[i].y - vertices1[i].y;
 
-        // Check if the absolute values of deltaX and deltaY are the same within a tolerance
-        //if (fabs(fabs(deltaX) - fabs(deltaY)) > tolerance) {
-        //    acutPrintf(_T("\nError: Absolute deltaX and deltaY are not the same. deltaX = %f, deltaY = %f\n"), deltaX, deltaY);
-        //    return -1.0; // Return an error if they are not the same within the tolerance
-        //}
-
-        // If they are the same, return deltaX as an integer
-        int deltaXInt = static_cast<int>(fabs(deltaX));
-        //acutPrintf(_T("Vertex %d: deltaX = %f, deltaY = %f, Returning: %d\n"), i, deltaX, deltaY, deltaXInt);
-        return deltaXInt; // Return the absolute value of deltaX as an integer
+        if (fabs(deltaX - deltaY) < 1e-6) {
+            // If deltaX and deltaY are effectively the same, use that value as totalDistance
+            totalDistance = deltaX; // Could also use deltaY since they are the same
+        }
+        else {
+            // Find the closest value from predeterminedValues
+            double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
+            double closestValue = predeterminedValues[0];
+            double minDifference = fabs(distance - closestValue);
+            acutPrintf(_T("\nDeltaX: %f, DeltaY: %f"), deltaX, deltaY);
+            for (double value : predeterminedValues) {
+                double difference = fabs(distance - value);
+                if (difference < minDifference) {
+                    minDifference = difference;
+                    closestValue = value;
+                }
+            }
+            totalDistance = closestValue;
+        }
     }
+    //print deltaX and deltaY
+	
+    acutPrintf(_T("\nClosest matching distance: %f"), totalDistance);
 
-    //acutPrintf(_T("Exiting getPolylineDistance...\n"));
-    return -1.0; // In case no valid vertices are found
+    return totalDistance;
 }
 
 // Function to ensure polyline is clockwise
@@ -487,6 +474,7 @@ bool isInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t curre
     return isInside;
 }
 
+// Function to filter out points that are too close to each other
 void filterClosePoints(std::vector<AcGePoint3d>& vertices, double tolerance) {
     std::vector<AcGePoint3d> filteredVertices;
     //acutPrintf(_T("\nFiltering points with tolerance: %f"), tolerance);
@@ -522,6 +510,64 @@ void adjustRotationForCorner(double& rotation, const std::vector<AcGePoint3d>& c
     }
 }
 
+// Function to determine the direction of the drawing
 bool isItInteger(double value, double tolerance) {
     return std::abs(value - std::round(value)) < tolerance;
+}
+
+// Function to calculate the distance between the first two polylines in the drawing
+double calculateDistanceBetweenPolylines() {
+    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
+    if (!pDb) {
+        return -1.0;
+    }
+
+    AcDbBlockTable* pBlockTable;
+    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
+        return -1.0;
+    }
+
+    AcDbBlockTableRecord* pModelSpace;
+    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbBlockTableRecordIterator* pIter;
+    if (pModelSpace->newIterator(pIter) != Acad::eOk) {
+        pModelSpace->close();
+        pBlockTable->close();
+        return -1.0;
+    }
+
+    AcDbPolyline* pFirstPolyline = nullptr;
+    AcDbPolyline* pSecondPolyline = nullptr;
+
+    // Find the first two polylines
+    for (pIter->start(); !pIter->done(); pIter->step()) {
+        AcDbEntity* pEnt;
+        if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
+            if (pEnt->isKindOf(AcDbPolyline::desc())) {
+                if (!pFirstPolyline) {
+                    pFirstPolyline = AcDbPolyline::cast(pEnt);
+                }
+                else if (!pSecondPolyline) {
+                    pSecondPolyline = AcDbPolyline::cast(pEnt);
+                    pEnt->close();
+                    break; // Found both polylines, no need to continue
+                }
+            }
+            pEnt->close();
+        }
+    }
+
+    double distance = -1.0;
+    if (pFirstPolyline && pSecondPolyline) {
+        distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
+    }
+
+    delete pIter;
+    pModelSpace->close();
+    pBlockTable->close();
+    return distance;
 }

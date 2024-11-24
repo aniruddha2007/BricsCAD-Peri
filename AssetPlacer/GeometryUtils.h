@@ -7,7 +7,12 @@
 double calculateAngle(const AcGeVector3d& v1, const AcGeVector3d& v2);
 bool areAnglesEqual(double angle1, double angle2, double tolerance);
 double normalizeAngle(double angle);
+double calculateDistanceBetweenPolylines();
 double snapToExactAngle(double angle, double tolerance);
+void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, double tolerance = 0.5);
+AcGeVector3d calculateCardinalDirection(const AcGePoint3d& start, const AcGePoint3d& end, double tolerance = 0.5);
+
+double snapToPredefinedValues(double distance);
 bool isCorner(double angle, double threshold = 45.0);
 bool determineIfInsideCorner(const std::vector<AcGePoint3d>& polylinePoints, size_t currentIndex, bool isClockwise);
 bool directionOfPolyline(const std::vector<AcGePoint3d>& polylinePoints);

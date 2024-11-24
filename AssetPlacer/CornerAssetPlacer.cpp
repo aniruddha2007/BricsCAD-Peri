@@ -736,6 +736,7 @@ bool recreateModelSpace(AcDbDatabase* pDb) {
     return true;
 }
 
+// Function to place a block reference in the model space
 std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     //acutPrintf(_T("\nDetecting polylines..."));
     std::vector<AcGePoint3d> corners;
@@ -807,6 +808,7 @@ std::vector<AcGePoint3d> CornerAssetPlacer::detectPolylines() {
     return corners;
 }
 
+// Function to process a polyline and extract corner points
 bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tolerance = TOLERANCE) {
     // Calculate the cross product of the two vectors
     AcGeVector3d crossProduct = v1.crossProduct(v2);
@@ -815,10 +817,12 @@ bool arePerpendicular(const AcGeVector3d& v1, const AcGeVector3d& v2, double tol
     return crossProduct.length() < tolerance;
 }
 
+// Function to process a polyline and extract corner points
 double crossProduct2(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 }
 
+// Function to process a polyline and extract corner points
 bool CornerAssetPlacer::directionOfDrawing2(std::vector<AcGePoint3d>& points) {
     // Ensure the shape is closed
     if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
@@ -891,6 +895,7 @@ double CornerAssetPlacer::calculateDistanceBetweenPolylines() {
     return distance;
 }
 
+//identify the first loop end
 int CornerAssetPlacer::identifyFirstLoopEnd(const std::vector<AcGePoint3d>& corners) {
     int closeLoopCounter = -1;
     int loopIndex = 0;
@@ -1074,7 +1079,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
             //acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
             // Add logic specific to convex corners here if needed
             if (!isInside) {
-                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
+                //placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
             }
             else {
                 placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
@@ -1088,7 +1093,7 @@ void CornerAssetPlacer::placeAssetsAtCorners() {
                 placeInsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, distance, compensatorIdA, compensatorIdB);
             }
             else {
-                placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
+                //placeOutsideCornerPostAndPanels(corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, distance);
                 
             }
         }

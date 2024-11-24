@@ -16,134 +16,134 @@
     <MacroGroup Name="PERI_MACROS">
       <MenuMacro UID="MMU_001">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1"/>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1" />
           <Name UID="XLS_001" xlate="true">Wall</Name>
           <Command>^C^Cplacewalls</Command>
           <HelpString UID="XLS_001_HELP" xlate="true">Wall</HelpString>
-          <SmallImage Name="wall.png"/>
-          <LargeImage Name="wall.png"/>
+          <SmallImage Name="wall.png" />
+          <LargeImage Name="wall.png" />
           <CLICommand UID="XLS_001_CLI" xlate="true">Wall</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_002">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_002" xlate="true">Corners</Name>
-          <Command>^C^Cplacecorners</Command>
-          <HelpString UID="XLS_002_HELP" xlate="true">Corners</HelpString>
-          <SmallImage Name="corners.png"/>
-          <LargeImage Name="corners.png"/>
-          <CLICommand UID="XLS_002_CLI" xlate="true">Corners</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_002" xlate="true">Inside Corners</Name>
+          <Command>^C^CPlaceInsideCorners</Command>
+          <HelpString UID="XLS_002_HELP" xlate="true">Inside Corners</HelpString>
+          <SmallImage Name="corners.png" />
+          <LargeImage Name="corners.png" />
+          <CLICommand UID="XLS_002_CLI" xlate="true">Inside Corners</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_003">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_003" xlate="true">Load Blocks</Name>
-          <Command>^C^Cloadblocks</Command>
-          <HelpString UID="XLS_003_HELP" xlate="true">Load Blocks</HelpString>
-          <SmallImage Name="loadblocks.png"/>
-          <LargeImage Name="loadblocks.png"/>
-          <CLICommand UID="XLS_003_CLI" xlate="true">Load Blocks</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_003" xlate="true">Outside Corners</Name>
+          <Command>^C^CPlaceOutsideCorners</Command>
+          <HelpString UID="XLS_003_HELP" xlate="true">Outside Corners</HelpString>
+          <SmallImage Name="corners.png" />
+          <LargeImage Name="corners.png" />
+          <CLICommand UID="XLS_003_CLI" xlate="true">Outside Corners</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_004">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1"/>
-          <Name UID="XLS_004" xlate="true">Couplers</Name>
-          <Command>^C^Cplaceconnectors</Command>
-          <HelpString UID="XLS_004_HELP" xlate="true">Couplers</HelpString>
-          <SmallImage Name="connector.png"/>
-          <LargeImage Name="connector.png"/>
-          <CLICommand UID="XLS_004_CLI" xlate="true">Couplers</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_004" xlate="true">Load Blocks</Name>
+          <Command>^C^Cloadblocks</Command>
+          <HelpString UID="XLS_004_HELP" xlate="true">Load Blocks</HelpString>
+          <SmallImage Name="loadblocks.png" />
+          <LargeImage Name="loadblocks.png" />
+          <CLICommand UID="XLS_004_CLI" xlate="true">Load Blocks</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_005">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1"/>
-          <Name UID="XLS_005" xlate="true">Ties</Name>
-          <Command>^C^Cplaceties</Command>
-          <HelpString UID="XLS_005_HELP" xlate="true">Ties</HelpString>
-          <SmallImage Name="tie.png"/>
-          <LargeImage Name="tie.png"/>
-          <CLICommand UID="XLS_005_CLI" xlate="true">Ties</CLICommand>
-        </Macro>
-      </MenuMacro>
-      <MenuMacro UID="MMU_008">
-        <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_008" xlate="true">Place Columns</Name>
-          <Command>^C^CPlaceColumns</Command>
-          <HelpString UID="XLS_006_HELP" xlate="true">Place Columns</HelpString>
-          <SmallImage Name="column.png"/>
-          <LargeImage Name="column.png"/>
-          <CLICommand UID="XLS_008_CLI" xlate="true">Place Columns</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1" />
+          <Name UID="XLS_005" xlate="true">Couplers</Name>
+          <Command>^C^Cplaceconnectors</Command>
+          <HelpString UID="XLS_005_HELP" xlate="true">Couplers</HelpString>
+          <SmallImage Name="connector.png" />
+          <LargeImage Name="connector.png" />
+          <CLICommand UID="XLS_005_CLI" xlate="true">Couplers</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_006">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_006" xlate="true">Start Automation</Name>
-          <Command>^C^CDoAll</Command>
-          <HelpString UID="XLS_006_HELP" xlate="true">Start Automation</HelpString>
-          <SmallImage Name="Start.png"/>
-          <LargeImage Name="Start.png"/>
-          <CLICommand UID="XLS_006_CLI" xlate="true">Start Automation</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="3" UserVersion="1" />
+          <Name UID="XLS_006" xlate="true">Ties</Name>
+          <Command>^C^Cplaceties</Command>
+          <HelpString UID="XLS_006_HELP" xlate="true">Ties</HelpString>
+          <SmallImage Name="tie.png" />
+          <LargeImage Name="tie.png" />
+          <CLICommand UID="XLS_006_CLI" xlate="true">Ties</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_007">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_007" xlate="true">Height</Name>
-          <Command>^C^CDefineHeight</Command>
-          <HelpString UID="XLS_007_HELP" xlate="true">Height</HelpString>
-          <SmallImage Name="Height.png"/>
-          <LargeImage Name="Height.png"/>
-          <CLICommand UID="XLS_007_CLI" xlate="true">Height</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_007" xlate="true">Place Columns</Name>
+          <Command>^C^CPlaceColumns</Command>
+          <HelpString UID="XLS_007_HELP" xlate="true">Place Columns</HelpString>
+          <SmallImage Name="column.png" />
+          <LargeImage Name="column.png" />
+          <CLICommand UID="XLS_007_CLI" xlate="true">Place Columns</CLICommand>
+        </Macro>
+      </MenuMacro>
+      <MenuMacro UID="MMU_008">
+        <Macro type="Any">
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_008" xlate="true">Place Brackets</Name>
+          <Command>^C^CPlaceBrackets</Command>
+          <HelpString UID="XLS_008_HELP" xlate="true">Place Brackets</HelpString>
+          <SmallImage Name="bracket.png" />
+          <LargeImage Name="bracket.png" />
+          <CLICommand UID="XLS_008_CLI" xlate="true">Place Brackets</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_009">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_009" xlate="true">Place Brackets</Name>
-          <Command>^C^CPlaceBrackets</Command>
-          <HelpString UID="XLS_009_HELP" xlate="true">Place Brackets</HelpString>
-          <SmallImage Name="bracket.png"/>
-          <LargeImage Name="bracket.png"/>
-          <CLICommand UID="XLS_009_CLI" xlate="true">Place Brackets</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_009" xlate="true">Props</Name>
+          <Command>^C^CPlaceProps</Command>
+          <HelpString UID="XLS_009_HELP" xlate="true">Props</HelpString>
+          <SmallImage Name="props.png" />
+          <LargeImage Name="props.png" />
+          <CLICommand UID="XLS_009_CLI" xlate="true">Props</CLICommand>
         </Macro>
-        </MenuMacro>
+      </MenuMacro>
       <MenuMacro UID="MMU_010">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_010" xlate="true">Help</Name>
-          <Command>^C^CListCMDS</Command>
-          <HelpString UID="XLS_010_HELP" xlate="true">Help</HelpString>
-          <SmallImage Name="question.png"/>
-          <LargeImage Name="question.png"/>
-          <CLICommand UID="XLS_010_CLI" xlate="true">Help</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_010" xlate="true">Height</Name>
+          <Command>^C^CDefineHeight</Command>
+          <HelpString UID="XLS_010_HELP" xlate="true">Height</HelpString>
+          <SmallImage Name="height.png" />
+          <LargeImage Name="height.png" />
+          <CLICommand UID="XLS_010_CLI" xlate="true">Height</CLICommand>
         </Macro>
       </MenuMacro>
       <MenuMacro UID="MMU_011">
         <Macro type="Any">
-          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1"/>
-          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1"/>
-          <Name UID="XLS_011" xlate="true">Push Pull Props</Name>
-          <Command>^C^CPlaceProps</Command>
-          <HelpString UID="XLS_011_PROPS" xlate="true">Push Pull Props</HelpString>
-          <SmallImage Name="props.png"/>
-          <LargeImage Name="props.png"/>
-          <CLICommand UID="XLS_011_CLI" xlate="true">Push Pull Props</CLICommand>
+          <Revision MajorVersion="16" MinorVersion="2" UserVersion="1" />
+          <ModifiedRev MajorVersion="24" MinorVersion="0" UserVersion="1" />
+          <Name UID="XLS_011" xlate="true">Help</Name>
+          <Command>^C^CListCMDS</Command>
+          <HelpString UID="XLS_011_HELP" xlate="true">Help</HelpString>
+          <SmallImage Name="help.png" />
+          <LargeImage Name="help.png" />
+          <CLICommand UID="XLS_011_CLI" xlate="true">Help</CLICommand>
         </Macro>
       </MenuMacro>
     </MacroGroup>
@@ -160,46 +160,46 @@
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_004"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_002" UID="RBNU_005">
-                <TooltipTitle UID="XLS_002_TOOLTIP" xlate="true">Corners</TooltipTitle>
+                <TooltipTitle UID="XLS_002_TOOLTIP" xlate="true">Inside Corners</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_006"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_004" UID="RBNU_007">
-                <TooltipTitle UID="XLS_004_TOOLTIP" xlate="true">Couplers</TooltipTitle>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_003" UID="RBNU_007">
+                <TooltipTitle UID="XLS_003_TOOLTIP" xlate="true">Outside Corners</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_008"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_005" UID="RBNU_009">
-                <TooltipTitle UID="XLS_005_TOOLTIP" xlate="true">Ties</TooltipTitle>
-              </RibbonCommandButton>
-              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_016"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_008" UID="RBNU_017">
-                <TooltipTitle UID="XLS_008_TOOLTIP" xlate="true">Place Columns</TooltipTitle>
-              </RibbonCommandButton>
-              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_020"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_009" UID="RBNU_019">
-                <TooltipTitle UID="XLS_009_TOOLTIP" xlate="true">Place Brackets</TooltipTitle>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_004" UID="RBNU_009">
+                <TooltipTitle UID="XLS_004_TOOLTIP" xlate="true">Load Blocks</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_010"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_003" UID="RBNU_011">
-                <TooltipTitle UID="XLS_003_TOOLTIP" xlate="true">Load Blocks</TooltipTitle>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_005" UID="RBNU_011">
+                <TooltipTitle UID="XLS_005_TOOLTIP" xlate="true">Couplers</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_012"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_006" UID="RBNU_013">
-                <TooltipTitle UID="XLS_006_TOOLTIP" xlate="true">Start Automation</TooltipTitle>
+                <TooltipTitle UID="XLS_006_TOOLTIP" xlate="true">Ties</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_014"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_007" UID="RBNU_015">
-                <TooltipTitle UID="XLS_007_TOOLTIP" xlate="true">Height</TooltipTitle>
+                <TooltipTitle UID="XLS_007_TOOLTIP" xlate="true">Place Columns</TooltipTitle>
+              </RibbonCommandButton>
+              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_016"/>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_008" UID="RBNU_017">
+                <TooltipTitle UID="XLS_008_TOOLTIP" xlate="true">Place Brackets</TooltipTitle>
               </RibbonCommandButton>
               <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_018"/>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_009" UID="RBNU_019">
+                <TooltipTitle UID="XLS_009_TOOLTIP" xlate="true">Props</TooltipTitle>
+              </RibbonCommandButton>
+              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_020"/>
               <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_010" UID="RBNU_021">
-                <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Help</TooltipTitle>
-                </RibbonCommandButton>
-              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_019"/>
-              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_011" UID="RBNU_022">
-                <TooltipTitle UID="XLS_011_TOOLTIP" xlate="true">Push Pull Props</TooltipTitle>
+                <TooltipTitle UID="XLS_010_TOOLTIP" xlate="true">Height</TooltipTitle>
+              </RibbonCommandButton>
+              <RibbonSeparator Id="AcRibbonSeparator" UID="RBNU_022"/>
+              <RibbonCommandButton ButtonStyle="LargeWithText" Id="AcRibbonCommandButton" MenuMacroID="MMU_011" UID="RBNU_023">
+                <TooltipTitle UID="XLS_011_TOOLTIP" xlate="true">Help</TooltipTitle>
               </RibbonCommandButton>
             </RibbonRow>
-            <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_020"/>
+            <RibbonPanelBreak Id="AcRibbonPanelBreak" UID="RBNU_024"/>
           </RibbonPanelSource>
         </RibbonPanelSourceCollection>
         <RibbonTabSourceCollection>

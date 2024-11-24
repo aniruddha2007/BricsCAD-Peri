@@ -434,108 +434,6 @@ void listDynamicBlockProperties(AcDbObjectId blockRefId) {
     pBlockRef->close();
 }
 
-void getBlockXData(AcDbObjectId blockRefId) {
-    if (blockRefId.isNull()) {
-        acutPrintf(_T("Invalid block reference ID.\n"));
-        return;
-    }
-
-    AcDbBlockReference* pBlockRef = nullptr;
-    //if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForRead) != Acad::eOk) {
-    //    acutPrintf(_T("Failed to open block reference.\n"));
-    //    return;
-    //}
-
-    // Define a result buffer pointer to hold the XData
-    resbuf* pXData = nullptr;
-    pXData = pBlockRef->xData(_T("BRXAPP")); // Replace with your app name
-
-    if (pXData != nullptr) {
-        // Iterate through the result buffer to display XData
-        resbuf* pTemp = pXData;
-        while (pTemp != nullptr) {
-            acutPrintf(_T("\nGroup code: %d, Value: "), pTemp->restype);
-            if (pTemp->restype == AcDb::kDxfXdAsciiString) {
-                acutPrintf(_T("%s"), pTemp->resval.rstring);
-            }
-            else if (pTemp->restype == AcDb::kDxfXdReal) {
-                acutPrintf(_T("%f"), pTemp->resval.rreal);
-            }
-            else if (pTemp->restype == AcDb::kDxfXdInteger32) {
-                acutPrintf(_T("%d"), pTemp->resval.rlong);
-            }
-            pTemp = pTemp->rbnext;
-        }
-        acutRelRb(pXData); // Release the memory allocated for the result buffer
-    }
-    else {
-        acutPrintf(_T("No XData found for this block reference.\n"));
-    }
-
-    pBlockRef->close();
-}
-
-//void checkBlockType(AcDbObjectId blockRefId) {
-//    if (blockRefId.isNull()) {
-//        acutPrintf(_T("Invalid block reference ID.\n"));
-//        return;
-//    }
-//
-//    // Open the block reference for reading
-//    AcDbBlockReference* pBlockRef;
-//  //  if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForRead) != Acad::eOk) {
-//  //      //print blockRefId
-//		//acutPrintf(_T("Block reference ID: %s\n"), pBlockRef);
-//  //      acutPrintf(_T("Failed to open block reference here.\n"));
-//  //      return;
-//  //  }
-//
-//    // Check if the block reference is a dynamic block using AcDbDynBlockReference::isDynamicBlock()
-//    if (AcDbDynBlockReference::isDynamicBlock(blockRefId)) {
-//        //print block Properties  using getBlockProperties
-//		//close the block reference
-//		//pBlockRef->close();
-//        getBlockXData(blockRefId);
-//        acutPrintf(_T("The block is a dynamic block.\n"));
-//    }
-//    else {
-//        acutPrintf(_T("The block is not a dynamic block.\n"));
-//    }
-//
-//    // Get the block table record ID from the block reference
-//    AcDbObjectId blockTableRecordId = pBlockRef->blockTableRecord();
-//
-//    // Close the block reference as we are done with it
-//    pBlockRef->close();
-//
-//    // Open the block table record for reading
-//    AcDbBlockTableRecord* pBlockTableRecord;
-//    if (acdbOpenObject(pBlockTableRecord, blockTableRecordId, AcDb::kForRead) != Acad::eOk) {
-//        acutPrintf(_T("Failed to open block table record.\n"));
-//        return;
-//    }
-//
-//    // Check if the block is anonymous
-//    if (pBlockTableRecord->isAnonymous()) {
-//        acutPrintf(_T("The block is anonymous.\n"));
-//    }
-//    else {
-//        acutPrintf(_T("The block is not anonymous.\n"));
-//    }
-//
-//    // Check if the block is an external reference (xref)
-//    if (pBlockTableRecord->isFromExternalReference()) {
-//        acutPrintf(_T("The block is an external reference (xref).\n"));
-//    }
-//    else {
-//        acutPrintf(_T("The block is not an external reference.\n"));
-//    }
-//
-//    // Close the block table record
-//    pBlockTableRecord->close();
-//}
-//Function to place brackets
-
 const std::string  PROPS_FILE_NAME = "OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\[03]Plugin\\props.json";
 
 void PlaceProps::placeProps() {
@@ -930,9 +828,9 @@ void PlaceProps::placeProps() {
     // Construct the full path for the JSON file
     //construct props path
     std::string jsonFilePath = "C:\\Users\\" + usernameW + "\\" + PROPS_FILE_NAME;
-    acutPrintf(_T("\nJSON file path: %s"), jsonFilePath.c_str());
+    //acutPrintf(_T("\nJSON file path: %s"), jsonFilePath.c_str());
     // Write currentDir and username to an external text file for verification
-    std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
+    /*std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
     if (logFile.is_open()) {
         logFile << "jsonFilePath: " << jsonFilePath << std::endl;
         logFile.close();
@@ -940,7 +838,7 @@ void PlaceProps::placeProps() {
     }
     else {
         acutPrintf(_T("\nFailed to write to 'path_log.txt'."));
-    }
+    }*/
 
     std::ifstream jsonFile(jsonFilePath);
 	//std::ifstream jsonFile("C:\\Users\\anir\\OneDrive\\Desktop\\work\\props.json");
@@ -1012,15 +910,15 @@ void PlaceProps::placeProps() {
 
 
             //print all the values
-            acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
-            acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
-            acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
-            acutPrintf(_T("\nProp Angle: %f"), propAngle);
-            acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
-            acutPrintf(_T("\nProp Width: %d"), propWidth);
-            acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
-            acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
-            acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
+            //acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
+            //acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
+            //acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
+            //acutPrintf(_T("\nProp Angle: %f"), propAngle);
+            //acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
+            //acutPrintf(_T("\nProp Width: %d"), propWidth);
+            //acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
+            //acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
+            //acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
             break;
         }
     }
