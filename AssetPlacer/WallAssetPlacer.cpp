@@ -1595,24 +1595,24 @@ void WallPlacer::placeWalls() {
 		loopData.push_back(loop); // Add the loop info to the vector
 	}
 
-	//print the classified loops as outer and inner loops with clockwise or anticlockwise
-	acutPrintf(L"\nOuter loops:\n");
-	for (size_t i = 0; i < outerLoops.size(); ++i) {
-		acutPrintf(L"Outer loop %zu:\n", i + 1);
-		for (size_t j = 0; j < outerLoops[i].size(); ++j) {
-			acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, outerLoops[i][j].x, outerLoops[i][j].y);
-		}
-		acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i] ? L"true" : L"false");  // Correctly print bool
-	}
+	////print the classified loops as outer and inner loops with clockwise or anticlockwise
+	//acutPrintf(L"\nOuter loops:\n");
+	//for (size_t i = 0; i < outerLoops.size(); ++i) {
+	//	acutPrintf(L"Outer loop %zu:\n", i + 1);
+	//	for (size_t j = 0; j < outerLoops[i].size(); ++j) {
+	//		acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, outerLoops[i][j].x, outerLoops[i][j].y);
+	//	}
+	//	acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i] ? L"true" : L"false");  // Correctly print bool
+	//}
 
-	acutPrintf(L"\nInner loops:\n");
-	for (size_t i = 0; i < innerLoops.size(); ++i) {
-		acutPrintf(L"Inner loop %zu:\n", i + 1);
-		for (size_t j = 0; j < innerLoops[i].size(); ++j) {
-			acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, innerLoops[i][j].x, innerLoops[i][j].y);
-		}
-		acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i + outerLoops.size()] ? L"true" : L"false");  // Correctly print bool for inner loops
-	}
+	//acutPrintf(L"\nInner loops:\n");
+	//for (size_t i = 0; i < innerLoops.size(); ++i) {
+	//	acutPrintf(L"Inner loop %zu:\n", i + 1);
+	//	for (size_t j = 0; j < innerLoops[i].size(); ++j) {
+	//		acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, innerLoops[i][j].x, innerLoops[i][j].y);
+	//	}
+	//	acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i + outerLoops.size()] ? L"true" : L"false");  // Correctly print bool for inner loops
+	//}
 
 	// T-Joint Detection
 	detectTJoints(allPolylines, detectedTJoints);
@@ -1628,6 +1628,10 @@ void WallPlacer::placeWalls() {
 		{150, {L"128285X", L"Null", L"129842X"}},
 		{100, {L"128292X", L"Null", L"129884X"}},
 		{50, {L"128287X", L"Null", L"129879X"}}
+	};
+	struct PanelPlacement {
+		int numPanels;   // Number of panels of this type
+		int panelLength; // Length of the panel
 	};
 
 	int closeLoopCounter = 0;
@@ -1886,6 +1890,8 @@ void WallPlacer::placeWalls() {
 		rotation += M_PI;
 		bool flagInitialPanelLength = false;
 		int panelIndex = 1;
+		std::vector<PanelPlacement> panelPlan; // To store the calculated panel configuration
+		double remainingDistance = distance; // Set to the total distance to place the panels
 
 
 		for (const auto& panel : panelSizes) {
