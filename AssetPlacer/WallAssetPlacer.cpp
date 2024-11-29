@@ -1911,25 +1911,17 @@ void WallPlacer::placeWalls() {
 
 						int numPanels = static_cast<int>(distance / panel.length);
 						double remainingDistance = distance - (numPanels * panel.length);
-						acutPrintf(_T("\nRemaining Distance = %f"), remainingDistance);
+						//acutPrintf(_T("\nRemaining Distance = %f"), remainingDistance);
 						for (int i = 0; i < numPanels; i++) {
-							if (i == 0 && flagInitialPanelLength == false) {
-								currentPoint += direction * panel.length;
-								flagInitialPanelLength = true;
-							}
-							// Print the current panel index
-							//acutPrintf(L"\npanelIndex: %d", panelIndex);
 
+							currentPoint += direction * panel.length;////////
 							// Calculate the panel's position
 							AcGePoint3d currentPointWithHeight = currentPoint;
 							currentPointWithHeight.z += currentHeight;
 
-							// Debug: Print the panel's placement
-							acutPrintf(L"\nPanel Base Point: (%f, %f, %f)", currentPointWithHeight.x, currentPointWithHeight.y, currentPointWithHeight.z);
-							acutPrintf(L"\nPanel End Point: (%f, %f, %f)",
-								(currentPointWithHeight - direction * panel.length).x,
-								(currentPointWithHeight - direction * panel.length).y,
-								(currentPointWithHeight - direction * panel.length).z);
+							acutPrintf(L"\nCurrent Point: (%f, %f, %f)+=", currentPoint.x, currentPoint.y, currentPoint.z);
+							acutPrintf(L"\nDirection: (%f, %f, %f)*", direction.x, direction.y, direction.z);
+							acutPrintf(L"\nPanel Length: %", panel.length);
 
 							// Normalize and snap rotation
 							//rotation = normalizeAngle(rotation);
@@ -1950,15 +1942,7 @@ void WallPlacer::placeWalls() {
 							totalPanelsPlaced++;
 							panelIndex++;
 
-							// Move currentPoint to the end of the current panel
-							if (i == numPanels - 1) {
-								currentPoint += direction * remainingDistance;
-								//currentPoint += direction * panel.length;
-							}
-							else {
-								currentPoint += direction * panel.length;
-								//acutPrintf(L"\nCurrent point after placement: (%f, %f, %f)", currentPoint.x, currentPoint.y, currentPoint.z);
-							}
+							
 
 						}
 						distance = remainingDistance; // Update distance for the next panel size
