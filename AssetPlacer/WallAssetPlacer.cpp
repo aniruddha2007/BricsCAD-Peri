@@ -36,7 +36,7 @@ const int BATCH_SIZE = 1000;
 const double TOLERANCE = 0.1; 
 double proximityTolerance = 1.0; 
 std::vector<AcGePoint3d> processedCorners; 
-
+double distanceBetweenPolylines = 0.0;
 
 struct Panel {
 	int length;
@@ -455,6 +455,7 @@ void convertToClockwise(std::vector<AcGePoint3d>& polylinePoints) {
 
 void WallPlacer::placeWalls() {
 	
+	
 	std::vector<PolylineCorners> polylineCornerGroups;
 	std::vector<TJoint> detectedTJoints;
 	std::vector<std::vector<AcGePoint3d>> outerLoops;
@@ -573,7 +574,7 @@ void WallPlacer::placeWalls() {
 	int loopIndex = 0;
 	int loopIndexLastPanel = 0;
 	 closeLoopCounter = -1;
-	double distanceBetweenPolylines = getDistanceFromUser();
+	distanceBetweenPolylines = getDistanceFromUser();
 
 	double totalPanelsPlaced = 0;
 	std::vector<int> cornerLocations;

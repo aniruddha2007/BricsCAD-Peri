@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "StdAfx.h"
 #include "GeometryUtils.h"
 #include "SharedDefinations.h"

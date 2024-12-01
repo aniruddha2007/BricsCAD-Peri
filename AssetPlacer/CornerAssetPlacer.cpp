@@ -1,20 +1,4 @@
-﻿// Created by:Ani  (2024-05-31)
-// Modified by:Ani (2024-07-04)
-// TODO:
-// CornerAssetPlacer.cpp
-// This file contains the implementation of the CornerAssetPlacer class.
-// The CornerAssetPlacer class is used to place assets at corners in BricsCAD.
-// The detectPolylines function is used to detect polylines in the drawing.
-// The addTextAnnotation function is used to add text annotations to the drawing.
-// The placeAssetsAtCorners function is used to place assets at the detected corners.
-// The loadAsset function is used to load an asset from the block table.
-// The placeInsideCornerPostAndPanels function is used to place assets at inside corners.
-// The placeOutsideCornerPostAndPanels function is used to place assets at outside corners.
-// The recreateModelSpace function is used to recreate the model space.
-// The CornerAssetPlacer class is part of the AssetPlacer namespace.
-/////////////////////////////////////////////////////////////////////////
-
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "CornerAssetPlacer.h"
 #include "SharedDefinations.h"
 #include "GeometryUtils.h"
@@ -45,43 +29,6 @@ const int BATCH_SIZE = 30; // Process 30 entities at a time
 
 const double TOLERANCE = 0.19; // Tolerance for angle comparison
 
-// ADD TEXT ANNOTATION TO DRAWING__ Only enable for debugging
-//void CornerAssetPlacer::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-//    if (!pDb) {
-//        acutPrintf(_T("\nNo working database found."));
-//        return;
-//    }
-//
-//    AcDbBlockTable* pBlockTable;
-//    Acad::ErrorStatus es = pDb->getBlockTable(pBlockTable, AcDb::kForRead);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get block table. Error status: %d\n"), es);
-//        return;
-//    }
-//
-//    AcDbBlockTableRecord* pModelSpace;
-//    es = pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite);
-//    if (es != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get model space. Error status: %d\n"), es);
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    AcDbText* pText = new AcDbText(position, text, AcDbObjectId::kNull, 0.2, 0);
-//    es = pModelSpace->appendAcDbEntity(pText);
-//    if (es == Acad::eOk) {
-//        acutPrintf(_T("| Added text annotation: %s"), text);
-//    }
-//    else {
-//        acutPrintf(_T("\nFailed to add text annotation. Error status: %d\n"), es);
-//    }
-//    pText->close();  // Decrement reference count
-//
-//    pModelSpace->close();  // Decrement reference count
-//    pBlockTable->close();  // Decrement reference count
-//}
-
 // LOAD ASSET FROM BLOCK TABLE
 AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     if (wcslen(blockName) == 0) {
@@ -103,31 +50,6 @@ AcDbObjectId CornerAssetPlacer::loadAsset(const wchar_t* blockName) {
     pBlockTable->close();
     return blockId;
 }
-
-//struct PanelDimensions {
-//    std::vector<Panel> panels;
-//
-//    PanelDimensions() {
-//        // Initialize with the given panel dimensions and block names
-//        panels.push_back(Panel(50, 100, 1350, L"128287X"));
-//        panels.push_back(Panel(100, 100, 1350, L"128292X"));
-//        panels.push_back(Panel(150, 100, 1350, L"128285X"));
-//        panels.push_back(Panel(300, 100, 1350, L"128284X"));
-//        panels.push_back(Panel(450, 100, 1350, L"128283X"));
-//        panels.push_back(Panel(600, 100, 1350, L"128282X"));
-//        panels.push_back(Panel(750, 100, 1350, L"128281X"));
-//    }
-//
-//    // Function to get panel by width (if needed)
-//    Panel* getPanelByWidth(double width) {
-//        for (auto& panel : panels) {
-//            if (panel.width == width) {
-//                return &panel;
-//            }
-//        }
-//        return nullptr;  // Return nullptr if no matching panel is found
-//    }
-//};
 
 //Panel Configurations according to the distance
 PanelConfig CornerAssetPlacer::getPanelConfig(double distance, PanelDimensions& panelDims) {
@@ -689,11 +611,6 @@ std::vector<CornerConfig> CornerAssetPlacer::generateCornerConfigs(const std::ve
 
     return cornerConfigs;
 }
-
-//// Function to check if a double value is an integer within a tolerance
-//bool isItInteger(double value, double tolerance = 1e-9) {
-//    return std::abs(value - std::round(value)) < tolerance;
-//}
 
 // Function to recreate the model space
 bool recreateModelSpace(AcDbDatabase* pDb) {
