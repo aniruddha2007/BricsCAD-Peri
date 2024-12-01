@@ -1,9 +1,9 @@
-// Created by: Ani (2024-07-16)
-// Modified by: 
-// TODO: 
-// Stacked15PanelConnector.cpp
-// 
-/////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
 #include "StdAfx.h"
 #include "Stacked15PanelConnector.h"
 #include "SharedDefinations.h"
@@ -20,13 +20,13 @@
 #include <map>
 #include <string>
 
-const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
+const double TOLERANCE = 0.1; 
 
 const std::vector<std::wstring> panelNames = {
 	ASSET_129842, ASSET_128285
 };
 
-// Define the function to get the width of the panel based on its name
+
 double get15Panel(const std::wstring& panelName) {
     static const std::map<std::wstring, double> panelWidthMap = {
         {ASSET_129842, 150.0},
@@ -36,11 +36,11 @@ double get15Panel(const std::wstring& panelName) {
     if (it != panelWidthMap.end()) {
         return it->second;
     }
-    // Handle case where panelName is not found
+    
     return 0.0;
 }
 
-// GET WALL PANEL POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> Stacked15PanelConnector::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
@@ -85,7 +85,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> Stacked15PanelConnect
                         std::wstring blockNameStr(blockName);
                         blockNameStr = toUpperCase(blockNameStr);
 
-                        // Compare with assets list
+                        
                         if (std::find(panelNames.begin(), panelNames.end(), blockNameStr) != panelNames.end()) {
                             positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
                         }
@@ -104,9 +104,9 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> Stacked15PanelConnect
     return positions;
 }
 
-// LOAD CONNECTOR ASSET
+
 AcDbObjectId Stacked15PanelConnector::loadConnectorAsset(const wchar_t* blockName) {
-    //acutPrintf(_T("\nLoading asset: %s"), blockName); // Debug information
+    
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
 	if (!pDb) {
 		acutPrintf(_T("\nNo working database found."));
@@ -127,17 +127,17 @@ AcDbObjectId Stacked15PanelConnector::loadConnectorAsset(const wchar_t* blockNam
     }
 
 	pBlockTable->close();
-    //acutPrintf(_T("\nLoaded block: %s"), blockName); // Debug information
+    
 	return blockId;
 }
 
-// CALCULATE CONNECTOR POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15PanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double, double, double, double>> connectorPositions;
 
-    double xOffset = 75.0; // Offset in X direction
-    double yOffset = 50.0; // Offset in Y direction
-    double connectorRotation = M_PI_2; // Rotation of the connector
+    double xOffset = 75.0; 
+    double yOffset = 50.0; 
+    double connectorRotation = M_PI_2; 
 
     for (const auto& panelPosition : panelPositions) {
         AcGePoint3d pos = std::get<0>(panelPosition);
@@ -146,16 +146,16 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
 
         double panelWidth = get15Panel(panelName);
 
-        //Skipping placing connectors at z-axis 0
+        
         if (pos.z == 0.0) {
 			continue;
 		}
 
-        //Adjusting the position of the connector based on the panel width
+        
         AcGePoint3d connectorPos = pos;
         AcGePoint3d nutPos = pos;
 
-        //Special Rotation Function
+        
         double rotationXConnector = 0.0;
         double rotationYConnector = 0.0;
         double rotationZConnector = 0.0;
@@ -164,8 +164,8 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
         double rotationZNut = 0.0;
 
         switch (static_cast<int>(round(panelRotation / M_PI_2))) {
-        case 0: // 0 degrees
-        case 4: // Normalize 360 degrees to 0 degrees
+        case 0: 
+        case 4: 
             connectorPos.x += xOffset;
             connectorPos.y -= yOffset;
             nutPos.x += xOffset;
@@ -173,7 +173,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
             rotationXConnector = M_PI;
             rotationXNut = M_PI;
             break;
-        case 1: // 90 degrees
+        case 1: 
             connectorPos.x += yOffset;
             connectorPos.y += xOffset;
             nutPos.x += yOffset;
@@ -181,7 +181,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
             rotationXConnector = M_PI;
             rotationXNut = M_PI;
             break;
-        case 2: // 180 degrees
+        case 2: 
             connectorPos.x -= xOffset;
             connectorPos.y += yOffset;
             nutPos.x -= xOffset;
@@ -189,7 +189,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
             rotationXConnector = M_PI;
             rotationXNut = M_PI;
             break;
-        case 3: // 270 degrees
+        case 3: 
         case -1:
             connectorPos.x -= yOffset;
             connectorPos.y -= xOffset;
@@ -210,7 +210,7 @@ std::vector<std::tuple<AcGePoint3d, double, double, double, double>> Stacked15Pa
     return connectorPositions;
 }
 
-// PLACE CONNECTOR AT POSITION
+
 void Stacked15PanelConnector::placeConnectorAtPosition(const AcGePoint3d& position, double rotationX, double rotationY, double rotationZ, double panelRotation, AcDbObjectId assetId) {
     AcDbDatabase*pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -234,14 +234,14 @@ void Stacked15PanelConnector::placeConnectorAtPosition(const AcGePoint3d& positi
     pBlockRef->setBlockTableRecord(assetId);
     pBlockRef->setPosition(position);
 
-    //Apply Special Rotation
+    
     rotateAroundXAxis(pBlockRef, rotationX);
     rotateAroundYAxis(pBlockRef, rotationY);
     rotateAroundZAxis(pBlockRef, rotationZ);
-    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale)); // Set the scale factor
+    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale)); 
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        //acutPrintf(_T("\nConnector placed at (%f, %f, %f)"), position.x, position.y, position.z); // Debug information
+        
     }
     else {
 		acutPrintf(_T("\nFailed to place connector."));
@@ -251,9 +251,9 @@ void Stacked15PanelConnector::placeConnectorAtPosition(const AcGePoint3d& positi
 	pBlockTable->close();
 }
 
-// PLACE CONNECTORS
+
 void Stacked15PanelConnector::place15panelConnectors() {
-    //acutPrintf(_T("\nPlacing connectors...")); // Debug information
+    
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
         acutPrintf(_T("\nNo wall panels detected."));
@@ -261,8 +261,8 @@ void Stacked15PanelConnector::place15panelConnectors() {
     }
 
     std::vector<std::tuple<AcGePoint3d, double, double, double, double>> connectorPositions = calculateConnectorPositions(panelPositions);
-    AcDbObjectId connectorAssetId = loadConnectorAsset(ASSET_128254.c_str()); // Connector block name
-    AcDbObjectId nutAssetId = loadConnectorAsset(ASSET_128256.c_str()); // Nut block name
+    AcDbObjectId connectorAssetId = loadConnectorAsset(ASSET_128254.c_str()); 
+    AcDbObjectId nutAssetId = loadConnectorAsset(ASSET_128256.c_str()); 
 
     if (connectorAssetId == AcDbObjectId::kNull || nutAssetId == AcDbObjectId::kNull) {
         acutPrintf(_T("\nFailed to load asset."));
@@ -274,5 +274,5 @@ void Stacked15PanelConnector::place15panelConnectors() {
         placeConnectorAtPosition(std::get<0>(connectorPositions[i + 1]), std::get<1>(connectorPositions[i + 1]), std::get<2>(connectorPositions[i + 1]), std::get<3>(connectorPositions[i + 1]), std::get<4>(connectorPositions[i + 1]), nutAssetId);
     }
 
-    //acutPrintf(_T("\nCompleted placing connectors.")); // Debug information
+    
 }

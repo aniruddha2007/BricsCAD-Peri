@@ -1,7 +1,7 @@
-// Created by:Ani  (2024-07-02)
-// Modified by:Ani (2024-07-03)
-// SettingsCommands.cpp
-/////////////////////////////////////////////////////////////////////////
+
+
+
+
 
 #include "StdAfx.h"
 #include "SettingsCommands.h"
@@ -12,7 +12,7 @@
 #include "adscodes.h"
 #include "rxregsvc.h"
 
-// Command to open the settings dialog
+
 void SettingsCommands::openSettings() {
     const ACHAR* options[] = { _T("Height"), _T("Scale"), NULL };
 
@@ -34,12 +34,12 @@ void SettingsCommands::openSettings() {
     }
 }
 
-// Register the command
+
 void SettingsCommands::initApp() {
     acedRegCmds->addCommand(_T("SETTINGS_CMD"), _T("SETTINGS"), _T("SETTINGS"), ACRX_CMD_MODAL, openSettings);
 }
 
-// Unregister the command
+
 void SettingsCommands::unloadApp() {
     acedRegCmds->removeGroup(_T("SETTINGS_CMD"));
 }

@@ -1,39 +1,39 @@
-﻿// Created by: Ani (2024-05-31)
-// Modified by: Ani (2024-07-01)
-// TODO:
-// WallPanelConnector.cpp
-/////////////////////////////////////////////////////////////////////////
+﻿
+
+
+
+
 
 #include "StdAfx.h"
 #include "WallPanelConnector.h"
-#include "SharedDefinations.h"  // For M_PI constants
-#include "DefineScale.h"       // For globalVarScale
+#include "SharedDefinations.h"  
+#include "DefineScale.h"       
 #include <vector>
 #include <tuple>
 #include <cmath>
-#include <algorithm>            // For std::transform
-#include "dbapserv.h"        // For acdbHostApplicationServices() and related services
-#include "dbents.h"          // For AcDbBlockReference
-#include "dbsymtb.h"         // For block table record definitions
-#include "AcDb.h"            // General database definitions
+#include <algorithm>            
+#include "dbapserv.h"        
+#include "dbents.h"          
+#include "dbsymtb.h"         
+#include "AcDb.h"            
 
-const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
+const double TOLERANCE = 0.1;  
 
-// List of panels with three connectors
+
 const std::vector<std::wstring> panelsWithThreeConnectors = {
     ASSET_128285, ASSET_128280, ASSET_128283,
     ASSET_128281, ASSET_128284, ASSET_128282,
     ASSET_128286
 };
 
-// List of panels with two connectors
+
 const std::vector<std::wstring> panelsWithTwoConnectors = {
     ASSET_129840, ASSET_129838, ASSET_129842,
     ASSET_129841, ASSET_129839, ASSET_129837,
     ASSET_129864
 };
 
-// GET WALL PANEL POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
@@ -80,7 +80,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
                         std::wstring blockNameStr(blockName.kACharPtr());
                         blockNameStr = toUpperCase(blockNameStr);
 
-                        // Compare with assets list
+                        
                         if (std::find(panelsWithThreeConnectors.begin(), panelsWithThreeConnectors.end(), blockNameStr) != panelsWithThreeConnectors.end() ||
                             std::find(panelsWithTwoConnectors.begin(), panelsWithTwoConnectors.end(), blockNameStr) != panelsWithTwoConnectors.end()) {
                             positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
@@ -100,34 +100,34 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WallPanelConnector::g
     return positions;
 }
 
-// Function to adjust connector position based on rotation and offsets
+
 void adjustConnectorPosition(AcGePoint3d& connectorPos, double panelRotation, double xOffset, double yOffset) {
-    //0 degrees
+    
     if (fabs(panelRotation - 0.0) < TOLERANCE) {
         connectorPos.x += xOffset;
-        //connectorPos.y += yOffset;
+        
     }
-    //90 degrees
+    
     else if (fabs(panelRotation - M_PI_2) < TOLERANCE) {
-        //connectorPos.x += xOffset;
+        
         connectorPos.y += yOffset;
     }
-    //180 degrees
+    
     else if (fabs(panelRotation - M_PI) < TOLERANCE) {
         connectorPos.x -= xOffset;
     }
-    //270 degrees
+    
     else if (fabs(panelRotation - 3 * M_PI_2) < TOLERANCE) {
-        //connectorPos.x -= xOffset;
+        
         connectorPos.y -= yOffset;
     }
 }
 
-// CALCULATE CONNECTOR POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double>> connectorPositions;
 
-    double zOffsets[] = { 225.0, 525.0, 975.0 }; // Predefined Z-axis positions for connectors
+    double zOffsets[] = { 225.0, 525.0, 975.0 }; 
     double yOffset = 50.0;
 
     for (const auto& panelPosition : panelPositions) {
@@ -142,24 +142,24 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
             connectorPos.z += zOffsets[i];
 
             if (panelName == ASSET_128286) {
-                // Apply the offset adjustments based on rotation
+                
                 adjustConnectorPosition(connectorPos, panelRotation, 100.0, 100.0);
             }
 
-            // Adjust positions based on the rotation and apply the Y-axis offset
+            
             switch (static_cast<int>(round(panelRotation / M_PI_2))) {
-            case 0: // 0 degrees
-            case 4: // Normalize 360 degrees to 0 degrees
+            case 0: 
+            case 4: 
                 connectorPos.y -= yOffset;
                 break;
-            case 1: // 90 degrees
+            case 1: 
                 connectorPos.x += yOffset;
                 break;
-            case 2: // 180 degrees
+            case 2: 
                 connectorPos.y += yOffset;
                 break;
-            case 3: // 270 degrees
-            case -1: // Normalize -90 degrees to 270 degrees
+            case 3: 
+            case -1: 
                 connectorPos.x -= yOffset;
                 break;
             default:
@@ -174,7 +174,7 @@ std::vector<std::tuple<AcGePoint3d, double>> WallPanelConnector::calculateConnec
     return connectorPositions;
 }
 
-// LOAD CONNECTOR ASSET
+
 AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -199,7 +199,7 @@ AcDbObjectId WallPanelConnector::loadConnectorAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-// PLACE CONNECTORS
+
 void WallPanelConnector::placeConnectors() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
@@ -220,7 +220,7 @@ void WallPanelConnector::placeConnectors() {
     }
 }
 
-// PLACE CONNECTOR AT POSITION
+
 void WallPanelConnector::placeConnectorAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -248,7 +248,7 @@ void WallPanelConnector::placeConnectorAtPosition(const AcGePoint3d& position, d
     pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        // Connector placed successfully
+        
     }
     else {
         acutPrintf(_T("\nFailed to place connector."));

@@ -1,24 +1,24 @@
 #include "StdAfx.h"
 #include "WalerConnector.h"
-#include "SharedDefinations.h"  // For M_PI constants
-#include "DefineScale.h"       // For globalVarScale
+#include "SharedDefinations.h"  
+#include "DefineScale.h"       
 #include <vector>
 #include <tuple>
 #include <cmath>
-#include <algorithm>            // For std::transform
-#include "dbapserv.h"        // For acdbHostApplicationServices() and related services
-#include "dbents.h"          // For AcDbBlockReference
-#include "dbsymtb.h"         // For block table record definitions
-#include "AcDb.h"            // General database definitions
+#include <algorithm>            
+#include "dbapserv.h"        
+#include "dbents.h"          
+#include "dbsymtb.h"         
+#include "AcDb.h"            
 
-const double TOLERANCE = 0.1;  // Define a small tolerance for angle comparisons
+const double TOLERANCE = 0.1;  
 
-// List of panels to be handled
+
 const std::vector<std::wstring> panelsToHandle = {
     ASSET_128292, ASSET_129884
 };
 
-// GET WALL PANEL POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WalerConnector::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
@@ -65,7 +65,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WalerConnector::getWa
                         std::wstring blockNameStr(blockName);
                         blockNameStr = toUpperCase(blockNameStr);
 
-                        // Compare with assets list
+                        
                         if (blockNameStr == ASSET_128292 || blockNameStr == ASSET_129884) {
                             positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
                         }
@@ -84,12 +84,12 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> WalerConnector::getWa
     return positions;
 }
 
-// CALCULATE CONNECTOR POSITIONS
+
 std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calculateConnectorPositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     std::vector<std::tuple<AcGePoint3d, double, std::wstring>> connectorPositions;
 
-    // Offsets for connectors
-    double zOffsets[] = { 300.0, 1050.0 }; // Predefined Z-axis positions for connectors
+    
+    double zOffsets[] = { 300.0, 1050.0 }; 
     double xOffset_128255 = 25.0;
     double yOffset_128255 = -100.0;
     double xOffset_128293A = -150.0;
@@ -102,12 +102,12 @@ std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calcu
         std::wstring panelName = std::get<1>(panelPosition);
         double panelRotation = std::get<2>(panelPosition);
 
-        int connectorSetCount = (panelName == ASSET_128292) ? 2 : 1; // Two sets of connectors for 128292, one set for 129884
+        int connectorSetCount = (panelName == ASSET_128292) ? 2 : 1; 
 
         for (int set = 0; set < connectorSetCount; ++set) {
-            for (int i = 0; i < 3; ++i) {  // Each set has 3 connectors: 1 of 128255 and 2 of 128293 (A and B)
+            for (int i = 0; i < 3; ++i) {  
                 AcGePoint3d connectorPos = pos;
-                connectorPos.z += zOffsets[set];  // Different zOffset for each set
+                connectorPos.z += zOffsets[set];  
 
                 double xOffset, yOffset;
                 std::wstring connectorName;
@@ -127,23 +127,23 @@ std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calcu
                     connectorName = ASSET_128293;
                 }
 
-                // Adjust positions based on the rotation and apply the X and Y axis offset
+                
                 switch (static_cast<int>(round(panelRotation / M_PI_2))) {
-                case 0: // 0 degrees
-                case 4: // Normalize 360 degrees to 0 degrees
+                case 0: 
+                case 4: 
                     connectorPos.x += xOffset;
                     connectorPos.y += yOffset;
                     break;
-                case 1: // 90 degrees
+                case 1: 
                     connectorPos.x -= yOffset;
                     connectorPos.y += xOffset;
                     break;
-                case 2: // 180 degrees
+                case 2: 
                     connectorPos.x -= xOffset;
                     connectorPos.y -= yOffset;
                     break;
-                case 3: // 270 degrees
-                case -1: // Normalize -90 degrees to 270 degrees
+                case 3: 
+                case -1: 
                     connectorPos.x += yOffset;
                     connectorPos.y -= xOffset;
                     break;
@@ -160,7 +160,7 @@ std::vector<std::tuple<AcGePoint3d, double, std::wstring>> WalerConnector::calcu
     return connectorPositions;
 }
 
-// LOAD CONNECTOR ASSET
+
 AcDbObjectId WalerConnector::loadConnectorAsset(const wchar_t* blockName) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -185,7 +185,7 @@ AcDbObjectId WalerConnector::loadConnectorAsset(const wchar_t* blockName) {
     return blockId;
 }
 
-// PLACE CONNECTORS
+
 void WalerConnector::placeConnectors() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
     if (panelPositions.empty()) {
@@ -205,7 +205,7 @@ void WalerConnector::placeConnectors() {
     }
 }
 
-// PLACE CONNECTOR AT POSITION
+
 void WalerConnector::placeConnectorAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -230,10 +230,10 @@ void WalerConnector::placeConnectorAtPosition(const AcGePoint3d& position, doubl
     pBlockRef->setPosition(position);
     pBlockRef->setBlockTableRecord(assetId);
     pBlockRef->setRotation(rotation);
-    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure scaling
+    pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-        //acutPrintf(_T("\All Panel Connectors placed successfully.")); // Debug information
+        
     }
     else {
         acutPrintf(_T("\nFailed to place connector."));
@@ -243,6 +243,6 @@ void WalerConnector::placeConnectorAtPosition(const AcGePoint3d& position, doubl
     pModelSpace->close();
     pBlockTable->close();
 
-    //acutPrintf(_T("\nConnector placed at: %f, %f, %f"), position.x, position.y, position.z); // Debug information
-    //acutPrintf(_T("\n All Panel Connectors placed successfully.")); // Debug information
+    
+    
 }

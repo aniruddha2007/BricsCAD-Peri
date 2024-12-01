@@ -1,4 +1,4 @@
-// Purpose: Implementation of the PlaceBracket-PP functions.
+
 #include "StdAfx.h"
 #include "PlaceBracket-PP.h"
 #include "SharedDefinations.h"
@@ -24,19 +24,19 @@
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, PlaceBracket::Point3dComparator> PlaceBracket::wallMap;
 
-const int BATCH_SIZE = 1000; // Batch size for processing entities
+const int BATCH_SIZE = 1000; 
 
-const double TOLERANCE = 0.1; // Tolerance for comparing angles
+const double TOLERANCE = 0.1; 
 
 bool isIntegerPp(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
 
-//Detect polylines
+
 std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
-    //acutPrintf(_T("\nDetecting polylines..."));
+    
     std::vector<AcGePoint3d> corners;
-    wallMap.clear();  // Clear previous data
+    wallMap.clear();  
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -76,7 +76,7 @@ std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
+                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  
                 }
             }
             pEnt->close();
@@ -84,7 +84,7 @@ std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
 
             if (entityCount % BATCH_SIZE == 0) {
                 acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
-                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+                std::this_thread::sleep_for(std::chrono::seconds(1));  
             }
         }
         else {
@@ -96,7 +96,7 @@ std::vector<AcGePoint3d> PlaceBracket::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    
     return corners;
 
 }
@@ -106,7 +106,7 @@ double crossProductPp(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoin
 }
 
 bool directionOfDrawingPp(std::vector<AcGePoint3d>& points) {
-    // Ensure the shape is closed
+    
     if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
         points.push_back(points.front());
     }
@@ -117,18 +117,18 @@ bool directionOfDrawingPp(std::vector<AcGePoint3d>& points) {
         totalTurns += crossProductPp(points[i - 1], points[i], points[i + 1]);
     }
 
-    // If totalTurns is negative, the shape is drawn clockwise
+    
     if (totalTurns < 0) {
-        return true;  // Clockwise
+        return true;  
     }
-    // If totalTurns is positive, the shape is drawn counterclockwise
+    
     else if (totalTurns > 0) {
-        return false; // Counterclockwise
+        return false; 
     }
-    // Handle the case where totalTurns is zero (indicating an undefined direction)
+    
     else {
         acutPrintf(_T("Warning: The shape does not have a defined direction. Defaulting to clockwise.\n"));
-        return true;  // Default to clockwise if direction cannot be determined
+        return true;  
     }
 }
 
@@ -137,15 +137,15 @@ struct BlockInfo2 {
     std::wstring blockName;
     double rotation;
 
-    // Default constructor
+    
     BlockInfo2() : position(AcGePoint3d()), blockName(L""), rotation(0.0) {}
 
-    // Parameterized constructor
+    
     BlockInfo2(const AcGePoint3d& pos, const std::wstring& name, double rot)
         : position(pos), blockName(name), rotation(rot) {}
 };
 
-// Function to get the positions of wall panels need to modify the assets to look for and what data to extract currently only has the positions
+
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> PlaceBracket::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
@@ -192,7 +192,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> PlaceBracket::getWall
                         std::wstring blockNameStr(blockName);
                         blockNameStr = toUpperCase(blockNameStr);
 
-                        // Compare with assets list
+                        
                         if (blockNameStr == ASSET_128292 || blockNameStr == ASSET_129884) {
                             positions.emplace_back(pBlockRef->position(), blockNameStr, pBlockRef->rotation());
                         }
@@ -230,18 +230,18 @@ std::wstring getBlockName(AcDbObjectId blockId) {
     return blockName;
 }
 
-// Function to get the information of selected blocks by User
+
 std::vector<BlockInfo2> getSelectedBlocksInfo() {
     std::vector<BlockInfo2> blocksInfo;
 
-    // Prompt the user to select block references
+    
     ads_name ss;
     if (acedSSGet(NULL, NULL, NULL, NULL, ss) != RTNORM) {
         acutPrintf(_T("\nNo selection made or invalid selection."));
         return blocksInfo;
     }
 
-    // Get the number of selected entities
+    
     long length = 0;
     if (acedSSLength(ss, &length) != RTNORM || length == 0) {
         acutPrintf(_T("\nFailed to get the number of selected entities."));
@@ -249,7 +249,7 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
         return blocksInfo;
     }
 
-    // Iterate through the selection set
+    
     for (long i = 0; i < length; ++i) {
         ads_name ent;
         if (acedSSName(ss, i, ent) != RTNORM) {
@@ -257,7 +257,7 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
             continue;
         }
 
-        // Open the selected entity
+        
         AcDbObjectId objId;
         acdbGetObjectId(objId, ent);
         AcDbEntity* pEnt = nullptr;
@@ -266,14 +266,14 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
             continue;
         }
 
-        // Check if the entity is a block reference
+        
         if (pEnt->isKindOf(AcDbBlockReference::desc())) {
             AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEnt);
             BlockInfo2 info;
             info.position = pBlockRef->position();
             info.rotation = pBlockRef->rotation();
 
-            // Get the block name
+            
             AcDbObjectId blockTableRecordId = pBlockRef->blockTableRecord();
             AcDbBlockTableRecord* pBlockTableRecord = nullptr;
             if (acdbOpenObject(pBlockTableRecord, blockTableRecordId, AcDb::kForRead) == Acad::eOk) {
@@ -284,7 +284,7 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
                 acutPrintf(_T("\nFailed to get block table record."));
             }
 
-            //blocksInfo.push_back(info);
+            
             blocksInfo.emplace_back(info.position, info.blockName, info.rotation);
         }
         else {
@@ -295,16 +295,16 @@ std::vector<BlockInfo2> getSelectedBlocksInfo() {
     }
 
     acedSSFree(ss);
-    //print the block info
- //   for (const auto& block : blocksInfo) {
-	//	acutPrintf(_T("\nBlock name: %s"), block.blockName.c_str());
-	//	acutPrintf(_T("\nPosition: (%f, %f, %f)"), block.position.x, block.position.y, block.position.z);
-	//	acutPrintf(_T("\nRotation: %f"), block.rotation);
-	//}
+    
+ 
+	
+	
+	
+	
     return blocksInfo;
 }
 
-// Function to load an asset block from the block table
+
 AcDbObjectId PlaceBracket::loadAsset(const wchar_t* blockName) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -329,49 +329,49 @@ AcDbObjectId PlaceBracket::loadAsset(const wchar_t* blockName) {
     return assetId;
 }
 
-//// Function to add a text annotation
-//void PlaceBracket::addTextAnnotation(const AcGePoint3d& position, const wchar_t* text) {
-//    AcDbText* pText = new AcDbText();
-//    pText->setPosition(position);
-//    pText->setHeight(5.0);
-//    pText->setTextString(text);
-//
-//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-//    if (!pDb) {
-//        acutPrintf(_T("\nNo working database found."));
-//        delete pText;
-//        return;
-//    }
-//
-//    AcDbBlockTable* pBlockTable;
-//    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get block table."));
-//        delete pText;
-//        return;
-//    }
-//
-//    AcDbBlockTableRecord* pModelSpace;
-//    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get model space."));
-//        pBlockTable->close();
-//        delete pText;
-//        return;
-//    }
-//
-//    if (pModelSpace->appendAcDbEntity(pText) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to append text."));
-//        pModelSpace->close();
-//        pBlockTable->close();
-//        delete pText;
-//        return;
-//    }
-//
-//    pText->close();
-//    pModelSpace->close();
-//    pBlockTable->close();
-//}
 
-// Function to place an asset
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void PlaceBracket::placeAsset(const AcGePoint3d& position, const wchar_t* blockName, double rotation, double scale) {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     AcDbBlockTable* pBlockTable;
@@ -399,7 +399,7 @@ void PlaceBracket::placeAsset(const AcGePoint3d& position, const wchar_t* blockN
     pBlockRef->setPosition(position);
     pBlockRef->setBlockTableRecord(assetId);
     pBlockRef->setRotation(rotation);
-    pBlockRef->setScaleFactors(AcGeScale3d(scale));  // Apply scaling
+    pBlockRef->setScaleFactors(AcGeScale3d(scale));  
 
     if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
         acutPrintf(_T("\nFailed to append block reference."));
@@ -410,12 +410,12 @@ void PlaceBracket::placeAsset(const AcGePoint3d& position, const wchar_t* blockN
     pBlockTable->close();
 }
 
-// Function to place brackets
+
 void PlaceBracket::placeBrackets() {
     std::vector<AcGePoint3d> corners = detectPolylines();
 
     if (corners.empty()) {
-        acutPrintf(_T("\nNo polylines detected.")); // Debug
+        acutPrintf(_T("\nNo polylines detected.")); 
         return;
     }
 
@@ -425,11 +425,11 @@ void PlaceBracket::placeBrackets() {
     int outerLoopIndexValue = 0;
     int firstLoopEnd;
 
-    // First Pass: Determine inner and outer loops
+    
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  // Wrap around to the first point
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  
         AcGeVector3d direction = (end - start).normal();
 
         if (start.x > outerPointCounter) {
@@ -446,9 +446,9 @@ void PlaceBracket::placeBrackets() {
         }
     }
 
-    //Debug
-    //acutPrintf(_T("\nOuter loop is loop[%d]"), outerLoopIndexValue);
-    //acutPrintf(_T("\nfirst loop end is %d"), firstLoopEnd);
+    
+    
+    
     if (outerLoopIndexValue == 0) {
         std::vector<AcGePoint3d> firstLoop(corners.begin(), corners.begin() + firstLoopEnd + 1);
         bool firstLoopIsClockwise = directionOfDrawingPp(firstLoop);
@@ -471,11 +471,11 @@ void PlaceBracket::placeBrackets() {
     std::wstring id;
 
     for (const auto& panel : blocksInfo) {
-            //acutPrintf(_T("\n name %s"), panel.blockName);
-            //acutPrintf(_T("\n rotation %f"), panel.rotation);
-            //acutPrintf(_T("\n position x %f"), panel.position.x);
-            //acutPrintf(_T("\n position y %f"), panel.position.y);
-            //acutPrintf(_T("\n position z %f"), panel.position.z);
+            
+            
+            
+            
+            
             if (i == 0) {
                 start = panel.position;
                 rotation = panel.rotation;
@@ -506,7 +506,7 @@ void PlaceBracket::placeBrackets() {
 
     int maxHeight = 0;
 
-    // Iterate through all combinations of panel heights
+    
     for (int i = 0; i < (1 << numHeights); ++i) {
         int currentHeight = 0;
         for (int j = 0; j < numHeights; ++j) {
@@ -518,10 +518,10 @@ void PlaceBracket::placeBrackets() {
             maxHeight = currentHeight;
         }
     }
-    //acutPrintf(_T("\n maxHeight %d"), maxHeight);
+    
     
 
-    // Structure to hold panel information
+    
     struct Panel {
         int length;
         std::wstring id[3];
@@ -546,15 +546,15 @@ void PlaceBracket::placeBrackets() {
         }
     }
 
-    //acutPrintf(_T("\n lastPanelLength %d"), lastPanelLength);
+    
 
     
     double distance = start.distanceTo(end) + lastPanelLength;
-    //acutPrintf(_T("\n distance %f"), distance);
+    
     AcGePoint3d currentPoint = start;
     double panelLength;
     
-    // First Pass : Save all positions, asset IDs, and rotations
+    
     for (const auto& panel : panelSizes) {
 
         for (int panelNum = 0; panelNum < 3; panelNum++) {
@@ -576,7 +576,7 @@ void PlaceBracket::placeBrackets() {
         }
     }
     
-    // Second Pass: Remove specific asset
+    
     std::vector<AcDbObjectId> centerAssets = {
         loadAsset(L"128285X"),
         loadAsset(L"129842X"),
@@ -593,7 +593,7 @@ void PlaceBracket::placeBrackets() {
         WallPanel& panel = wallPanels[panelNum];
         if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
 
-            // Find the two corner points between which the panel is placed
+            
             int panelPosition = panelNum;
             WallPanel detectedPanel = wallPanels[panelPosition];
             AcGePoint3d detectedPanelPosition = detectedPanel.position;
@@ -601,15 +601,15 @@ void PlaceBracket::placeBrackets() {
 
             double panelLength = wallPanels[panelPosition].length;
 
-            // Calculate the center index in wallPanels
+            
             int centerIndex = static_cast<int>(wallPanels.size() / 2);
 
-            // Get positions of centerIndex and detectedPanel
+            
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;
 
             AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
 
-            // Adjust the position of the detected panel
+            
             wallPanels[panelNum].position = centerPanelPosition;
 
             for (int centerToCornerPanelNum = centerIndex + movedCompensators; centerToCornerPanelNum < panelNum - movedCompensators; centerToCornerPanelNum++) {
@@ -633,7 +633,7 @@ void PlaceBracket::placeBrackets() {
     );
     
 
-    // Fourth Pass: Place all ties
+    
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -670,7 +670,7 @@ void PlaceBracket::placeBrackets() {
         currentPoint.z = maxHeight;
         currentPointPP.z = maxHeight;
         switch (static_cast<int>(round(rotation / M_PI_2))) {
-        case 0: // 0 degrees TOP
+        case 0: 
             currentPoint.x += (panel.length - bracketXOffset);
             currentPoint.y -= bracketYOffset;
             currentPointPP.x += (panel.length - bracketXOffset);
@@ -678,14 +678,14 @@ void PlaceBracket::placeBrackets() {
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2*3, AcGeVector3d::kYAxis, currentPoint);
             break;
-        case 1: // 90 degrees LEFT
+        case 1: 
             currentPoint.x += bracketYOffset;
             currentPoint.y += (panel.length - bracketXOffset);
             currentPointPP.x += ppYOffset;
             currentPointPP.y += (panel.length - bracketXOffset);
             rotationMatrixX = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kXAxis, currentPoint);
             break;
-        case 2: // 180 degrees BOTTOM
+        case 2: 
             currentPoint.x -= (panel.length - bracketXOffset);
             currentPoint.y += bracketYOffset;
             currentPointPP.x -= (panel.length - bracketXOffset);
@@ -694,7 +694,7 @@ void PlaceBracket::placeBrackets() {
             rotationMatrixZ = AcGeMatrix3d::rotation(M_PI_2, AcGeVector3d::kYAxis, currentPoint);
             break;
             break;
-        case 3: // 270 degrees RIGHT
+        case 3: 
             currentPoint.x -= bracketYOffset;
             currentPoint.y -= (panel.length - bracketXOffset);
             currentPointPP.x -= ppYOffset;
@@ -707,32 +707,32 @@ void PlaceBracket::placeBrackets() {
         }
         pBlockRef->setPosition(currentPoint);
         pBlockRef->setBlockTableRecord(bracketId);
-        pBlockRef->setRotation(rotation);  // Apply rotation
-        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+        pBlockRef->setRotation(rotation);  
+        pBlockRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
         if (pModelSpace->appendAcDbEntity(pBlockRef) == Acad::eOk) {
-            //acutPrintf(_T("\nPlaced wingnut."));
+            
         }
         else {
             acutPrintf(_T("\nFailed to place bracket."));
         }
-        pBlockRef->close();  // Decrement reference count
+        pBlockRef->close();  
 
         AcGeMatrix3d combinedRotationMatrix = rotationMatrixX * rotationMatrixZ;
 
         pBlockRefPp->transformBy(combinedRotationMatrix);
         pBlockRefPp->setPosition(currentPointPP);
         pBlockRefPp->setBlockTableRecord(ppId);
-        //pBlockRefPp->setRotation(rotation);  // Apply rotation
-        pBlockRefPp->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+        
+        pBlockRefPp->setScaleFactors(AcGeScale3d(globalVarScale));  
 
         if (pModelSpace->appendAcDbEntity(pBlockRefPp) == Acad::eOk) {
-            //acutPrintf(_T("\nPlaced wingnut."));
+            
         }
         else {
             acutPrintf(_T("\nFailed to place bracket."));
         }
-        pBlockRefPp->close();  // Decrement reference count
+        pBlockRefPp->close();  
     }
 
     pModelSpace->close();

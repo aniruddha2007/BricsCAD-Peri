@@ -1,10 +1,10 @@
-﻿// Created by: Ani  (2024-05-31)
-// Modified by: Ani (2024-06-01)
-// TODO:
-// WallAssetPlacer.cpp
-// This file contains the implementation of the WallPlacer class.
-// The WallPlacer class is used to place wall segments in BricsCAD.
-/////////////////////////////////////////////////////////////////////////
+﻿
+
+
+
+
+
+
 
 #include "StdAfx.h"
 #include "WallAssetPlacer.h"
@@ -31,44 +31,44 @@
 #include "Timber/TimberAssetCreator.h"
 
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, WallPlacer::Point3dComparator> WallPlacer::wallMap;
-const int BATCH_SIZE = 1000; // Batch size for processing entities
+const int BATCH_SIZE = 1000; 
 
-const double TOLERANCE = 0.1; // Tolerance for comparing angles
-double proximityTolerance = 1.0; // Adjust this tolerance as needed
-std::vector<AcGePoint3d> processedCorners; // To keep track of processed corners
+const double TOLERANCE = 0.1; 
+double proximityTolerance = 1.0; 
+std::vector<AcGePoint3d> processedCorners; 
 
-// Structure to hold panel information
+
 struct Panel {
 	int length;
 	std::wstring id[3];
 };
 
-// Struct to store polyline's ID and its corners IN USE
+
 struct PolylineCorners {
-	AcDbObjectId polylineId;          // Unique identifier for the polyline
-	std::vector<AcGePoint3d> corners; // List of corners of the polyline
+	AcDbObjectId polylineId;          
+	std::vector<AcGePoint3d> corners; 
 
 	PolylineCorners(AcDbObjectId id) : polylineId(id) {}
 };
 
-// isInteger function to check if a double value is an integer IN USE
+
 bool isInteger(double value, double tolerance = 1e-9) {
 	return std::abs(value - std::round(value)) < tolerance;
 }
 
-// Function to process Corners if they are close to each other IN USE
+
 bool isCloseToProcessedCorners(const AcGePoint3d& point, const std::vector<AcGePoint3d>& processedCorners, double tolerance) {
 	for (const auto& processedCorner : processedCorners) {
 		if (point.distanceTo(processedCorner) < tolerance) {
-			return true; // Point is too close to a processed corner
+			return true; 
 		}
 	}
 	return false;
 }
 
-// Function to determine if a corner is convex or concave IN USE
+
 bool isCornerConcave(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
-	// Calculate cross product to determine corner type
+	
 	AcGeVector3d v1 = current - prev;
 	AcGeVector3d v2 = next - current;
 	double cross = v1.x * v2.y - v1.y * v2.x;
@@ -77,64 +77,64 @@ bool isCornerConcave(const AcGePoint3d& prev, const AcGePoint3d& current, const 
 
 	bool isConcave = cross < -tolerance;
 
-	//// Debugging information
-	//acutPrintf(_T("\nChecking corner at (%f, %f): "), current.x, current.y);
-	//acutPrintf(_T("Previous Point: (%f, %f), Next Point: (%f, %f)"), prev.x, prev.y, next.x, next.y);
-	//acutPrintf(_T("Cross Product: %f, Identified as Concave: %d"), cross, isConcave);
+	
+	
+	
+	
 
 	return isConcave;
 }
 
-// Function to determine if a corner is convex or concave IN USE
+
 bool isCornerConvex(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
 	AcGeVector3d v1 = current - prev;
 	AcGeVector3d v2 = next - current;
 	double cross = v1.x * v2.y - v1.y * v2.x;
 
-	// Tolerance to handle floating-point errors
+	
 	double tolerance = 1e-6;
 
 	bool isConvex = cross > tolerance;
 
-	//acutPrintf(_T("\nChecking corner at (%f, %f): Previous Point: (%f, %f), Next Point: (%f, %f)"),
-	//    current.x, current.y, prev.x, prev.y, next.x, next.y);
-	//acutPrintf(_T("Cross Product: %f, Identified as Convex: %d"), cross, isConvex);
+	
+	
+	
 
 	return isConvex;
 }
 
-// Function to compute if the corner is turning clockwise or counterclockwise IN USE
-bool isClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d& p2) {
-	// Compute the vectors for the edges
-	AcGeVector3d v1 = p1 - p0;  // Vector from p0 to p1
-	AcGeVector3d v2 = p2 - p1;  // Vector from p1 to p2
 
-	// Compute the cross product
+bool isClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d& p2) {
+	
+	AcGeVector3d v1 = p1 - p0;  
+	AcGeVector3d v2 = p2 - p1;  
+
+	
 	AcGeVector3d crossProduct = v1.crossProduct(v2);
 
-	// Determine the direction of the turn
-	// If cross product z-component is positive, the turn is clockwise
-	// If cross product z-component is negative, the turn is counterclockwise
+	
+	
+	
 	return crossProduct.z < 0;
 }
 
-//detectPolylines function to detect all closed polylines in the drawing IN USE
+
 void detectClosedPolylinesAndCorners(std::vector<PolylineCorners>& polylineCornerGroups) {
 	polylineCornerGroups.clear();
 
-	// Open the model space for read
+	
 	AcDbBlockTable* pBlockTable = nullptr;
 	acdbHostApplicationServices()->workingDatabase()->getBlockTable(pBlockTable, AcDb::kForRead);
 
-	// Retrieve the model space block record ID
+	
 	AcDbObjectId blockId;
 	pBlockTable->getAt(ACDB_MODEL_SPACE, blockId);
 	pBlockTable->close();
-	// Open the model space block record for reading
+	
 	AcDbBlockTableRecord* pBlockTableRecord = nullptr;
 	acdbOpenObject(pBlockTableRecord, blockId, AcDb::kForRead);
 
-	// Iterate through all the entities in the model space
+	
 	AcDbEntity* pEntity = nullptr;
 	AcDbBlockTableRecordIterator* pIterator = nullptr;
 	pBlockTableRecord->newIterator(pIterator);
@@ -159,7 +159,7 @@ void detectClosedPolylinesAndCorners(std::vector<PolylineCorners>& polylineCorne
 				polylineCornerGroups.push_back(polylineGroup);
 			}
 		}
-		//close the entity and model space
+		
 
 		pEntity->close();
 
@@ -167,28 +167,28 @@ void detectClosedPolylinesAndCorners(std::vector<PolylineCorners>& polylineCorne
 
 	delete pIterator;
 
-	// Output the detected corners for debugging or verification
-	//acutPrintf(L"\nDetected closed polyline corners grouped by polyline:\n");
-	//for (size_t i = 0; i < polylineCornerGroups.size(); ++i) {
-	//	acutPrintf(L"Polyline ID: %s\n", polylineCornerGroups[i].polylineId.handle());
-	//	for (size_t j = 0; j < polylineCornerGroups[i].corners.size(); ++j) {
-	//		acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, polylineCornerGroups[i].corners[j].x, polylineCornerGroups[i].corners[j].y);
-	//	}
-	//}
+	
+	
+	
+	
+	
+	
+	
+	
 }
 
-// Function to determine if a corner is convex or concave IN USE
+
 double calculatePolygonArea(const std::vector<AcGePoint3d>& polygon) {
 	double area = 0.0;
 	for (size_t i = 0; i < polygon.size(); ++i) {
 		const AcGePoint3d& p1 = polygon[i];
 		const AcGePoint3d& p2 = polygon[(i + 1) % polygon.size()];
-		area += (p1.x * p2.y - p2.x * p1.y);  // Shoelace formula
+		area += (p1.x * p2.y - p2.x * p1.y);  
 	}
 	return fabs(area) / 2.0;
 }
 
-// Function to determine if a corner is convex or concave IN USE
+
 bool isPointInsidePolygon(const AcGePoint3d& point, const std::vector<AcGePoint3d>& polygon) {
 	int crossings = 0;
 	for (size_t i = 0; i < polygon.size(); ++i) {
@@ -200,96 +200,96 @@ bool isPointInsidePolygon(const AcGePoint3d& point, const std::vector<AcGePoint3
 			crossings++;
 		}
 	}
-	return (crossings % 2) == 1;  // Odd number of crossings means inside
+	return (crossings % 2) == 1;  
 }
 
-// Function to snap a distance to predefined values IN USE
+
 double crossProduct(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint3d& b) {
 	return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 }
 
-// Function to get two points from the user and calculate the distance IN USE
+
 double getDistanceFromUser() {
 	ads_point firstPoint, secondPoint;
 	double distance = 0.0;
 
-	// Step 1: Prompt the user to select the first point
+	
 	if (acedGetPoint(NULL, _T("Select the first point: "), firstPoint) != RTNORM) {
 		acutPrintf(_T("\nError: Failed to get the first point.\n"));
-		return -1;  // Return a negative value to indicate error
+		return -1;  
 	}
 
-	// Step 2: Prompt the user to select the second point
+	
 	if (acedGetPoint(NULL, _T("Select the second point: "), secondPoint) != RTNORM) {
 		acutPrintf(_T("\nError: Failed to get the second point.\n"));
-		return -1;  // Return a negative value to indicate error
+		return -1;  
 	}
 
-	// Step 3: Calculate DeltaX and DeltaY
+	
 	double deltaX = firstPoint[X] - secondPoint[X];
 	double deltaY = secondPoint[Y] - firstPoint[Y];
 
-	// Step 4: Define a small tolerance for comparison
+	
 	const double tolerance = 1.0;
 
-	// Step 5: Calculate the distance based on the comparison of DeltaX and DeltaY
+	
 	if (firstPoint[X] != 0.0 && firstPoint[Y] != 0.0 && secondPoint[X] != 0.0 && secondPoint[Y] != 0.0) {
-		// Check if DeltaX and DeltaY are equal within the tolerance
+		
 		if (std::fabs(deltaX - deltaY) <= tolerance) {
-			// Snap distance to predefined values
+			
 			distance = snapToPredefinedValues(deltaX);
 		}
 		else {
-			// Calculate the Euclidean distance between the points
+			
 			distance = snapToPredefinedValues(std::sqrt(deltaX * deltaX + deltaY * deltaY));
 		}
 	}
 	else {
 		acutPrintf(_T("\nPoints were not selected properly. Skipping distance calculation.\n"));
-		distance = 200;  // Default fallback distance
+		distance = 200;  
 	}
 
-	// Step 6: Return the calculated distance
+	
 	acutPrintf(_T("\nDistance between the points: %.2f\n"), distance);
 	return distance;
 }
 
-// Function to snap a distance to predefined values IN USE
+
 bool directionOfDrawing(std::vector<AcGePoint3d>& points) {
-	// Ensure the shape is closed
+	
 	if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
 		points.push_back(points.front());
 	}
 
 	double totalTurns = 0.0;
 
-	// Calculate the total turns using cross products
+	
 	for (size_t i = 1; i < points.size() - 1; ++i) {
 		totalTurns += crossProduct(points[i - 1], points[i], points[i + 1]);
 	}
 
-	// If totalTurns is negative, the shape is drawn clockwise
+	
 	if (totalTurns < 0) {
-		return true;  // Clockwise
+		return true;  
 	}
-	// If totalTurns is positive, the shape is drawn counterclockwise
+	
 	else if (totalTurns > 0) {
-		return false; // Counterclockwise
+		return false; 
 	}
-	// Handle the case where totalTurns is zero (indicating an undefined direction)
+	
 	else {
 		acutPrintf(_T("Warning: The shape does not have a defined direction. Defaulting to clockwise.\n"));
-		return true;  // Default to clockwise if direction cannot be determined
+		return true;  
 	}
 }
 
-// Function to classify loops as outer or inner based on containment IN USE
+
 void classifyLoopsMultiCheck(const std::vector<std::vector<AcGePoint3d>>& allPolylines,
 	std::vector<std::vector<AcGePoint3d>>& outerLoops,
 	std::vector<std::vector<AcGePoint3d>>& innerLoops, std::vector<bool>& loopIsClockwise) {
 	std::vector<bool> isProcessed(allPolylines.size(), false);
 
-	// Step 1: Identify the largest area loop as the outermost loop
+	
 	size_t outermostIndex = -1;
 	double maxArea = -1.0;
 
@@ -306,19 +306,19 @@ void classifyLoopsMultiCheck(const std::vector<std::vector<AcGePoint3d>>& allPol
 		isProcessed[outermostIndex] = true;
 	}
 
-	// Step 2: Iteratively classify remaining loops
+	
 	for (size_t i = 0; i < allPolylines.size(); ++i) {
 		if (isProcessed[i]) continue;
 		bool isClockwise = directionOfDrawing(const_cast<std::vector<AcGePoint3d>&>(allPolylines[i]));
-		loopIsClockwise.push_back(isClockwise); // Store the direction for each polyline
+		loopIsClockwise.push_back(isClockwise); 
 
 		bool isOuter = false;
 		for (size_t j = 0; j < outerLoops.size(); ++j) {
 			if (isPointInsidePolygon(allPolylines[i][0], outerLoops[j])) {
-				// Check containment within current outer loop
+				
 				isOuter = true;
 
-				// Check if this loop contains another loop
+				
 				bool containsInner = false;
 				for (size_t k = 0; k < allPolylines.size(); ++k) {
 					if (k == i || isProcessed[k]) continue;
@@ -341,7 +341,7 @@ void classifyLoopsMultiCheck(const std::vector<std::vector<AcGePoint3d>>& allPol
 			}
 		}
 
-		// If it's not inside any outer loop, it could still be an outer loop
+		
 		if (!isOuter) {
 			outerLoops.push_back(allPolylines[i]);
 			isProcessed[i] = true;
@@ -349,11 +349,11 @@ void classifyLoopsMultiCheck(const std::vector<std::vector<AcGePoint3d>>& allPol
 	}
 }
 
-// Struct to store T-joint information IN USE
+
 struct TJoint {
-	AcGePoint3d position;      // The position of the corner point forming the T-joint
-	AcGePoint3d segmentStart;  // The starting point of the segment in the other loop
-	AcGePoint3d segmentEnd;    // The ending point of the segment in the other loop
+	AcGePoint3d position;      
+	AcGePoint3d segmentStart;  
+	AcGePoint3d segmentEnd;    
 
 	TJoint() = default;
 
@@ -361,61 +361,61 @@ struct TJoint {
 		: position(pos), segmentStart(start), segmentEnd(end) {}
 };
 
-// Function to check if a point is near a segment IN USE
+
 bool isPointNearSegment(const AcGePoint3d& point,
 	const AcGePoint3d& start,
 	const AcGePoint3d& end,
 	double threshold) {
-	// Create a vector for the segment
+	
 	AcGeVector3d segmentVector = end - start;
 	AcGeVector3d startToPoint = point - start;
 
 	double lengthSq = segmentVector.length() * segmentVector.length();
 
-	// Project the point onto the segment vector
+	
 	double projection = startToPoint.dotProduct(segmentVector) / lengthSq;
 
 
-	// Clamp the projection between 0 and 1 (inside the segment)
+	
 	projection = std::max(0.0, std::min(1.0, projection));
 
-	// Find the closest point on the segment
+	
 	AcGePoint3d closestPoint = start + segmentVector * projection;
 
-	// Calculate distance from the point to the closest point
+	
 	double distance = (point - closestPoint).length();
 
 	return distance <= threshold;
 }
 
-// Function to detect T-joints between loops IN USE
+
 void detectTJoints(const std::vector<std::vector<AcGePoint3d>>& allLoops,
 	std::vector<TJoint>& detectedTJoints,
 	double threshold = 150.0) {
-	// Reserve space for detected T-joints based on an estimate
-	detectedTJoints.reserve(allLoops.size() * 10); // Adjust estimate as needed
+	
+	detectedTJoints.reserve(allLoops.size() * 10); 
 
-	// Iterate through each loop
+	
 	for (size_t i = 0; i < allLoops.size(); ++i) {
 		const auto& currentLoop = allLoops[i];
 
-		// Check every corner in the current loop
+		
 		for (const AcGePoint3d& corner : currentLoop) {
-			// Compare with segments of other loops
+			
 			for (size_t j = 0; j < allLoops.size(); ++j) {
-				if (i == j) continue; // Skip comparison within the same loop
+				if (i == j) continue; 
 
 				const auto& comparisonLoop = allLoops[j];
 				size_t segmentCount = comparisonLoop.size();
 
-				// Iterate through segments in the comparison loop
+				
 				for (size_t segIdx = 0; segIdx < segmentCount; ++segIdx) {
 					const AcGePoint3d& start = comparisonLoop[segIdx];
 					const AcGePoint3d& end = comparisonLoop[(segIdx + 1) % segmentCount];
 
-					// Check if the corner is near the current segment
+					
 					if (isPointNearSegment(corner, start, end, threshold)) {
-						// Add a new T-joint if detected
+						
 						detectedTJoints.emplace_back(corner, start, end);
 					}
 				}
@@ -424,9 +424,9 @@ void detectTJoints(const std::vector<std::vector<AcGePoint3d>>& allLoops,
 	}
 }
 
-// Load asset IN USE
+
 AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
-	// acutPrintf(_T("\nLoading asset: %s"), blockName);
+	
 	AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
 	if (!pDb) return AcDbObjectId::kNull;
 
@@ -440,21 +440,21 @@ AcDbObjectId WallPlacer::loadAsset(const wchar_t* blockName) {
 	}
 
 	pBlockTable->close();
-	// acutPrintf(_T(" Loaded block: %s"), blockName);
+	
 	return blockId;
 }
 
-// Function to reverse the points in a polyline to change its direction to clockwise IN USE
+
 void convertToClockwise(std::vector<AcGePoint3d>& polylinePoints) {
-	// Check if the polyline is anticlockwise (positive area), if so reverse the points
-	if (directionOfDrawing(polylinePoints) == false) {  // Check if the direction is anticlockwise
+	
+	if (directionOfDrawing(polylinePoints) == false) {  
 		std::reverse(polylinePoints.begin(), polylinePoints.end());
 	}
 }
 
-// Function to place walls in the drawing IN USE
+
 void WallPlacer::placeWalls() {
-	// Initialize variables to store detected corners and T-joints
+	
 	std::vector<PolylineCorners> polylineCornerGroups;
 	std::vector<TJoint> detectedTJoints;
 	std::vector<std::vector<AcGePoint3d>> outerLoops;
@@ -472,10 +472,10 @@ void WallPlacer::placeWalls() {
 
 	};
 	struct LoopInfo {
-		std::vector<AcGePoint3d> points;  // Points of the polyline
-		bool isOuter;                    // Whether the loop is an outer loop
-		bool isClockwise;                // Whether the loop is clockwise
-		double area;                     // Area of the loop for reference/debugging
+		std::vector<AcGePoint3d> points;  
+		bool isOuter;                    
+		bool isClockwise;                
+		double area;                     
 	};
 	std::vector<LoopInfo> loopData;
 	bool ranLoopData = false;
@@ -484,17 +484,17 @@ void WallPlacer::placeWalls() {
 	std::vector<std::pair<AcGePoint3d, AcGePoint3d>> Rawsegments;
 	std::vector<std::pair<AcGePoint3d, AcGePoint3d>> segments;
 
-	// Print the detected corners
-	// Detect closed polylines and group their corners
+	
+	
 	detectClosedPolylinesAndCorners(polylineCornerGroups);
 
-	// Check if polylines were detected correctly
+	
 	if (polylineCornerGroups.empty()) {
 		acutPrintf(L"\nNo closed polylines detected.\n");
 		return;
 	}
 
-	// Initialize corners and get them from the polylineCornerGroups
+	
 	std::vector<AcGePoint3d> corners;
 	for (const auto& polylineGroup : polylineCornerGroups) {
 		corners.insert(corners.end(), polylineGroup.corners.begin(), polylineGroup.corners.end());
@@ -505,10 +505,10 @@ void WallPlacer::placeWalls() {
 	}
 
 	classifyLoopsMultiCheck(allPolylines, outerLoops, innerLoops, loopIsClockwise);
-	// Determine the largest area loop as the outer loop
+	
 	double maxArea = -1.0;
 	size_t outerIndex = -1;
-	// Loop through all polylines
+	
 	for (size_t j = 0; j < allPolylines.size(); ++j) {
 		double area = calculatePolygonArea(allPolylines[j]);
 		if (area > maxArea) {
@@ -517,38 +517,38 @@ void WallPlacer::placeWalls() {
 		}
 	}
 
-	// Iterate over all polylines to populate loopData
+	
 	for (size_t i = 0; i < allPolylines.size(); ++i) {
 		LoopInfo loop;
-		//convertToClockwise(allPolylines[i]);
-		loop.points = allPolylines[i]; // Store the polyline points
-		loop.isOuter = (i == outerIndex); // Check if it's the outer loop
-		loop.isClockwise = loopIsClockwise[i]; // Check if it's clockwise
-		loop.area = calculatePolygonArea(allPolylines[i]); // Store the area
-		//convertToClockwise(allPolylines[i]);
-		loopData.push_back(loop); // Add the loop info to the vector
+		
+		loop.points = allPolylines[i]; 
+		loop.isOuter = (i == outerIndex); 
+		loop.isClockwise = loopIsClockwise[i]; 
+		loop.area = calculatePolygonArea(allPolylines[i]); 
+		
+		loopData.push_back(loop); 
 	}
 
-	////print the classified loops as outer and inner loops with clockwise or anticlockwise
-	//acutPrintf(L"\nOuter loops:\n");
-	//for (size_t i = 0; i < outerLoops.size(); ++i) {
-	//	acutPrintf(L"Outer loop %zu:\n", i + 1);
-	//	for (size_t j = 0; j < outerLoops[i].size(); ++j) {
-	//		acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, outerLoops[i][j].x, outerLoops[i][j].y);
-	//	}
-	//	acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i] ? L"true" : L"false");  // Correctly print bool
-	//}
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
-	//acutPrintf(L"\nInner loops:\n");
-	//for (size_t i = 0; i < innerLoops.size(); ++i) {
-	//	acutPrintf(L"Inner loop %zu:\n", i + 1);
-	//	for (size_t j = 0; j < innerLoops[i].size(); ++j) {
-	//		acutPrintf(L"Corner %zu at: %.2f, %.2f\n", j + 1, innerLoops[i][j].x, innerLoops[i][j].y);
-	//	}
-	//	acutPrintf(L"Clockwise: %s\n", loopIsClockwise[i + outerLoops.size()] ? L"true" : L"false");  // Correctly print bool for inner loops
-	//}
+	
+	
+	
+	
+	
+	
+	
+	
 
-	// T-Joint Detection
+	
 	detectTJoints(allPolylines, detectedTJoints);
 
 	int wallHeight = globalVarHeight;
@@ -564,8 +564,8 @@ void WallPlacer::placeWalls() {
 		{50, {L"128287X", L"Null", L"129879X"}}
 	};
 	struct PanelPlacement {
-		int numPanels;   // Number of panels of this type
-		int panelLength; // Length of the panel
+		int numPanels;   
+		int panelLength; 
 	};
 
 	int closeLoopCounter = 0;
@@ -579,7 +579,7 @@ void WallPlacer::placeWalls() {
 	std::vector<int> cornerLocations;
 	AcGePoint3d first_start;
 
-	// Third Pass: Save all positions, asset IDs, and rotations
+	
 	for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
 
 		closeLoopCounter++;
@@ -612,23 +612,23 @@ void WallPlacer::placeWalls() {
 		AcGePoint3d next;
 		AcGePoint3d nextNext;
 		if (cornerNum + 1 < corners.size()) {
-			//acutPrintf(_T("\nIfTest"));
+			
 			next = corners[(cornerNum + 1) % corners.size()];
 		}
 		else {
-			//acutPrintf(_T("\nElseTest"));
+			
 			next = corners[cornerNum + 1 - closeLoopCounter];
 		}
 		if (cornerNum + 2 < corners.size()) {
-			nextNext = corners[(cornerNum + 2) % corners.size()]; //
+			nextNext = corners[(cornerNum + 2) % corners.size()]; 
 		}
 		else {
 			nextNext = corners[cornerNum + 2 - (corners.size() / 2)];
 		}
 
-		// Get previous and next corners
+		
 		if (isCloseToProcessedCorners(current, processedCorners, proximityTolerance)) {
-			continue; // Skip this corner as it is close to an already processed one
+			continue; 
 		}
 
 		bool isConcave = isCornerConcave(prev, current, next);
@@ -638,33 +638,33 @@ void WallPlacer::placeWalls() {
 		bool isAdjacentConvex = !isAdjacentConcave && isCornerConvex(current, next, nextNext);
 
 		if (isConvex) {
-			// Flag previous and next corners as adjacent to a convex corner
-			//acutPrintf(_T("\nConvex"));
+			
+			
 			size_t prevIndex = (cornerNum + corners.size() - 1) % corners.size();
 			size_t nextIndex = (cornerNum + 1) % corners.size();
 
-			//isAdjacentConvex = true;
-			// Set flag for adjacent corners
-			//isAdjacentConcave = false;  // Reset any concave flag if the previous corner was marked incorrectly
+			
+			
+			
 		}
 		else if (isConcave) {
-			//acutPrintf(_T("\nConcave"));
-			//isAdjacentConvex = false;  // Reset any convex flag if the previous corner was marked incorrectly
-			// Flagging adjacent corners as adjacent to concave is not needed in this approach
+			
+			
+			
 		}
 
 		bool prevClockwise = isClockwise(prev, start, end);
 		bool nextClockwise = isClockwise(start, end, next);
 
 		bool isInner = loopIndex != outerLoopIndexValue;
-		bool isOuter = !isInner;  // Outer loop is the opposite of inner
+		bool isOuter = !isInner;  
 		if (!loopIsClockwise[loopIndex]) {
 			isInner = !isInner;
 			isOuter = !isOuter;
 		}
 
 		direction = (end - start).normal();
-		//acutPrintf(_T("\nDirection: %f, %f"), direction.x, direction.y);
+		
 		reverseDirection = (start - end).normal();
 		double rotation = atan2(direction.y, direction.x);
 		int adjustment = 0;
@@ -789,14 +789,14 @@ void WallPlacer::placeWalls() {
 				adjustment = 2450;
 			}
 			else {
-				adjustment = 150; // Default case for any unexpected distance value
+				adjustment = 150; 
 			}
-			adjustment -= 100; // Adjust the distance for the corner post
+			adjustment -= 100; 
 			int forStartadjustment = 600;
 
 
 			start += direction * adjustment;
-			//start += direction * forStartadjustment;
+			
 			end += reverseDirection * adjustment;
 
 		}
@@ -811,23 +811,23 @@ void WallPlacer::placeWalls() {
 			}
 		}
 
-		processedCorners.push_back(current); // Mark the corner as processed
+		processedCorners.push_back(current); 
 
 		double distance = start.distanceTo(end);
-		//acutPrintf(_T("\nDistance: %f"), distance);
+		
 		AcGePoint3d currentPoint = start;
 
 		rotation += M_PI;
 		bool flagInitialPanelLength = false;
 		int panelIndex = 1;
-		std::vector<PanelPlacement> panelPlan; // To store the calculated panel configuration
-		double remainingDistance = distance; // Set to the total distance to place the panels
+		std::vector<PanelPlacement> panelPlan; 
+		double remainingDistance = distance; 
 
 
 		for (const auto& panel : panelSizes) {
 			currentHeight = 0;
-			//AcGePoint3d backupCurrentPoint = currentPoint;
-			//double backupDistance = distance;
+			
+			
 
 			for (int panelNum = 0; panelNum < 3; panelNum++) {
 				AcDbObjectId assetId = loadAsset(panel.id[panelNum].c_str());
@@ -835,66 +835,66 @@ void WallPlacer::placeWalls() {
 				if (assetId != AcDbObjectId::kNull) {
 					int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
 
-					//acutPrintf(_T("\nnumPanelsHeight = %d"), numPanelsHeight);
-					//for (int x = 0; x < numPanelsHeight; x++) {
+					
+					
 					if (numPanelsHeight > 0) {
 
 						int numPanels = static_cast<int>(distance / panel.length);
 						double remainingDistance = distance - (numPanels * panel.length);
-						//acutPrintf(_T("\nRemaining Distance = %f"), remainingDistance);
+						
 						for (int i = 0; i < numPanels; i++) {
 
 							currentPoint += direction * panel.length;
-							// Calculate the panel's position
+							
 							AcGePoint3d currentPointWithHeight = currentPoint;
 							currentPointWithHeight.z += currentHeight;
 
-							//acutPrintf(L"\nCurrent Point: (%f, %f, %f)+=", currentPoint.x, currentPoint.y, currentPoint.z);
-							//acutPrintf(L"\nDirection: (%f, %f, %f)*", direction.x, direction.y, direction.z);
-							//acutPrintf(L"\nPanel Length: %", panel.length);
+							
+							
+							
 
-							// Normalize and snap rotation
-							//rotation = normalizeAngle(rotation);
+							
+							
 							rotation = snapToExactAngle(rotation, TOLERANCE);
 
-							// Add the panel to the wallPanels vector
+							
 							wallPanels.push_back({
-								currentPointWithHeight,  // AcGePoint3d (base point)
-								assetId,                 // AcDbObjectId (assetId)
-								rotation,                // double (rotation)
-								panel.length,            // double (length)
-								panelHeights[panelNum],  // int (height)
-								loopIndex,               // int (loopIndex)
-								isOuter                  // bool (isOuter)
+								currentPointWithHeight,  
+								assetId,                 
+								rotation,                
+								panel.length,            
+								panelHeights[panelNum],  
+								loopIndex,               
+								isOuter                  
 								});
 
-							// Update variables
+							
 							totalPanelsPlaced++;
 							panelIndex++;
 
 							
 
 						}
-						distance = remainingDistance; // Update distance for the next panel size
+						distance = remainingDistance; 
 					}
 
-					// Update height for the next row of panels
+					
 					currentHeight += panelHeights[panelNum];
-					//acutPrintf(L"\nCurrent height: %d", currentHeight);
+					
 
-					// Stop if we've reached the required wall height
+					
 					if (currentHeight >= wallHeight) {
-						//acutPrintf(L"\nWall height achieved: %f", currentHeight);
+						
 						break;
 					}
 				}
 			}
 		}
-		segments.push_back(std::make_pair(start, end)); // Save segment for later compensator placement
+		segments.push_back(std::make_pair(start, end)); 
 		loopIndex = loopIndexLastPanel;
 
 
-		// Forth Pass: Adjust positions for specific asset IDs(compensators)
+		
 		std::vector<AcDbObjectId> centerAssets = {
 			loadAsset(L"128285X"),
 			loadAsset(L"129842X"),
@@ -907,91 +907,91 @@ void WallPlacer::placeWalls() {
 		int prevStartCornerIndex = -1;
 		int movedCompensators = 0;
 
-		//for (int panelNum = 0; panelNum < totalPanelsPlaced; ++panelNum) {
-		//	WallPanel& panel = wallPanels[panelNum];
-		//	if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
+		
+		
+		
 
-		//		// Find the two corner points between which the panel is placed
-		//		int panelPosition = panelNum;  // This should be the index of the panel
-		//		//acutPrintf(_T("\nFound compensator at %d."), panelNum);
-		//		WallPanel detectedPanel = wallPanels[panelPosition];
-		//		AcGePoint3d detectedPanelPosition = detectedPanel.position;
-		//		AcDbObjectId detectedPanelId = detectedPanel.assetId;
+		
+		
+		
+		
+		
+		
 
-		//		double panelLength = wallPanels[panelPosition].length;
-
-
-		//		//acutPrintf(_T(" panelLength = %f."), panelLength);
-
-		//		int startCornerIndex = -1;
-		//		int endCornerIndex = -1;
-
-		//		for (int j = 0; j < cornerLocations.size(); ++j) {
-		//			if (cornerLocations[j] < panelNum) {
-		//				startCornerIndex = cornerLocations[j];  // Last corner before the panel
-		//			}
-		//			if (cornerLocations[j] > panelNum) {
-		//				endCornerIndex = cornerLocations[j];  // First corner after the panel
-		//				break;
-		//			}
-		//		}
-		//		//acutPrintf(_T(" Between %d."), startCornerIndex);
-		//		if (endCornerIndex == -1) {
-		//			endCornerIndex = panelNum + 1;
-		//		}
-		//		//acutPrintf(_T(" and %d."), endCornerIndex);
+		
 
 
-		//		if (prevStartCornerIndex != startCornerIndex) {
-		//			movedCompensators = 0;
-		//			prevStartCornerIndex = startCornerIndex;
-		//		}
+		
 
-		//		// Validate the corner indices
-		//		if (startCornerIndex == -1 || endCornerIndex == -1) {
-		//			// No valid corners found; handle error
-		//		}
+		
+		
 
-		//		// Calculate the center index in wallPanels
-		//		int centerIndex = (startCornerIndex + endCornerIndex) / 2;
-
-		//		// Get positions of centerIndex and detectedPanel(compensator)
-		//		AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;
-
-		//		AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
-
-		//		// Adjust the position of the detected compensator panel
-		//		wallPanels[panelNum].position = centerPanelPosition;
-		//		if (wallPanels[panelNum].isOuterLoop && loopIsClockwise[wallPanels[panelNum].loopIndex]) {
-		//			wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
-		//			wallPanels[panelNum].position += direction * panelLength;
-		//		}
-		//		if (wallPanels[panelNum].isOuterLoop && !loopIsClockwise[wallPanels[panelNum].loopIndex]) {
-		//			wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
-		//			wallPanels[panelNum].position += direction * panelLength;
-		//		}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 
 
-		//		//acutPrintf(_T("\t | Moved to centerIndex = %d."), centerIndex + movedCompensators);
-		//		for (int centerToCornerPanelNum = centerIndex + movedCompensators; centerToCornerPanelNum < panelNum - movedCompensators; centerToCornerPanelNum++) {
-		//			wallPanels[centerToCornerPanelNum].position = wallPanels[centerToCornerPanelNum].position + direction * panelLength;
-		//		}
-		//		if (prevStartCornerIndex == startCornerIndex) {
-		//			movedCompensators++;
-		//		}
-		//	}
-		//}
+		
+		
+		
+		
 
-		//acutPrintf(_T("\ncornerLocations (size: %d): "), cornerLocations.size());
-		//acutPrintf(_T("\ncornerLocations: "));
+		
+		
+		
+		
+
+		
+		
+
+		
+		
+
+		
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+		
+		
 		for (size_t i = 0; i < cornerLocations.size(); ++i) {
-			//acutPrintf(_T("%d "), cornerLocations[i]);
+			
 		}
-		//acutPrintf(_T("\n"));
+		
 		wallHeight = globalVarHeight;
 		currentHeight = globalVarHeight;
 	}
-	// Fifth Pass: Place all wall panels
+	
 	AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
 	if (!pDb) {
 		acutPrintf(_T("\nNo working database found."));

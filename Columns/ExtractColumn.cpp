@@ -5,7 +5,7 @@
 #include <dbsymtb.h>
 #include <dbapserv.h>
 #include <aced.h>
-#include <nlohmann/json.hpp> // Include nlohmann JSON header
+#include <nlohmann/json.hpp> 
 #include <fstream>
 #include <string>
 #include <vector>
@@ -16,17 +16,17 @@ using json = nlohmann::json;
 
 void ExtractColumn()
 {
-    // Ask the user for the column height
+    
     int columnHeight = 1350;
 
-    // Ask the user for the column name
+    
     ACHAR columnName[256];
     if (acedGetString(Adesk::kFalse, _T("\nEnter the column name: "), columnName) != RTNORM) {
         acutPrintf(_T("\nOperation canceled."));
         return;
     }
 
-    // Convert ACHAR* (columnName) to std::string
+    
     std::string columnNameStr;
 #ifdef UNICODE
     columnNameStr = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(columnName);
@@ -35,7 +35,7 @@ void ExtractColumn()
 #endif
 
 
-    // Prompt the user to select entities
+    
     ads_name selectionSet;
     int result = acedSSGet(NULL, NULL, NULL, NULL, selectionSet);
     if (result != RTNORM) {
@@ -43,7 +43,7 @@ void ExtractColumn()
         return;
     }
 
-    // Get the number of selected entities
+    
     long length = 0;
     acedSSLength(selectionSet, &length);
     if (length == 0) {
@@ -52,12 +52,12 @@ void ExtractColumn()
         return;
     }
 
-    json columnJson; // JSON object to store the column data
+    json columnJson; 
     columnJson["blockname"] = columnNameStr;
-    columnJson["height"] = columnHeight;  // Store the height information in JSON
+    columnJson["height"] = columnHeight;  
     columnJson["blocks"] = json::array();
 
-    // Iterate through the selected entities
+    
     for (long i = 0; i < length; i++) {
         ads_name entityName;
         acedSSName(selectionSet, i, entityName);
@@ -75,7 +75,7 @@ void ExtractColumn()
         if (pEntity->isKindOf(AcDbBlockReference::desc())) {
             AcDbBlockReference* pBlockRef = AcDbBlockReference::cast(pEntity);
 
-            // Get block name using AcString
+            
             AcDbObjectId blockId = pBlockRef->blockTableRecord();
             AcDbBlockTableRecord* pBlockDef;
             Acad::ErrorStatus es = acdbOpenObject(pBlockDef, blockId, AcDb::kForRead);
@@ -88,20 +88,20 @@ void ExtractColumn()
             AcString blockName;
             pBlockDef->getName(blockName);
 
-            // Convert AcString to std::string
+            
             std::string blockNameStr;
 #ifdef UNICODE
             blockNameStr = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(blockName.kwszPtr());
 #else
-            blockNameStr = blockName.kACharPtr(); // Direct conversion for ANSI builds
+            blockNameStr = blockName.kACharPtr(); 
 #endif
 
-            // Get position, rotation, and scale
-            AcGePoint3d position = pBlockRef->position(); // Position of the block
-            double rotation = pBlockRef->rotation();      // Rotation of the block
-            AcGeScale3d scale = pBlockRef->scaleFactors(); // Scale of the block
+            
+            AcGePoint3d position = pBlockRef->position(); 
+            double rotation = pBlockRef->rotation();      
+            AcGeScale3d scale = pBlockRef->scaleFactors(); 
 
-            // Create JSON object for the block
+            
             json blockData;
             blockData["name"] = blockNameStr;
             blockData["position"] = { {"x", position.x}, {"y", position.y}, {"z", position.z} };
@@ -116,9 +116,9 @@ void ExtractColumn()
         pEntity->close();
     }
 
-    acedSSFree(selectionSet); // Free the selection set
+    acedSSFree(selectionSet); 
 
-    // Load the existing JSON file or create a new one
+    
     std::ifstream inFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_12-11-24.json");
     json blocksJson;
     if (inFile.is_open()) {
@@ -130,13 +130,13 @@ void ExtractColumn()
         acutPrintf(_T("\nJSON file not found, creating a new one."));
     }
 
-    // Append the new column data to the existing JSON structure
+    
     blocksJson["columns"].push_back(columnJson);
 
-    // Save the updated JSON structure back to the file
+    
     std::ofstream outFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\AP-Columns_12-11-24.json");
     if (outFile.is_open()) {
-        outFile << blocksJson.dump(4); // Write with 4-space indentation
+        outFile << blocksJson.dump(4); 
         outFile.close();
         acutPrintf(_T("\nColumn data saved successfully."));
     }

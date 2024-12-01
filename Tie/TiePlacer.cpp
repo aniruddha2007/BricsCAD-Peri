@@ -1,20 +1,14 @@
-// Created by: Ani (2024-07-13)
-// Modified by:
-// TODO: Write the sub-function to select which tie to place(line 360)
-// TiePlacer.cpp
-/////////////////////////////////////////////////////////////////////////
-
 #include "stdAfx.h"
 #include "TiePlacer.h"
-#include "SharedDefinations.h"  // For the shared definitions
-#include "DefineScale.h"        // For globalVarScale
-#include <vector>               // For the vector
-#include <algorithm>            // For the algorithm
-#include <tuple>                // For the tuple
-#include "dbapserv.h"           // For acdbHostApplicationServices() and related services
-#include "dbents.h"             // For AcDbBlockReference
-#include "dbsymtb.h"            // For block table record definitions
-#include "AssetPlacer/GeometryUtils.h" // For the geometry utilities
+#include "SharedDefinations.h"  
+#include "DefineScale.h"        
+#include <vector>               
+#include <algorithm>            
+#include <tuple>                
+#include "dbapserv.h"           
+#include "dbents.h"             
+#include "dbsymtb.h"            
+#include "AssetPlacer/GeometryUtils.h" 
 #include <array>
 #include <cmath>
 #include <map>
@@ -23,33 +17,33 @@
 #include "DefineHeight.h"
 #include <string>
 
-// Static member definition
+
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, TiePlacer::Point3dComparator> TiePlacer::wallMap;
 
 bool isThisInteger(double value, double tolerance = 1e-9) {
     return std::abs(value - std::round(value)) < tolerance;
 }
 
-const double TOLERANCE = 0.1; // Define a small tolerance for angle comparisons
+const double TOLERANCE = 0.1; 
 
-const int BATCH_SIZE = 1000; // Define the batch size for processing entities
+const int BATCH_SIZE = 1000; 
 
 double distanceBetweenPoly;
 
-// Structure to hold panel information
+
 struct Panel {
     int length;
     std::wstring id[2];
 };
 
-// Structure to hold tie information
+
 struct Tie {
     int length;
     std::wstring id;
 };
 
 bool isCornerConcaveTie(const AcGePoint3d& prev, const AcGePoint3d& current, const AcGePoint3d& next) {
-    // Calculate cross product to determine corner type
+    
     AcGeVector3d v1 = current - prev;
     AcGeVector3d v2 = next - current;
     double cross = v1.x * v2.y - v1.y * v2.x;
@@ -58,10 +52,10 @@ bool isCornerConcaveTie(const AcGePoint3d& prev, const AcGePoint3d& current, con
 
     bool isConcave = cross < -tolerance;
 
-    //// Debugging information
-    //acutPrintf(_T("\nChecking corner at (%f, %f): "), current.x, current.y);
-    //acutPrintf(_T("Previous Point: (%f, %f), Next Point: (%f, %f)"), prev.x, prev.y, next.x, next.y);
-    //acutPrintf(_T("Cross Product: %f, Identified as Concave: %d"), cross, isConcave);
+    
+    
+    
+    
 
     return isConcave;
 }
@@ -71,23 +65,23 @@ bool isCornerConvexTie(const AcGePoint3d& prev, const AcGePoint3d& current, cons
     AcGeVector3d v2 = next - current;
     double cross = v1.x * v2.y - v1.y * v2.x;
 
-    // Tolerance to handle floating-point errors
+    
     double tolerance = 1e-6;
 
     bool isConvex = cross > tolerance;
 
-    //acutPrintf(_T("\nChecking corner at (%f, %f): Previous Point: (%f, %f), Next Point: (%f, %f)"),
-    //    current.x, current.y, prev.x, prev.y, next.x, next.y);
-    //acutPrintf(_T("Cross Product: %f, Identified as Convex: %d"), cross, isConvex);
+    
+    
+    
 
     return isConvex;
 }
 
-//Detect polylines
+
 std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
-    //acutPrintf(_T("\nDetecting polylines..."));
+    
     std::vector<AcGePoint3d> corners;
-    wallMap.clear();  // Clear previous data
+    wallMap.clear();  
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -127,7 +121,7 @@ std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
             if (pEnt->isKindOf(AcDbPolyline::desc())) {
                 AcDbPolyline* pPolyline = AcDbPolyline::cast(pEnt);
                 if (pPolyline) {
-                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  // Assuming 90.0 degrees as the threshold for corners
+                    processPolyline(pPolyline, corners, 90.0, TOLERANCE);  
                 }
             }
             pEnt->close();
@@ -135,7 +129,7 @@ std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
 
             if (entityCount % BATCH_SIZE == 0) {
                 acutPrintf(_T("\nProcessed %d entities. Pausing to avoid resource exhaustion.\n"), entityCount);
-                std::this_thread::sleep_for(std::chrono::seconds(1));  // Pause for a moment
+                std::this_thread::sleep_for(std::chrono::seconds(1));  
             }
         }
         else {
@@ -147,30 +141,30 @@ std::vector<AcGePoint3d> TiePlacer::detectPolylines() {
     pModelSpace->close();
     pBlockTable->close();
 
-    //acutPrintf(_T("\nDetected %d corners from polylines."), corners.size());
+    
     return corners;
 
 }
 
-// Function to get the wall panel positions and find the distance between polylines
+
 std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPanelPositions() {
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> positions;
 
-    // Get the working database
+    
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
         return positions;
     }
 
-    // Get the block table
+    
     AcDbBlockTable* pBlockTable;
     if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get block table."));
         return positions;
     }
 
-    // Get the model space
+    
     AcDbBlockTableRecord* pModelSpace;
     if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForRead) != Acad::eOk) {
         acutPrintf(_T("\nFailed to get model space."));
@@ -178,7 +172,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         return positions;
     }
 
-    // Create an iterator for the model space
+    
     AcDbBlockTableRecordIterator* pIter;
     if (pModelSpace->newIterator(pIter) != Acad::eOk) {
         acutPrintf(_T("\nFailed to create iterator."));
@@ -190,7 +184,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
     AcDbPolyline* pFirstPolyline = nullptr;
     AcDbPolyline* pSecondPolyline = nullptr;
 
-    // Iterate through the entities to find polylines
+    
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
@@ -201,14 +195,14 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
                 else {
                     pSecondPolyline = AcDbPolyline::cast(pEnt);
                     pEnt->close();
-                    break; // Found both polylines, no need to continue
+                    break; 
                 }
             }
             pEnt->close();
         }
     }
 
-    // Calculate the distance between the first two polylines
+    
     if (pFirstPolyline && pSecondPolyline) {
         double distance = getPolylineDistance(pFirstPolyline, pSecondPolyline);
         if (distance > 0) {
@@ -222,7 +216,7 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
         acutPrintf(_T("\nDid not find two polylines."));
     }
 
-    // Close the iterator and model space
+    
     delete pIter;
     pModelSpace->close();
     pBlockTable->close();
@@ -230,14 +224,14 @@ std::vector<std::tuple<AcGePoint3d, std::wstring, double>> TiePlacer::getWallPan
     return positions;
 }
 
-// Calculate position of the tie
+
 std::vector<std::tuple<AcGePoint3d, double>> calculateTiePositions(const std::vector<std::tuple<AcGePoint3d, std::wstring, double>>& panelPositions) {
     return {};
 }
 
-// Load Tie Asset
+
 AcDbObjectId TiePlacer::LoadTieAsset(const wchar_t* blockName) {
-    //acutPrintf(L"\nLoading Tie Asset: %s", blockName);
+    
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(L"\nFailed to get the working database");
@@ -252,17 +246,17 @@ AcDbObjectId TiePlacer::LoadTieAsset(const wchar_t* blockName) {
 
     AcDbObjectId blockId;
     if (pBlockTable->getAt(blockName, blockId) != Acad::eOk) {
-        //acutPrintf(_T("\nBlock not found %s"), blockName);
+        
         pBlockTable->close();
         return AcDbObjectId::kNull;
     }
 
     pBlockTable->close();
-    //acutPrintf(L"\nLoaded block: %s", blockName);
+    
     return blockId;
 }
 
-// Place Tie at Position
+
 void TiePlacer::placeTieAtPosition(const AcGePoint3d& position, double rotation, AcDbObjectId assetId) {
     
 }
@@ -272,7 +266,7 @@ double crossProduct3(const AcGePoint3d& o, const AcGePoint3d& a, const AcGePoint
 }
 
 bool directionOfDrawing3(std::vector<AcGePoint3d>& points) {
-    // Ensure the shape is closed
+    
     if (!(points.front().x == points.back().x && points.front().y == points.back().y)) {
         points.push_back(points.front());
     }
@@ -283,36 +277,36 @@ bool directionOfDrawing3(std::vector<AcGePoint3d>& points) {
         totalTurns += crossProduct3(points[i - 1], points[i], points[i + 1]);
     }
 
-    // If totalTurns is negative, the shape is drawn clockwise
+    
     if (totalTurns < 0) {
-        return true;  // Clockwise
+        return true;  
     }
-    // If totalTurns is positive, the shape is drawn counterclockwise
+    
     else if (totalTurns > 0) {
-        return false; // Counterclockwise
+        return false; 
     }
-    // Handle the case where totalTurns is zero (indicating an undefined direction)
+    
     else {
         acutPrintf(_T("Warning: The shape does not have a defined direction. Defaulting to clockwise.\n"));
-        return true;  // Default to clockwise if direction cannot be determined
+        return true;  
     }
 }
 
 bool isThisClockwise(const AcGePoint3d& p0, const AcGePoint3d& p1, const AcGePoint3d& p2) {
-    // Compute the vectors for the edges
-    AcGeVector3d v1 = p1 - p0;  // Vector from p0 to p1
-    AcGeVector3d v2 = p2 - p1;  // Vector from p1 to p2
+    
+    AcGeVector3d v1 = p1 - p0;  
+    AcGeVector3d v2 = p2 - p1;  
 
-    // Compute the cross product
+    
     AcGeVector3d crossProduct = v1.crossProduct(v2);
 
-    // Determine the direction of the turn
-    // If cross product z-component is positive, the turn is clockwise
-    // If cross product z-component is negative, the turn is counterclockwise
+    
+    
+    
     return crossProduct.z < 0;
 }
 
-//calculate distance between polylines
+
 double TiePlacer::calculateDistanceBetweenPolylines() {
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -340,7 +334,7 @@ double TiePlacer::calculateDistanceBetweenPolylines() {
     AcDbPolyline* pFirstPolyline = nullptr;
     AcDbPolyline* pSecondPolyline = nullptr;
 
-    // Find the first two polylines
+    
     for (pIter->start(); !pIter->done(); pIter->step()) {
         AcDbEntity* pEnt;
         if (pIter->getEntity(pEnt, AcDb::kForRead) == Acad::eOk) {
@@ -351,7 +345,7 @@ double TiePlacer::calculateDistanceBetweenPolylines() {
                 else if (!pSecondPolyline) {
                     pSecondPolyline = AcDbPolyline::cast(pEnt);
                     pEnt->close();
-                    break; // Found both polylines, no need to continue
+                    break; 
                 }
             }
             pEnt->close();
@@ -369,18 +363,18 @@ double TiePlacer::calculateDistanceBetweenPolylines() {
     return distance;
 }
 
-// Place Ties
+
 void TiePlacer::placeTies() {
-    //acutPrintf(L"\nPlacing Ties");
+    
     std::vector<std::tuple<AcGePoint3d, std::wstring, double>> panelPositions = getWallPanelPositions();
-    //acutPrintf(_T("\nDistance between polylines: %f"), distanceBetweenPoly);
+    
     if (panelPositions.empty()) {
-        //acutPrintf(L"\nNo wall panels found");
+        
     }
 
     double distanceBetweenPolylines = calculateDistanceBetweenPolylines();
 
-    // List of available Tieswith their sizes
+    
     std::vector<Tie> tieSizes = {
         {500, L"030005X"},
         {850, L"030010X"},
@@ -399,20 +393,20 @@ void TiePlacer::placeTies() {
     const std::wstring wingnut = L"030110X";
     AcDbObjectId assetIdWingnut = LoadTieAsset(wingnut.c_str());
 
-    //acutPrintf(_T("\nDistance Between Polylines : %d"), ((int)distanceBetweenPoly + 300));
+    
 
     for (const auto& tie : tieSizes) {
         if (tie.length >= ((int)distanceBetweenPoly + 300)) {
-            //acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
-            tieAssetId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
+            
+            tieAssetId = LoadTieAsset(tie.id.c_str());  
             break;
         }
     }
 
     for (const auto& tie : tieSizes) {
         if (tie.length >= ((int)distanceBetweenPoly + 300 + 90)) {
-           // acutPrintf(_T("\nSelected Tie Length: %d"), tie.length);
-            tieAssetWalerId = LoadTieAsset(tie.id.c_str());  // Replace ASSET_TIE with the actual asset name
+           
+            tieAssetWalerId = LoadTieAsset(tie.id.c_str());  
             break;
         }
     }
@@ -430,11 +424,11 @@ void TiePlacer::placeTies() {
     int outerLoopIndexValue = 0;
     int firstLoopEnd;
 
-    // First Pass: Determine inner and outer loops
+    
     for (size_t cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         AcGePoint3d start = corners[cornerNum];
-        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  // Wrap around to the first point
+        AcGePoint3d end = corners[(cornerNum + 1) % corners.size()];  
         AcGeVector3d direction = (end - start).normal();
 
         if (start.x > outerPointCounter) {
@@ -510,7 +504,7 @@ void TiePlacer::placeTies() {
     int currentHeight = 0;
     int panelHeights[] = { 1350, 1200, 600 };
 
-    // Structure to hold panel information
+    
     struct Panel {
         int length;
         std::wstring id[3];
@@ -527,7 +521,7 @@ void TiePlacer::placeTies() {
 
     AcGePoint3d first_start;
 
-    // Second Pass: Save all positions, asset IDs, and rotations
+    
     for (int cornerNum = 0; cornerNum < corners.size(); ++cornerNum) {
         closeLoopCounter++;
         cornerLocations.push_back(static_cast<int>(totalPanelsPlaced));
@@ -535,7 +529,7 @@ void TiePlacer::placeTies() {
         AcGePoint3d end = corners[cornerNum + 1];
         if (cornerNum == 0) {
             first_start = start;
-            //acutPrintf(_T("\nFirst Start: %f, %f"), first_start.x, first_start.y);
+            
         }
         AcGeVector3d direction = (end - start).normal();
         AcGeVector3d reverseDirection = (start - end).normal();
@@ -553,21 +547,21 @@ void TiePlacer::placeTies() {
             }
         }
 
-        // Get previous and next corners
+        
         AcGePoint3d prev = corners[(cornerNum + corners.size() - 1) % corners.size()];
         AcGePoint3d current = corners[cornerNum];
         AcGePoint3d next;
         AcGePoint3d nextNext;
         if (cornerNum + 1 < corners.size()) {
-            //acutPrintf(_T("\nIfTest"));
+            
             next = corners[(cornerNum + 1) % corners.size()];
         }
         else {
-            //acutPrintf(_T("\nElseTest"));
+            
             next = corners[cornerNum + 1 - closeLoopCounter];
         }
         if (cornerNum + 2 < corners.size()) {
-            nextNext = corners[(cornerNum + 2) % corners.size()]; //
+            nextNext = corners[(cornerNum + 2) % corners.size()]; 
         }
         else {
             nextNext = corners[cornerNum + 2 - (corners.size() / 2)];
@@ -576,33 +570,33 @@ void TiePlacer::placeTies() {
         bool isConcave = isCornerConcaveTie(prev, current, next);
         bool isConvex = !isConcave && isCornerConvexTie(prev, current, next);
 
-        // Flagging adjacent corners
-        //bool isAdjacentConvex = false;
-        //bool isAdjacentConcave = false;
+        
+        
+        
         bool isAdjacentConcave = isCornerConcaveTie(current, next, nextNext);
         bool isAdjacentConvex = !isAdjacentConcave && isCornerConvexTie(current, next, nextNext);
 
         if (isConvex) {
-            // Flag previous and next corners as adjacent to a convex corner
-            //acutPrintf(_T("\nConvex"));
+            
+            
             size_t prevIndex = (cornerNum + corners.size() - 1) % corners.size();
             size_t nextIndex = (cornerNum + 1) % corners.size();
 
-            //isAdjacentConvex = true;
-            // Set flag for adjacent corners
-            //isAdjacentConcave = false;  // Reset any concave flag if the previous corner was marked incorrectly
+            
+            
+            
         }
         else if (isConcave) {
-            //acutPrintf(_T("\nConcave"));
-            //isAdjacentConvex = false;  // Reset any convex flag if the previous corner was marked incorrectly
-            // Flagging adjacent corners as adjacent to concave is not needed in this approach
+            
+            
+            
         }
 
         bool prevClockwise = isThisClockwise(prev, start, end);
         bool nextClockwise = isThisClockwise(start, end, next);
 
         bool isInner = loopIndex != outerLoopIndexValue;
-        bool isOuter = !isInner;  // Outer loop is the opposite of inner
+        bool isOuter = !isInner;  
 
         if (!loopIsClockwise[loopIndex]) {
             isInner = !isInner;
@@ -627,22 +621,22 @@ void TiePlacer::placeTies() {
             if (!nextClockwise) {
                 skipLastTie = true;
             }
-            //// Adjust start point
-            //if (loopIsClockwise[loopIndex]) {
-            //    if (!isConvex && isInner) {
-            //        adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            //    }
-            //    // Adjust end point
-            //    if (!isAdjacentConvex && isInner) {
-            //        adjustStartAndEndPoints(end, reverseDirection, distanceBetweenPolylines, isInner);
-            //    }
-            //}
-            //else {
-            //    if (isConvex && isInner) {
-            //        adjustStartAndEndPoints(start, direction, distanceBetweenPolylines, isInner);
-            //    }
-            //    // Adjust end point
-            //    if (isAdjacentConvex && isInner) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
  
             int adjustment = 0;
 
@@ -660,7 +654,7 @@ void TiePlacer::placeTies() {
                 }
             }
             else {
-                // Using the provided table for outer loop adjustments
+                
 
                 if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
                     adjustment = 500;
@@ -780,15 +774,15 @@ void TiePlacer::placeTies() {
                     adjustment = 2450;
                 }
                 else {
-                    adjustment = 150; // Default case for any unexpected distance value
+                    adjustment = 150; 
                 }
 
                 adjustment -= 350;
 
-                //if (!isInnerCorner) {
-                //    // Flip the adjustment for outside corners
-                //    adjustment = -adjustment;
-                //}
+                
+                
+                
+                
 
                 start += direction * adjustment;
 
@@ -796,20 +790,20 @@ void TiePlacer::placeTies() {
 
 
             if (!isAdjacentConvex) {
-                //acutPrintf(_T("\nnot AdjacentConvex"));
+                
                 if (distanceBetweenPolylines == 150) {
                     end -= direction * 50;
                 }
                 else {
-                    //acutPrintf(_T("\nnot AdjacentConvex ELSE"));
+                    
                     end -= direction * 0;
                 }
             }
             else {
-                // Using the provided table for outer loop adjustments
+                
 
-                //acutPrintf(_T("\n!!!!AdjacentConvex"));
-                //acutPrintf(_T("\ndistanceBetweenPolylines %f"), distanceBetweenPolylines);
+                
+                
                 if (distanceBetweenPolylines == 150 || distanceBetweenPolylines == 200) {
                     adjustment = 500;
                 }
@@ -928,7 +922,7 @@ void TiePlacer::placeTies() {
                     adjustment = 2450;
                 }
                 else {
-                    adjustment = 150; // Default case for any unexpected distance value
+                    adjustment = 150; 
                 }
 
                 adjustment -= 300;
@@ -1008,7 +1002,7 @@ void TiePlacer::placeTies() {
         loopIndex = loopIndexLastPanel;
     }
 
-    // Third Pass: Adjust positions for specific asset IDs
+    
     std::vector<AcDbObjectId> centerAssets = {
         LoadTieAsset(L"128285X"),
         LoadTieAsset(L"129842X"),
@@ -1025,7 +1019,7 @@ void TiePlacer::placeTies() {
         WallPanel& panel = wallPanels[panelNum];
         if (std::find(centerAssets.begin(), centerAssets.end(), panel.assetId) != centerAssets.end()) {
 
-            // Find the two corner points between which the panel is placed
+            
             int panelPosition = panelNum;
             WallPanel detectedPanel = wallPanels[panelPosition];
             AcGePoint3d detectedPanelPosition = detectedPanel.position;
@@ -1038,10 +1032,10 @@ void TiePlacer::placeTies() {
 
             for (int j = 0; j < cornerLocations.size(); ++j) {
                 if (cornerLocations[j] < panelNum) {
-                    startCornerIndex = cornerLocations[j];  // Last corner before the panel
+                    startCornerIndex = cornerLocations[j];  
                 }
                 if (cornerLocations[j] > panelNum) {
-                    endCornerIndex = cornerLocations[j];  // First corner after the panel
+                    endCornerIndex = cornerLocations[j];  
                     break;
                 }
             }
@@ -1055,15 +1049,15 @@ void TiePlacer::placeTies() {
                 prevStartCornerIndex = startCornerIndex;
             }
 
-            // Calculate the center index in wallPanels
+            
             int centerIndex = (startCornerIndex + endCornerIndex) / 2;
 
-            // Get positions of centerIndex and detectedPanel
+            
             AcGePoint3d centerPanelPosition = wallPanels[centerIndex + movedCompensators].position;
 
             AcGeVector3d direction = (wallPanels[panelNum].position - wallPanels[centerIndex].position).normal();
 
-            // Adjust the position of the detected panel
+            
             wallPanels[panelNum].position = centerPanelPosition;
             if (wallPanels[panelNum].isOuterLoop && loopIsClockwise[wallPanels[panelNum].loopIndex]) {
                 wallPanels[panelNum].position -= direction * wallPanels[centerIndex + movedCompensators].length;
@@ -1096,7 +1090,7 @@ void TiePlacer::placeTies() {
     wallHeight = globalVarHeight;
     currentHeight = globalVarHeight;
 
-    // Fourth Pass: Place all ties
+    
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
         acutPrintf(_T("\nNo working database found."));
@@ -1119,12 +1113,12 @@ void TiePlacer::placeTies() {
     int tieOffsetHeight[] = { 300, 1050 };
     double xOffset;
     if (loopIsClockwise[outerLoopIndexValue]) {
-        xOffset = distanceBetweenPoly / 2; // X offset for the tie
+        xOffset = distanceBetweenPoly / 2; 
     }
     else {
-        xOffset = distanceBetweenPoly / 2; // X offset for the tie
+        xOffset = distanceBetweenPoly / 2; 
     }
-    double yOffset = 25; // Y offset for the tie
+    double yOffset = 25; 
     double wingtieOffset = (distanceBetweenPoly + 200) / 2;
     double walerOffset = 45;
     AcGePoint3d wingnutPosition;
@@ -1138,24 +1132,24 @@ void TiePlacer::placeTies() {
                 tiesToPlace = 1;
             }
             for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
-                // Place the tie without scaling
+                
                 currentPointWithHeight = panel.position;
                 currentPointWithHeight.z += tieOffsetHeight[tiePlaced];
                 
                 switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                case 0: // 0 degrees TOP
+                case 0: 
                     currentPointWithHeight.x += yOffset;
                     currentPointWithHeight.y += xOffset;
                     break;
-                case 1: // 90 degrees LEFT
+                case 1: 
                     currentPointWithHeight.x -= xOffset;
                     currentPointWithHeight.y += yOffset;
                     break;
-                case 2: // 180 degrees BOTTOM
+                case 2: 
                     currentPointWithHeight.x -= yOffset;
                     currentPointWithHeight.y -= xOffset;
                     break;
-                case 3: // 270 degrees RIGHT
+                case 3: 
                     currentPointWithHeight.x += xOffset;
                     currentPointWithHeight.y -= yOffset;
                     break;
@@ -1184,18 +1178,18 @@ void TiePlacer::placeTies() {
                     wingnutRotation = panel.rotation;
                     if (panel.waler) {
                         switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                        case 0: // 0 degrees TOP
+                        case 0: 
                             wingnutPosition.y += (wingtieOffset + walerOffset);
                             wingnutRotation += M_PI;
                             break;
-                        case 1: // 90 degrees LEFT
+                        case 1: 
                             wingnutPosition.x += (wingtieOffset + walerOffset);
                             break;
-                        case 2: // 180 degrees BOTTOM
+                        case 2: 
                             wingnutPosition.y -= (wingtieOffset + walerOffset);
                             wingnutRotation += M_PI;
                             break;
-                        case 3: // 270 degrees RIGHT
+                        case 3: 
                             wingnutPosition.x -= (wingtieOffset + walerOffset);
                             break;
                         case -1:
@@ -1204,18 +1198,18 @@ void TiePlacer::placeTies() {
                     }
                     else {
                         switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                        case 0: // 0 degrees TOP
+                        case 0: 
                             wingnutPosition.y += wingtieOffset;
                             wingnutRotation += M_PI;
                             break;
-                        case 1: // 90 degrees LEFT
+                        case 1: 
                             wingnutPosition.x += wingtieOffset;
                             break;
-                        case 2: // 180 degrees BOTTOM
+                        case 2: 
                             wingnutPosition.y -= wingtieOffset;
                             wingnutRotation += M_PI;
                             break;
-                        case 3: // 270 degrees RIGHT
+                        case 3: 
                             wingnutPosition.x -= wingtieOffset;
                             break;
                         case -1:
@@ -1227,20 +1221,20 @@ void TiePlacer::placeTies() {
                     pWingnutRef->setPosition(wingnutPosition);
                     pWingnutRef->setBlockTableRecord(assetIdWingnut);
                     if (wingnutNum == 1) {
-                        pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                        pWingnutRef->setRotation(wingnutRotation);  
                     }
                     else {
-                        pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                        pWingnutRef->setRotation(wingnutRotation + M_PI);  
                     }
-                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
                     if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
-                        //acutPrintf(_T("\nPlaced wingnut."));
+                        
                     }
                     else {
                         acutPrintf(_T("\nFailed to place wingnut."));
                     }
-                    pWingnutRef->close();  // Decrement reference count
+                    pWingnutRef->close();  
                 }
             }
             currentHeight = panel.height;
@@ -1283,18 +1277,18 @@ void TiePlacer::placeTies() {
                                         wingnutRotation = panel.rotation;
                                         if (panel.waler) {
                                             switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                                            case 0: // 0 degrees TOP
+                                            case 0: 
                                                 wingnutPosition.y += (wingtieOffset + walerOffset);
                                                 wingnutRotation += M_PI;
                                                 break;
-                                            case 1: // 90 degrees LEFT
+                                            case 1: 
                                                 wingnutPosition.x += (wingtieOffset + walerOffset);
                                                 break;
-                                            case 2: // 180 degrees BOTTOM
+                                            case 2: 
                                                 wingnutPosition.y -= (wingtieOffset + walerOffset);
                                                 wingnutRotation += M_PI;
                                                 break;
-                                            case 3: // 270 degrees RIGHT
+                                            case 3: 
                                                 wingnutPosition.x -= (wingtieOffset + walerOffset);
                                                 break;
                                             case -1:
@@ -1303,18 +1297,18 @@ void TiePlacer::placeTies() {
                                         }
                                         else {
                                             switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                                            case 0: // 0 degrees TOP
+                                            case 0: 
                                                 wingnutPosition.y += wingtieOffset;
                                                 wingnutRotation += M_PI;
                                                 break;
-                                            case 1: // 90 degrees LEFT
+                                            case 1: 
                                                 wingnutPosition.x += wingtieOffset;
                                                 break;
-                                            case 2: // 180 degrees BOTTOM
+                                            case 2: 
                                                 wingnutPosition.y -= wingtieOffset;
                                                 wingnutRotation += M_PI;
                                                 break;
-                                            case 3: // 270 degrees RIGHT
+                                            case 3: 
                                                 wingnutPosition.x -= wingtieOffset;
                                                 break;
                                             case -1:
@@ -1324,20 +1318,20 @@ void TiePlacer::placeTies() {
                                         pWingnutRef->setPosition(wingnutPosition);
                                         pWingnutRef->setBlockTableRecord(assetIdWingnut);
                                         if (wingnutNum == 1) {
-                                            pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                                            pWingnutRef->setRotation(wingnutRotation);  
                                         }
                                         else {
-                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  
                                         }
-                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
                                         if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
-                                            //acutPrintf(_T("\nPlaced wingnut."));
+                                            
                                         }
                                         else {
                                             acutPrintf(_T("\nFailed to place wingnut."));
                                         }
-                                        pWingnutRef->close();  // Decrement reference count
+                                        pWingnutRef->close();  
 
                                     }
                                 }
@@ -1360,7 +1354,7 @@ void TiePlacer::placeTies() {
 
 
 
-    // Place corner ties
+    
     for (const auto& panel : cornerTie) {
         if (panel.length > 100 && !panel.firstOrLast) {
             int tiesToPlace = 2;
@@ -1368,24 +1362,24 @@ void TiePlacer::placeTies() {
                 tiesToPlace = 1;
             }
             for (int tiePlaced = 0; tiePlaced < tiesToPlace; tiePlaced++) {
-                // Place the tie without scaling
+                
                 currentPointWithHeight = panel.position;
                 currentPointWithHeight.z += tieOffsetHeight[tiePlaced];
 
                 switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                case 0: // 0 degrees TOP
+                case 0: 
                     currentPointWithHeight.x += yOffset;
                     currentPointWithHeight.y += xOffset;
                     break;
-                case 1: // 90 degrees LEFT
+                case 1: 
                     currentPointWithHeight.x -= xOffset;
                     currentPointWithHeight.y += yOffset;
                     break;
-                case 2: // 180 degrees BOTTOM
+                case 2: 
                     currentPointWithHeight.x -= yOffset;
                     currentPointWithHeight.y -= xOffset;
                     break;
-                case 3: // 270 degrees RIGHT
+                case 3: 
                     currentPointWithHeight.x += xOffset;
                     currentPointWithHeight.y -= yOffset;
                     break;
@@ -1406,18 +1400,18 @@ void TiePlacer::placeTies() {
                     wingtieOffset = -wingtieOffset;
                     wingnutRotation = panel.rotation;
                     switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                    case 0: // 0 degrees TOP
+                    case 0: 
                         wingnutPosition.y += wingtieOffset;
                         wingnutRotation += M_PI;
                         break;
-                    case 1: // 90 degrees LEFT
+                    case 1: 
                         wingnutPosition.x += wingtieOffset;
                         break;
-                    case 2: // 180 degrees BOTTOM
+                    case 2: 
                         wingnutPosition.y -= wingtieOffset;
                         wingnutRotation += M_PI;
                         break;
-                    case 3: // 270 degrees RIGHT
+                    case 3: 
                         wingnutPosition.x -= wingtieOffset;
                         break;
                     case -1:
@@ -1427,20 +1421,20 @@ void TiePlacer::placeTies() {
                     pWingnutRef->setPosition(wingnutPosition);
                     pWingnutRef->setBlockTableRecord(assetIdWingnut);
                     if (wingnutNum == 1) {
-                        pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                        pWingnutRef->setRotation(wingnutRotation);  
                     }
                     else {
-                        pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                        pWingnutRef->setRotation(wingnutRotation + M_PI);  
                     }
-                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+                    pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
                     if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
-                        //acutPrintf(_T("\nPlaced wingnut."));
+                        
                     }
                     else {
                         acutPrintf(_T("\nFailed to place wingnut."));
                     }
-                    pWingnutRef->close();  // Decrement reference count
+                    pWingnutRef->close();  
                 }
             }
             currentHeight = panel.height;
@@ -1477,18 +1471,18 @@ void TiePlacer::placeTies() {
                                         wingtieOffset = -wingtieOffset;
                                         wingnutRotation = panel.rotation;
                                         switch (static_cast<int>(round(panel.rotation / M_PI_2))) {
-                                        case 0: // 0 degrees TOP
+                                        case 0: 
                                             wingnutPosition.y += wingtieOffset;
                                             wingnutRotation += M_PI;
                                             break;
-                                        case 1: // 90 degrees LEFT
+                                        case 1: 
                                             wingnutPosition.x += wingtieOffset;
                                             break;
-                                        case 2: // 180 degrees BOTTOM
+                                        case 2: 
                                             wingnutPosition.y -= wingtieOffset;
                                             wingnutRotation += M_PI;
                                             break;
-                                        case 3: // 270 degrees RIGHT
+                                        case 3: 
                                             wingnutPosition.x -= wingtieOffset;
                                             break;
                                         case -1:
@@ -1497,20 +1491,20 @@ void TiePlacer::placeTies() {
                                         pWingnutRef->setPosition(wingnutPosition);
                                         pWingnutRef->setBlockTableRecord(assetIdWingnut);
                                         if (wingnutNum == 1) {
-                                            pWingnutRef->setRotation(wingnutRotation);  // Apply rotation
+                                            pWingnutRef->setRotation(wingnutRotation);  
                                         }
                                         else {
-                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  // Apply rotation
+                                            pWingnutRef->setRotation(wingnutRotation + M_PI);  
                                         }
-                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  // Ensure no scaling
+                                        pWingnutRef->setScaleFactors(AcGeScale3d(globalVarScale));  
 
                                         if (pModelSpace->appendAcDbEntity(pWingnutRef) == Acad::eOk) {
-                                            //acutPrintf(_T("\nPlaced wingnut."));
+                                            
                                         }
                                         else {
                                             acutPrintf(_T("\nFailed to place wingnut."));
                                         }
-                                        pWingnutRef->close();  // Decrement reference count
+                                        pWingnutRef->close();  
 
                                     }
                                 }

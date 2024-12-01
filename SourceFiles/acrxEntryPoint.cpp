@@ -1,9 +1,3 @@
-// Property of Bricsys NV. All rights reserved.
-// This file is part of the BRX SDK, and its use is subject to
-// the terms of the BRX SDK license agreement.
-/////////////////////////////////////////////////////////////////////////
-// acrxEntryPoint.cpp
-
 #include "StdAfx.h"
 #include <aced.h>
 #include <rxmfcapi.h>
@@ -14,24 +8,24 @@
 #include <string>
 #include <thread>
 #include <chrono>
-#include "AssetPlacer/CornerAssetPlacer.h"          // Include the header for the CornerAssetPlacer class
-#include "AssetPlacer/WallAssetPlacer.h"            // Include the header for the WallPlacer class
-#include "AssetPlacer/InsideCorner.h"                 // Include the header for the InsideCorner class
-#include "AssetPlacer/OutsideCorner.h"                 // Include the header for the OutsideCorner class
-#include "Resource.h"                               // Include the header for the resource file
-#include "BrxSpecific/ribbon/AcRibbonCombo.h"       // Include the header for the AcRibbonCombo class
-#include "BrxSpecific/ribbon/AcRibbonTab.h"         // Include the header for the AcRibbonTab class
-#include "BrxSpecific/ribbon/AcRibbonPanel.h"       // Include the header for the AcRibbonPanel class
-#include "BrxSpecific/ribbon/AcRibbonButton.h"      // Include the header for the AcRibbonButton class
-#include "Blocks/BlockLoader.h"                     // Include the header for the BlockLoader class
-#include "WallPanelConnectors/WallPanelConnector.h" // Include the header for the WallPanelConnector class
-#include "WallPanelConnectors/StackedWallPanelConnector.h" // Include the header for the StackedWallPanelConnector class
-#include "WallPanelConnectors/Stacked15PanelConnector.h"   // Include the header for the Stacked15PanelConnector class
-#include "WallPanelConnectors/WalerConnector.h"     // Include the header for the WalerConnector class
+#include "AssetPlacer/CornerAssetPlacer.h"          
+#include "AssetPlacer/WallAssetPlacer.h"            
+#include "AssetPlacer/InsideCorner.h"                 
+#include "AssetPlacer/OutsideCorner.h"                 
+#include "Resource.h"                               
+#include "BrxSpecific/ribbon/AcRibbonCombo.h"       
+#include "BrxSpecific/ribbon/AcRibbonTab.h"         
+#include "BrxSpecific/ribbon/AcRibbonPanel.h"       
+#include "BrxSpecific/ribbon/AcRibbonButton.h"      
+#include "Blocks/BlockLoader.h"                     
+#include "WallPanelConnectors/WallPanelConnector.h" 
+#include "WallPanelConnectors/StackedWallPanelConnector.h" 
+#include "WallPanelConnectors/Stacked15PanelConnector.h"   
+#include "WallPanelConnectors/WalerConnector.h"     
 #include "Props/props.h"
-#include "Tie/TiePlacer.h" 				            // Include the header for the TiePlacer class
-#include "DefineHeight.h"                           // Include the header for the DefineHeight class
-#include "DefineScale.h"                            // Include the header for the DefineScale class
+#include "Tie/TiePlacer.h" 				            
+#include "DefineHeight.h"                           
+#include "DefineScale.h"                            
 #include "SettingsCommands.h"
 #include "Columns/PlaceColumn.h"
 #include "Columns/ExtractColumn.h"
@@ -43,12 +37,12 @@
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Wininet.lib")
 
-// Function to compute the hash of the license file content
+
 std::string hashFileContent(const std::string& content) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
     SHA256(reinterpret_cast<const unsigned char*>(content.c_str()), content.size(), hash);
 
-    // Convert hash to a readable string
+    
     std::string fileHash;
     for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i) {
         char buf[3];
@@ -58,11 +52,11 @@ std::string hashFileContent(const std::string& content) {
     return fileHash;
 }
 
-// Function to verify the license file
+
 bool verifyLicenseFile(const std::string& filePath) {
     const std::string expectedHash = "c26a715d9349ff25fb13ee5100f3c090f382782b24f279f6f43514419d84ddfc";
 
-    // Open and read the license file
+    
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open()) {
         acutPrintf(_T("\nLicense file not found: %s"), filePath.c_str());
@@ -71,10 +65,10 @@ bool verifyLicenseFile(const std::string& filePath) {
 
     std::string fileContents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    // Compute the hash of the file contents
+    
     std::string fileHash = hashFileContent(fileContents);
 
-    // Compare the file hash with the expected hash
+    
     return fileHash == expectedHash;
 }
 
@@ -87,7 +81,7 @@ bool isTimezoneTaiwan() {
         return false;
     }
 
-    // Check if the timezone name is Taiwan's "Taipei Standard Time" (CST)
+    
     std::wstring timezoneName = tzInfo.StandardName;
 
     if (timezoneName == L"Taipei Standard Time") {
@@ -113,26 +107,26 @@ public:
 
     virtual AcRx::AppRetCode On_kInitAppMsg(void* pAppData)
     {
-		//add license file verification here
-        // Get the current working directory
+		
+        
         GetUserNameA(username, &username_len);
 
-        //set a variable as username
+        
         std::string usernameW(username, username + strlen(username));
-        // Construct the full path for the license file
+        
         std::string licenseFilePath = "C:\\Users\\" + usernameW + "\\" + LICENSE_FILE_NAME;
 
-        // Verify the license file using the constructed path
+        
         if (!verifyLicenseFile(licenseFilePath)) {
             acutPrintf(_T("\nLicense verification failed. Exiting application."));
-            return AcRx::kRetError; // Return an error if the verification fails
+            return AcRx::kRetError; 
         }
 
         AcRx::AppRetCode result = AcRxArxApp::On_kInitAppMsg(pAppData);
-        acrxRegisterAppMDIAware(pAppData); // is able to work in MDI context
-        acrxUnlockApplication(pAppData);   // allows to unload the module during session
+        acrxRegisterAppMDIAware(pAppData); 
+        acrxUnlockApplication(pAppData);   
 
-        // Place your initialization code and base info here
+        
         acutPrintf(_T("\nLoading PERICAD plugin..."));
         acutPrintf(_T("\nVersion: 1.0.0"));
         acutPrintf(_T("\n License file verified successfully for PERI TAIWAN."));
@@ -140,8 +134,8 @@ public:
         acutPrintf(_T("\nType 'ListCmds' to see the available commands."));
         acutPrintf(_T("\nFor more information please contact ani@aniruddhapandit.com\n"));
 
-        // Register the commands
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceCorners"), _T("PlaceCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceCorners(); });
+        
+        
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceWalls"), _T("PlaceWalls"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceWalls(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceConnectors"), _T("PlaceConnectors"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceConnectors(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceTies"), _T("PlaceTies"), ACRX_CMD_MODAL, []() { TiePlacer::placeTies(); });
@@ -156,76 +150,76 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceInsideCorners"), _T("PlaceInsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceInsideCorners(); });
 		acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceOutsideCorners"), _T("PlaceOutsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceOutsideCorners(); });
       
-        BlockLoader::loadBlocksFromJson(); // Load blocks from the database
+        BlockLoader::loadBlocksFromJson(); 
 
         return result;
     }
 
     virtual AcRx::AppRetCode On_kUnloadAppMsg(void* pAppData)
     {
-        acedRegCmds->removeGroup(_T("BRXAPP")); // Clean up registered commands
-        SettingsCommands::unloadApp(); // Clean up registered settings commands
+        acedRegCmds->removeGroup(_T("BRXAPP")); 
+        SettingsCommands::unloadApp(); 
         return AcRxArxApp::On_kUnloadAppMsg(pAppData);
     }
 
     virtual AcRx::AppRetCode On_kLoadDwgMsg(void* pAppData)
     {
-        return AcRx::kRetOK; // Return OK if no action is needed
+        return AcRx::kRetOK; 
     }
 
     virtual AcRx::AppRetCode On_kUnloadDwgMsg(void* pAppData)
     {
-        return AcRx::kRetOK; // Return OK if no action is needed
+        return AcRx::kRetOK; 
     }
 
     virtual AcRx::AppRetCode On_kQuitMsg(void* pAppData)
     {
-        return AcRx::kRetOK; // Return OK if no action is needed
+        return AcRx::kRetOK; 
     }
 
-	//PlaceInsideCorners command
+	
     static void BrxPlaceInsideCorners(void)
     {
         acutPrintf(_T("\nRunning PlaceInsideCorners."));
         InsideCorner::placeAssetsAtCorners();
     }
 
-	//PlaceOutsideCorners command
+	
 	static void BrxPlaceOutsideCorners(void)
 	{
 		acutPrintf(_T("\nRunning PlaceOutsideCorners."));
 		OutsideCorner::placeAssetsAtCorners();
 	}
 
-    // PlaceBrackets command
+    
     static void BrxAppPlaceBrackets(void)
 	{
 		acutPrintf(_T("\nRunning PlaceBrackets."));
         PlaceBracket::placeBrackets();
 	}
 
-    // PlaceProps command
+    
     static void BrxAppPlacePushPullProps(void)
     {
         acutPrintf(_T("\nRunning PlaceProps."));
         PlaceProps::placeProps();
     }
 
-    // PlaceCorners command only for testing
+    
     static void BrxAppPlaceCorners(void)
     {
         acutPrintf(_T("\nRunning PlaceCorners."));
         CornerAssetPlacer::placeAssetsAtCorners();
     }
 
-    // PlaceWalls command
+    
     static void BrxAppPlaceWalls(void)
     {
         acutPrintf(_T("\nRunning PlaceWalls."));
         WallPlacer::placeWalls();
     }
 
-     //PlaceConnectors command
+     
     static void BrxAppPlaceConnectors(void)
     {
         acutPrintf(_T("\nRunning PlaceConnectors."));
@@ -236,56 +230,56 @@ public:
         acutPrintf(_T("\nConnectors placed."));
     }
 
-    // PlaceTies command
+    
     static void BrxAppPlaceTies(void)
 	{
 		acutPrintf(_T("\nRunning PlaceTies."));
 		TiePlacer::placeTies();
 	}
 
-     //PlaceColumns command
+     
     static void BrxAppPlaceColumns(void)
 	{
 		acutPrintf(_T("\nRunning PlaceColumns."));
         GetUserNameA(username, &username_len);
 
-        //set a variable as username
+        
         std::string usernameW(username, username + strlen(username));
-        // Construct the full path for the JSON file
+        
 		std::string jsonFilePath = "C:\\Users\\" + usernameW + "\\" + BLOCKS_FILE_NAME;
 		PlaceColumn(jsonFilePath);
 	}
 
-    //ExtractColumn command
+    
     static void BrxAppExtractColumn(void)
 	{
 		acutPrintf(_T("\nRunning ExtractColumn."));
         ExtractColumn();
 	}
 
-    // LoadBlocks command
+    
     static void BrxAppLoadBlocks(void)
     {
         acutPrintf(_T("\n Loading Blocks....."));
         BlockLoader::loadBlocksFromJson();
     }
 
-    // DefineHeight command
+    
     static void BrxAppDefineHeight(void)
     {
         acutPrintf(_T("\nDefining Height..."));
         DefineHeight::defineHeight();
     }
 
-    // DefineScale command NOT TO BE USED
+    
     static void BrxAppDefineScale(void)
     {
         acutPrintf(_T("\nRunning DefineScale."));
-        //DefineScale::testhdf();
+        
         DefineScale::defineScale();
     }
 
-    // ListCMDS command
+    
     static void BrxListCMDS(void)
     {
         acutPrintf(_T("\nAvailable commands:"));
@@ -306,32 +300,32 @@ public:
         acutPrintf(_T("\nPeriSettings: Settings"));
     }
 
-    // Load the custom menu from a CUI file
+    
     void loadCustomMenu()
     {
         wchar_t modulePath[MAX_PATH];
         GetModuleFileName(NULL, modulePath, MAX_PATH);
 
-        // Remove the file name from the path to get the directory
+        
         PathRemoveFileSpec(modulePath);
 
-        // Append the CUI file name to the directory path
+        
         std::wstring cuiFilePath = std::wstring(modulePath) + L"\\CustomMenu.cui";
 
-        //acutPrintf(L"Loading CUI file from: %s\n", cuiFilePath.c_str());  // Debug output
+        
 
         if (acedCommandS(RTSTR, L"_.CUILOAD", RTSTR, cuiFilePath.c_str(), RTNONE) != RTNORM) {
-            //acutPrintf(L"Failed to load CUI file from: %s\n", cuiFilePath.c_str());  // Error message
+            
         }
         else {
-            //acutPrintf(L"Successfully loaded CUI file from: %s\n", cuiFilePath.c_str());  // Success message
+            
         }
     }
 };
 
 IMPLEMENT_ARX_ENTRYPOINT(CBrxApp)
 
-// Define the commands
+
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceCorners, PlaceCorners, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceWalls, PlaceWalls, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, LoadBlocks, LoadBlocks, ACRX_CMD_MODAL, NULL)

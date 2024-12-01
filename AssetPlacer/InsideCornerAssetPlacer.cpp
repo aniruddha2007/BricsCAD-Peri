@@ -1,9 +1,9 @@
-//
-//
-//
-//
-//////////////////////////////////////////////////////////////////////////////
-// InsideCornerAssetPlacer.cpp
+
+
+
+
+
+
 #include "StdAfx.h"
 #include "InsideCorner.h"
 #include "CornerAssetPlacer.h"
@@ -30,46 +30,46 @@
 #include "DefineScale.h" 
 #include "aced.h"
 
-// Static member definition
+
 std::map<AcGePoint3d, std::vector<AcGePoint3d>, InsideCorner::Point3dComparator> InsideCorner::wallMap;
 
-const int BATCH_SIZE = 30; // Process 30 entities at a time
+const int BATCH_SIZE = 30; 
 
-const double TOLERANCE = 0.19; // Tolerance for angle comparison
+const double TOLERANCE = 0.19; 
 
-// Function to handle user polyline selection, process corners, and return distance
+
 struct PolylineSelectionResult {
     std::vector<AcGePoint3d> corners;
     double distance;
 };
 
-// Function to handle user polyline selection, process corners, and return distance
+
 PolylineSelectionResult handleOutsidePolylineSelectionForInside() {
-    // Declare variables for storing the selection
+    
     ads_name selectedEntityA;
     ads_point ptA;
-    ads_point firstPoint = { 0.0, 0.0, 0.0 };  // Default to (0, 0, 0) if not selected
-    ads_point SecondPoint = { 0.0, 0.0, 0.0 }; // Default to (0, 0, 0) if not selected
+    ads_point firstPoint = { 0.0, 0.0, 0.0 };  
+    ads_point SecondPoint = { 0.0, 0.0, 0.0 }; 
     std::vector<AcGePoint3d> cornersA;
-    double distance = -1.0;  // Initialize distance with an invalid value
+    double distance = -1.0;  
 
-    // Prompt the user to select the first polyline
+    
     if (acedEntSel(L"\nSelect the first polyline: ", selectedEntityA, ptA) != RTNORM) {
         acutPrintf(L"\nError in selecting the first polyline.");
         return PolylineSelectionResult{ {}, distance };
     }
 
-    // Prompt the user to select the first point, but allow skipping by pressing Enter
+    
     if (acedGetPoint(NULL, L"\nSelect the first point (or press Enter to skip): ", firstPoint) != RTNORM) {
         acutPrintf(L"\nFirst point selection skipped.\n");
     }
 
-    // Prompt the user to select the second point, but allow skipping by pressing Enter
+    
     if (acedGetPoint(NULL, L"\nSelect the second point (or press Enter to skip): ", SecondPoint) != RTNORM) {
         acutPrintf(L"\nSecond point selection skipped.\n");
     }
 
-    // Open the selected entity for read
+    
     AcDbObjectId objIdA;
     acdbGetObjectId(objIdA, selectedEntityA);
 
@@ -79,25 +79,25 @@ PolylineSelectionResult handleOutsidePolylineSelectionForInside() {
         return PolylineSelectionResult{ {}, distance };
     }
 
-    // Check if the selected entity is a polyline
+    
     if (pEntityA->isKindOf(AcDbPolyline::desc())) {
         AcDbPolyline* pPolylineA = AcDbPolyline::cast(pEntityA);
 
         if (pPolylineA) {
             processPolyline(pPolylineA, cornersA, 45.0, TOLERANCE);
 
-            // If the points were selected, calculate the distance
+            
             if (firstPoint != ads_point{ 0.0, 0.0, 0.0 } && SecondPoint != ads_point{ 0.0, 0.0, 0.0 }) {
-                // Calculate DeltaX and DeltaY
+                
                 double deltaX = firstPoint[X] - SecondPoint[X];
                 double deltaY = SecondPoint[Y] - firstPoint[Y];
 
-                // Define a small tolerance for comparison
+                
                 const double tolerance = 1.0;
 
-                // Check if DeltaX and DeltaY are equal within the tolerance
+                
                 if (std::fabs(deltaX - deltaY) <= tolerance) {
-                    //acutPrintf(L"\nDeltaX and DeltaY are considered equal within the tolerance.\n");
+                    
                     distance = snapToPredefinedValues(deltaX);
                 }
                 else {
@@ -110,25 +110,25 @@ PolylineSelectionResult handleOutsidePolylineSelectionForInside() {
             }
         }
 
-        // Output detected corners for debugging or visualization
-        //acutPrintf(_T("Detected corners:\n"));
-        //for (const auto& corner : cornersA) {
-        //    acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
-        //}
+        
+        
+        
+        
+        
     }
     else {
         acutPrintf(L"\nThe selected entity is not a polyline.");
         return PolylineSelectionResult{ {}, distance };
     }
 
-    // Close the entity
+    
     pEntityA->close();
 
-    // Return the corners and the distance
+    
     return PolylineSelectionResult{ cornersA, distance };
 }
 
-// PLACE ASSETS AT INSIDE CORNERS
+
 void InsideCorner::placeInsideCornerPostAndPanels(
     const AcGePoint3d& corner,
     double rotation,
@@ -176,7 +176,7 @@ void InsideCorner::placeInsideCornerPostAndPanels(
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                //acutPrintf(_T("\nCorner post placed successfully."));
+                
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post."));
@@ -226,7 +226,7 @@ void InsideCorner::placeInsideCornerPostAndPanels(
             pPanelARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelARef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel A placed successfully."));
+                
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel A."));
@@ -240,14 +240,14 @@ void InsideCorner::placeInsideCornerPostAndPanels(
             pPanelBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pPanelBRef) == Acad::eOk) {
-                //acutPrintf(_T("\nPanel B placed successfully."));
+                
             }
             else {
                 acutPrintf(_T("\nFailed to place Panel B."));
             }
             pPanelBRef->close();
 
-            // Place compensators only if distance is 150
+            
             if (distance == 150) {
                 AcGePoint3d compensatorPositionA = cornerWithHeight + compensatorOffsetA;
                 AcGePoint3d compensatorPositionB = cornerWithHeight + compensatorOffsetB;
@@ -259,7 +259,7 @@ void InsideCorner::placeInsideCornerPostAndPanels(
                 pCompensatorARef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorARef) == Acad::eOk) {
-                    //acutPrintf(_T("\nCompensator A placed successfully."));
+                    
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator A."));
@@ -273,7 +273,7 @@ void InsideCorner::placeInsideCornerPostAndPanels(
                 pCompensatorBRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorBRef) == Acad::eOk) {
-                    //acutPrintf(_T("\nCompensator B placed successfully."));
+                    
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator B."));
@@ -289,7 +289,7 @@ void InsideCorner::placeInsideCornerPostAndPanels(
     pBlockTable->close();
 }
 
-// PLACE ASSETS AT OUTSIDE CORNERS
+
 void InsideCorner::placeOutsideCornerPostAndPanels(
     const AcGePoint3d& corner,
     double rotation,
@@ -305,7 +305,7 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
     AcDbObjectId outsideCompensatorIdB,
     double distance)
 {
-    //acutPrintf(_T("\nStarting placeOutsideCornerPostAndPanels function."));
+    
 
     AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
     if (!pDb) {
@@ -341,8 +341,8 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
             AcGePoint3d cornerWithHeight = corner;
             cornerWithHeight.z += currentHeight;
 
-            // Offsets for corner post based on rotation
-            double offset = 100.0;  // This is the corner width
+            
+            double offset = 100.0;  
             int rotationDegrees = static_cast<int>(rotation * 180 / M_PI);
             switch (rotationDegrees) {
             case 90:
@@ -373,17 +373,17 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
             pCornerPostRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
             if (pModelSpace->appendAcDbEntity(pCornerPostRef) == Acad::eOk) {
-                //acutPrintf(_T("\nCorner post placed successfully at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
+                
             }
             else {
                 acutPrintf(_T("\nFailed to place corner post at (%f, %f, %f)"), cornerWithHeight.x, cornerWithHeight.y, cornerWithHeight.z);
             }
             pCornerPostRef->close();
 
-            // Correctly declare and initialize outsidePanelIds array
+            
             AcDbObjectId outsidePanelIds[] = { outsidePanelIdA, outsidePanelIdB, outsidePanelIdC, outsidePanelIdD, outsidePanelIdE, outsidePanelIdF };
 
-            // Check if there are any valid panels to place
+            
             bool hasValidPanels = false;
             for (int i = 0; i < 6; ++i) {
                 if (!outsidePanelIds[i].isNull()) {
@@ -408,63 +408,63 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
             };
             double compensatorIdA = config.compensatorIdA ? config.compensatorIdA->width : 0;
             double compensatorIdB = config.compensatorIdB ? config.compensatorIdB->width : 0;
-            double cornerWidth = 100.0;  // Width of the corner post
+            double cornerWidth = 100.0;  
 
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
                 panelOffsets[0] = AcGeVector3d(cornerWidth + panelWidths[0], -(cornerWidth), 0.0);
                 panelOffsets[1] = AcGeVector3d(cornerWidth, -(cornerWidth), 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[2] = AcGeVector3d((panelOffsets[0].x + panelWidths[2]), panelOffsets[0].y, 0.0);
                 panelOffsets[3] = AcGeVector3d(panelOffsets[1].x, ((panelOffsets[1].y) - panelWidths[1]), 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[4] = AcGeVector3d(panelOffsets[2].x + panelWidths[4], panelOffsets[2].y, 0.0);
                 panelOffsets[5] = AcGeVector3d(panelOffsets[3].x, ((panelOffsets[3].y) - panelWidths[3]), 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 compensatorOffsetA = AcGeVector3d(panelOffsets[4].x + compensatorIdA, panelOffsets[4].y, 0.0);
                 compensatorOffsetB = AcGeVector3d(panelOffsets[5].x, ((panelOffsets[5].y - panelWidths[5])), 0.0);
             }
 
             else if (areAnglesEqual(rotation, M_PI_2, TOLERANCE)) {
-                // Adjust for 90-degree rotation
+                
                 panelOffsets[0] = AcGeVector3d(cornerWidth, cornerWidth + panelWidths[0], 0.0);
                 panelOffsets[1] = AcGeVector3d(cornerWidth, cornerWidth, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[2] = AcGeVector3d((panelOffsets[0].x), (panelWidths[2] + panelOffsets[0].y), 0.0);
                 panelOffsets[3] = AcGeVector3d((panelOffsets[1].x + panelWidths[1]), panelOffsets[1].y, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[4] = AcGeVector3d((panelOffsets[2].x), (panelWidths[4] + panelOffsets[2].y), 0.0);
                 panelOffsets[5] = AcGeVector3d((panelOffsets[3].x + panelWidths[3]), panelOffsets[3].y, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 compensatorOffsetA = AcGeVector3d(panelOffsets[4].x, (compensatorIdA + panelOffsets[4].y), 0.0);
                 compensatorOffsetB = AcGeVector3d(panelOffsets[5].x + panelWidths[5], panelOffsets[5].y, 0.0);
             }
 
             else if (areAnglesEqual(rotation, M_PI, TOLERANCE)) {
-                // Adjust for 180-degree rotation
+                
                 panelOffsets[0] = AcGeVector3d(-(cornerWidth + panelWidths[0]), cornerWidth, 0.0);
                 panelOffsets[1] = AcGeVector3d(-cornerWidth, cornerWidth, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[2] = AcGeVector3d((panelOffsets[0].x - panelWidths[2]), panelOffsets[0].y, 0.0);
                 panelOffsets[3] = AcGeVector3d(panelOffsets[1].x, (panelOffsets[1].y + panelWidths[1]), 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[4] = AcGeVector3d((panelOffsets[2].x - panelWidths[4]), panelOffsets[2].y, 0.0);
                 panelOffsets[5] = AcGeVector3d(panelOffsets[3].x, (panelOffsets[3].y + panelWidths[3]), 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 compensatorOffsetA = AcGeVector3d((panelOffsets[4].x - compensatorIdA), panelOffsets[4].y, 0.0);
                 compensatorOffsetB = AcGeVector3d(panelOffsets[5].x, (panelOffsets[5].y + panelWidths[5]), 0.0);
             }
 
             else if (areAnglesEqual(rotation, M_3PI_2, TOLERANCE)) {
-                // Adjust for 270-degree rotation
+                
                 panelOffsets[0] = AcGeVector3d(-cornerWidth, -(cornerWidth + panelWidths[0]), 0.0);
                 panelOffsets[1] = AcGeVector3d(-cornerWidth, -cornerWidth, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[2] = AcGeVector3d(panelOffsets[0].x, (panelOffsets[0].y - panelWidths[2]), 0.0);
                 panelOffsets[3] = AcGeVector3d((panelOffsets[1].x - panelWidths[1]), panelOffsets[1].y, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 panelOffsets[4] = AcGeVector3d(panelOffsets[2].x, (panelOffsets[2].y - panelWidths[4]), 0.0);
                 panelOffsets[5] = AcGeVector3d(panelOffsets[3].x - panelWidths[3], panelOffsets[3].y, 0.0);
-                /////////////////////////////////////////////////////////////////////////////////////
+                
                 compensatorOffsetA = AcGeVector3d(panelOffsets[4].x, (panelOffsets[4].y - compensatorIdA), 0.0);
                 compensatorOffsetB = AcGeVector3d((panelOffsets[5].x - panelWidths[5]), panelOffsets[5].y, 0.0);
             }
@@ -480,13 +480,13 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
                     pPanelRef->setPosition(panelPosition);
                     pPanelRef->setBlockTableRecord(outsidePanelIds[i]);
 
-                    // Add rotation to outside panels
+                    
                     double panelRotation = (i % 2 == 0) ? rotation : rotation + M_PI_2;
                     pPanelRef->setRotation(panelRotation + M_PI);
                     pPanelRef->setScaleFactors(AcGeScale3d(globalVarScale));
 
                     if (pModelSpace->appendAcDbEntity(pPanelRef) == Acad::eOk) {
-                        //acutPrintf(_T("\nPanel %d placed successfully at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
+                        
                     }
                     else {
                         acutPrintf(_T("\nFailed to place Panel %d at (%f, %f, %f)"), i, panelPosition.x, panelPosition.y, panelPosition.z);
@@ -494,12 +494,12 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
                     pPanelRef->close();
                 }
                 else {
-                    //acutPrintf(_T("\nOutside Panel ID %d is a dummy or null panel, skipping."), i);
+                    
                 }
             }
 
             if (distance != 150) {
-                // Place compensators at the defined positions
+                
                 AcGePoint3d compensatorPositionA = cornerWithHeight + compensatorOffsetA;
                 AcGePoint3d compensatorPositionB = cornerWithHeight + compensatorOffsetB;
 
@@ -510,7 +510,7 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
                 pCompensatorRefA->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorRefA) == Acad::eOk) {
-                    //acutPrintf(_T("\nCompensator A placed successfully at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
+                    
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator A at (%f, %f, %f)"), compensatorPositionA.x, compensatorPositionA.y, compensatorPositionA.z);
@@ -524,14 +524,14 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
                 pCompensatorRefB->setScaleFactors(AcGeScale3d(globalVarScale));
 
                 if (pModelSpace->appendAcDbEntity(pCompensatorRefB) == Acad::eOk) {
-                    //acutPrintf(_T("\nCompensator B placed successfully at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
+                    
                 }
                 else {
                     acutPrintf(_T("\nFailed to place Compensator B at (%f, %f, %f)"), compensatorPositionB.x, compensatorPositionB.y, compensatorPositionB.z);
                 }
                 pCompensatorRefB->close();
 
-                //acutPrintf(_T("\nFinished placing outside corner post and compensators."));
+                
             }
             else {
                 acutPrintf(_T("\nDistance is 150, skipping compensator placement."));
@@ -539,19 +539,19 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
 
 
             currentHeight += panelHeights[panelNum];
-            //acutPrintf(_T("\nCompleted placement for height %d. Moving to the next height."), currentHeight);
+            
         }
 
-        //acutPrintf(_T("\nFinished placing outside corner post, panels, and compensators."));
+        
 
         pModelSpace->close();
         pBlockTable->close();
     }
 }
 
-// Function to place the corner post and panels for an inside corner
+
 void InsideCorner::placeAssetsAtCorners() {
-    //Get Corners
+    
     PolylineSelectionResult result = handleOutsidePolylineSelectionForInside();
 
     if (result.corners.empty()) {
@@ -567,13 +567,13 @@ void InsideCorner::placeAssetsAtCorners() {
     double Insidedistance = 200;
     ACHAR isDistance150[256];
 
-    // Get user to select if the distance is 200 or 150, if 150 then user types N else default is 200
+    
     if (acedGetString(Adesk::kFalse, _T("\nInside Corner Distance is 200[Y/N] Default: Y "), isDistance150) != RTNORM) {
         acutPrintf(_T("\nOperation canceled."));
         return;
     }
 
-    // Check if the user typed "N" (for 150 distance)
+    
     if (wcscmp(isDistance150, _T("N")) == 0 || wcscmp(isDistance150, _T("n")) == 0) {
         Insidedistance = 150;
     }
@@ -581,7 +581,7 @@ void InsideCorner::placeAssetsAtCorners() {
         Insidedistance = 200;
     }
 
-    //get Panel Configuration
+    
     PanelDimensions panelDims;
 
     PanelConfig config = CornerAssetPlacer::getPanelConfig(result.distance, panelDims);
@@ -589,16 +589,16 @@ void InsideCorner::placeAssetsAtCorners() {
 
     if (!config.panelIdA || !config.panelIdB) {
         acutPrintf(_T("Panel configuration not found for Inside Corners.\n"));
-        //return;
+        
     }
 
-    //Load Panels, corner post and compensators
+    
     AcDbObjectId cornerPostId = CornerAssetPlacer::loadAsset(L"128286X");
     if (cornerPostId == AcDbObjectId::kNull) {
         acutPrintf(_T("Failed to load corner post asset.\n"));
         return;
     }
-    // Convert Panel pointers to AcDbObjectId using loadAsset
+    
     AcDbObjectId panelIdA = CornerAssetPlacer::loadAsset(config.panelIdA->blockName.c_str());
     AcDbObjectId panelIdB = CornerAssetPlacer::loadAsset(config.panelIdB->blockName.c_str());
 
@@ -607,24 +607,24 @@ void InsideCorner::placeAssetsAtCorners() {
         return;
     }
 
-    // Load outside panels and compensators
+    
     AcDbObjectId outsidePanelIds[6];
     for (int i = 0; i < 6; ++i) {
-        if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  // Skip dummy panels
+        if (config.outsidePanelIds[i] && config.outsidePanelIds[i]->width > 0) {  
             outsidePanelIds[i] = CornerAssetPlacer::loadAsset(config.outsidePanelIds[i]->blockName.c_str());
             if (outsidePanelIds[i] == AcDbObjectId::kNull) {
                 acutPrintf(_T("\nFailed to load outside panel asset %d."), i);
             }
         }
         else {
-            outsidePanelIds[i] = AcDbObjectId::kNull;  // Assign null for dummy panels
+            outsidePanelIds[i] = AcDbObjectId::kNull;  
         }
     }
 
     AcDbObjectId compensatorIdA = CornerAssetPlacer::loadAsset(config.compensatorIdA ? config.compensatorIdA->blockName.c_str() : L"");
     AcDbObjectId compensatorIdB = CornerAssetPlacer::loadAsset(config.compensatorIdB ? config.compensatorIdB->blockName.c_str() : L"");
 
-    //do concave/ convex check
+    
     int loopIndex = 0;
     int loopIndexLastPanel = 0;
     int closeLoopCounter = -1;
@@ -656,9 +656,9 @@ void InsideCorner::placeAssetsAtCorners() {
         rotation = snapToExactAngle(rotation, TOLERANCE);
 
         adjustRotationForCorner(rotation, result.corners, cornerNum);
-        //place assets using placeInsideCornerPostAndPanels
+        
 
-        // **Special Case**: Determine if the corner is convex or concave
+        
         AcGeVector3d prevDirection = result.corners[cornerNum] - result.corners[cornerNum > 0 ? cornerNum - 1 : result.corners.size() - 1];
         AcGeVector3d nextDirection = result.corners[(cornerNum + 1) % result.corners.size()] - result.corners[cornerNum];
         double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
