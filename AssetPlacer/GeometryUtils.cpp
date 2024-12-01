@@ -79,8 +79,8 @@ void adjustStartAndEndPoints(AcGePoint3d& start, AcGePoint3d& end, double tolera
     end.x = std::round(end.x / tolerance) * tolerance;
     end.y = std::round(end.y / tolerance) * tolerance;
 
-    // Debug output to confirm snapping
-    acutPrintf(L"\nSnapped Start: %.2f, %.2f, Snapped End: %.2f, %.2f", start.x, start.y, end.x, end.y);
+    //// Debug output to confirm snapping
+    //acutPrintf(L"\nSnapped Start: %.2f, %.2f, Snapped End: %.2f, %.2f", start.x, start.y, end.x, end.y);
 }
 
 // Normalize an angle to the range [0, 2*PI]
@@ -108,7 +108,7 @@ double snapToPredefinedValues(double distance) {
             return std::abs(a - distance) < std::abs(b - distance);
         });
 	//print the distance we are snapping to
-	acutPrintf(_T("\nDistance snapped to: %f\n"), closest);
+	//acutPrintf(_T("\nDistance snapped to: %f\n"), closest);
 
     return closest;
 }
@@ -385,7 +385,7 @@ double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
             double distance = sqrt(deltaX * deltaX + deltaY * deltaY);
             double closestValue = predeterminedValues[0];
             double minDifference = fabs(distance - closestValue);
-            acutPrintf(_T("\nDeltaX: %f, DeltaY: %f"), deltaX, deltaY);
+            //acutPrintf(_T("\nDeltaX: %f, DeltaY: %f"), deltaX, deltaY);
             for (double value : predeterminedValues) {
                 double difference = fabs(distance - value);
                 if (difference < minDifference) {
@@ -398,7 +398,7 @@ double getPolylineDistance(AcDbPolyline* pPolyline1, AcDbPolyline* pPolyline2) {
     }
     //print deltaX and deltaY
 	
-    acutPrintf(_T("\nClosest matching distance: %f"), totalDistance);
+    //acutPrintf(_T("\nClosest matching distance: %f"), totalDistance);
 
     return totalDistance;
 }

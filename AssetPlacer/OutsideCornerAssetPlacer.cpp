@@ -93,20 +93,17 @@ PolylineSelectionResult handleOutsidePolylineSelectionForOutside() {
                 distance = snapToPredefinedValues(deltaX);
             }
             else {
-                //acutPrintf(L"\nDeltaX: %lf\n", deltaX);
-                //acutPrintf(L"\nDeltaY: %lf\n", deltaY);
                 distance = snapToPredefinedValues(std::sqrt(deltaX * deltaX + deltaY * deltaY));
                 //acutPrintf(L"\nDistance between points A and B: %lf\n", distance);
             }
         }
 
         // Output detected corners for debugging or visualization
-        acutPrintf(_T("Detected corners:\n"));
-        for (const auto& corner : cornersA) {
-            //acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
-        }
-		//output distance
-		//acutPrintf(_T("Distance: %.2f\n"), distance);
+        //acutPrintf(_T("Detected corners:\n"));
+        //for (const auto& corner : cornersA) {
+        //    //acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
+        //}
+
     }
     else {
         acutPrintf(L"\nThe selected entity is not a polyline.");

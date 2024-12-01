@@ -100,28 +100,21 @@ PolylineSelectionResult handleOutsidePolylineSelectionForInside() {
                     //acutPrintf(L"\nDeltaX and DeltaY are considered equal within the tolerance.\n");
                     distance = snapToPredefinedValues(deltaX);
                 }
-				//else if (firstPoint == ads_point{ 0.0,0.0,0.0 } && SecondPoint == ads_point{ 0.0,0.0,0.0 }) {
-				//	acutPrintf(L"\nFirst point was not selected. Skipping distance calculation.\n");
-				//	distance = 200;
-				//}
                 else {
-                    //acutPrintf(L"\nDeltaX: %lf\n", deltaX);
-                    //acutPrintf(L"\nDeltaY: %lf\n", deltaY);
                     distance = snapToPredefinedValues(std::sqrt(deltaX * deltaX + deltaY * deltaY));
-                    //acutPrintf(L"\nDistance between points A and B: %lf\n", distance);
                 }
             }
             else {
-                acutPrintf(L"\nPoints were not selected. Skipping distance calculation.\n");
+                acutPrintf(L"\nPoints were not selected. Skipping distance calculation, Defaulting for distance 200.\n");
                 distance = 200;
             }
         }
 
         // Output detected corners for debugging or visualization
-        acutPrintf(_T("Detected corners:\n"));
-        for (const auto& corner : cornersA) {
-            acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
-        }
+        //acutPrintf(_T("Detected corners:\n"));
+        //for (const auto& corner : cornersA) {
+        //    acutPrintf(_T("Corner at: %.2f, %.2f\n"), corner.x, corner.y);
+        //}
     }
     else {
         acutPrintf(L"\nThe selected entity is not a polyline.");
@@ -131,14 +124,9 @@ PolylineSelectionResult handleOutsidePolylineSelectionForInside() {
     // Close the entity
     pEntityA->close();
 
-    //print cornersA and distance
-	//acutPrintf(_T("CornersA: %d\n"), cornersA.size());
-	//acutPrintf(_T("Distance: %f\n"), distance);
-
     // Return the corners and the distance
     return PolylineSelectionResult{ cornersA, distance };
 }
-
 
 // PLACE ASSETS AT INSIDE CORNERS
 void InsideCorner::placeInsideCornerPostAndPanels(
@@ -347,10 +335,7 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
 
     for (int panelNum = 0; panelNum < 2; panelNum++) {
         int numPanelsHeight = static_cast<int>((wallHeight - currentHeight) / panelHeights[panelNum]);
-        //acutPrintf(_T("\nPlacing panels of height %d. Number of panels: %d"), panelHeights[panelNum], numPanelsHeight);
-
         for (int x = 0; x < numPanelsHeight; x++) {
-            //acutPrintf(_T("\nPlacing corner post at height %d"), currentHeight);
 
             AcDbBlockReference* pCornerPostRef = new AcDbBlockReference();
             AcGePoint3d cornerWithHeight = corner;
@@ -425,10 +410,6 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
             double compensatorIdB = config.compensatorIdB ? config.compensatorIdB->width : 0;
             double cornerWidth = 100.0;  // Width of the corner post
 
-            //acutPrintf(_T("\nCalculated panel widths: %f, %f, %f, %f, %f, %f"),
-                //panelWidths[0], panelWidths[1], panelWidths[2], panelWidths[3], panelWidths[4], panelWidths[5]);
-
-            // Define panel offsets based on rotation and number of panels
             if (areAnglesEqual(rotation, 0, TOLERANCE)) {
                 panelOffsets[0] = AcGeVector3d(cornerWidth + panelWidths[0], -(cornerWidth), 0.0);
                 panelOffsets[1] = AcGeVector3d(cornerWidth, -(cornerWidth), 0.0);
@@ -492,13 +473,6 @@ void InsideCorner::placeOutsideCornerPostAndPanels(
                 continue;
             }
 
-            //acutPrintf(_T("\nCalculated panel offsets:"));
-            for (int i = 0; i < 6; ++i) {
-                //acutPrintf(_T("\nPanel %d offset: (%f, %f, %f)"), i, panelOffsets[i].x, panelOffsets[i].y, panelOffsets[i].z);
-            }
-
-            // Place panels using the calculated offsets
-            //AcDbObjectId outsidePanelIds[] = { outsidePanelIdA, outsidePanelIdB, outsidePanelIdC, outsidePanelIdD, outsidePanelIdE, outsidePanelIdF };
             for (int i = 0; i < 6; i++) {
                 if (!outsidePanelIds[i].isNull()) {
                     AcGePoint3d panelPosition = cornerWithHeight + panelOffsets[i];
@@ -609,19 +583,9 @@ void InsideCorner::placeAssetsAtCorners() {
 
     //get Panel Configuration
     PanelDimensions panelDims;
-    //print result.distance
-	//acutPrintf(_T("\nDistance between polylines: %f"), result.distance);
+
     PanelConfig config = CornerAssetPlacer::getPanelConfig(result.distance, panelDims);
-	////Print Panel Configuration
-	//acutPrintf(_T("\nPanel Configuration:"));
-	//acutPrintf(_T("\nPanel A: %s"), config.panelIdA ? config.panelIdA->blockName.c_str() : L"");
-	//acutPrintf(_T("\nPanel B: %s"), config.panelIdB ? config.panelIdB->blockName.c_str() : L"");
-	//acutPrintf(_T("\nCompensator A: %s"), config.compensatorIdA ? config.compensatorIdA->blockName.c_str() : L"");
-	//acutPrintf(_T("\nCompensator B: %s"), config.compensatorIdB ? config.compensatorIdB->blockName.c_str() : L"");
-	//acutPrintf(_T("\nOutside Panels:"));
-	//for (int i = 0; i < 6; ++i) {
-	//	acutPrintf(_T("\nPanel %d: %s"), i, config.outsidePanelIds[i] ? config.outsidePanelIds[i]->blockName.c_str() : L"");
-	//}
+
 
     if (!config.panelIdA || !config.panelIdB) {
         acutPrintf(_T("Panel configuration not found for Inside Corners.\n"));
@@ -667,8 +631,6 @@ void InsideCorner::placeAssetsAtCorners() {
     int outerLoopIndexValue = 0;
 
     bool isClockwise = isPolylineClockwise(result.corners);
-	//print if the polyline is clockwise or not
-	//acutPrintf(_T("\nPolyline is %s"), isClockwise ? _T("clockwise") : _T("counter-clockwise"));
 
     for (size_t cornerNum = 0; cornerNum < result.corners.size(); ++cornerNum) {
         double rotation = 0.0;
@@ -690,11 +652,8 @@ void InsideCorner::placeAssetsAtCorners() {
 
         direction = (end - start).normal();
         rotation = atan2(direction.y, direction.x);
-        //acutPrintf(_T("\nCorner %d: %f, %f"), cornerNum, corners[cornerNum].x, corners[cornerNum].y);
         rotation = normalizeAngle(rotation);
-        //acutPrintf(_T("\nRotation: %f"), rotation);
         rotation = snapToExactAngle(rotation, TOLERANCE);
-        //acutPrintf(_T("\nRotation: %f"), rotation);
 
         adjustRotationForCorner(rotation, result.corners, cornerNum);
         //place assets using placeInsideCornerPostAndPanels
@@ -705,33 +664,19 @@ void InsideCorner::placeAssetsAtCorners() {
         double crossProductZ = prevDirection.x * nextDirection.y - prevDirection.y * nextDirection.x;
 
         if (isClockwise) {
-            // Convex corner
-            //acutPrintf(_T("\nConvex corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
-            // Add logic specific to convex corners here if needed
             if (crossProductZ > 0) {
-				//acutPrintf(_T("\n Case 1A"));
-                //placeInsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, Insidedistance, compensatorIdA, compensatorIdB);
-                placeOutsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, result.distance);
+				placeOutsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, result.distance);
             }
             else {
-				//acutPrintf(_T("\n Case 1B"));
                 placeInsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, Insidedistance, compensatorIdA, compensatorIdB);
             }
         }
         else {
-            // Concave corner
-            //acutPrintf(_T("\nConcave corner detected at %f, %f"), corners[cornerNum].x, corners[cornerNum].y);
-            // Add logic specific to concave corners here if needed
             if (isInside) {
-				//acutPrintf(_T("\n Case 2A"));
                 placeOutsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, result.distance);
-                //placeInsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, Insidedistance, compensatorIdA, compensatorIdB);
-            }
+                }
             else {
-				//acutPrintf(_T("\n Case 2B"));
 				placeInsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, panelIdA, panelIdB, Insidedistance, compensatorIdA, compensatorIdB);
-                //placeOutsideCornerPostAndPanels(result.corners[cornerNum], rotation, cornerPostId, config, outsidePanelIds[0], outsidePanelIds[1], outsidePanelIds[2], outsidePanelIds[3], outsidePanelIds[4], outsidePanelIds[5], compensatorIdA, compensatorIdB, result.distance);
-
             }
         }
         

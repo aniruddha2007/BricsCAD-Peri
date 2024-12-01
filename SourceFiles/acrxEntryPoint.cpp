@@ -35,7 +35,6 @@
 #include "SettingsCommands.h"
 #include "Columns/PlaceColumn.h"
 #include "Columns/ExtractColumn.h"
-#include "AssetPlacer/SpecialCaseCorners.h"
 #include "Scafold/PlaceBracket-PP.h"
 #include <openssl/sha.h>
 #include <wininet.h>
@@ -152,9 +151,7 @@ public:
         acedRegCmds->addCommand(_T("BRXAPP"), _T("DefineScale"), _T("DefineScale"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppDefineScale(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("LoadBlocks"), _T("LoadBlocks"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppLoadBlocks(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceBrackets"), _T("PlaceBrackets"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlaceBrackets(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("SpecialCaseCorners"), _T("SpecialCaseCorners"), ACRX_CMD_MODAL, []() { SpecialCaseCorners::handleSpecialCases();  });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("ListCMDS"), _T("ListCMDS"), ACRX_CMD_MODAL, []() { CBrxApp::BrxListCMDS(); });
-        //acedRegCmds->addCommand(_T("BRXAPP"), _T("PeriSettings"), _T("PeriSettings"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppSettings(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceProps"), _T("PlaceProps"), ACRX_CMD_MODAL, []() { CBrxApp::BrxAppPlacePushPullProps(); });
         acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceInsideCorners"), _T("PlaceInsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceInsideCorners(); });
 		acedRegCmds->addCommand(_T("BRXAPP"), _T("PlaceOutsideCorners"), _T("PlaceOutsideCorners"), ACRX_CMD_MODAL, []() { CBrxApp::BrxPlaceOutsideCorners(); });
@@ -228,21 +225,6 @@ public:
         WallPlacer::placeWalls();
     }
 
-    //// Settings command need to be defined
-    //static void BrxAppSettings(void)
-    //{
-    //    acutPrintf(_T("\nRunning BrxAppSettings."));
-    //    SettingsCommands::openSettings();
-    //    // Add settings dialog here
-    //}
-
- //   // handle special cases need to delete
- //   static void BrxAppSpecialCaseCorners(void)
-	//{
-	//	acutPrintf(_T("\nRunning SpecialCaseCorners."));
-	//	SpecialCaseCorners::handleSpecialCases();
-	//}
-
      //PlaceConnectors command
     static void BrxAppPlaceConnectors(void)
     {
@@ -307,7 +289,7 @@ public:
     static void BrxListCMDS(void)
     {
         acutPrintf(_T("\nAvailable commands:"));
-        //acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners., WILL BE REMOVED FOR FINAL VERSION"));
+        acutPrintf(_T("\nPlaceCorners: To only place Corner Assets at the corners., WILL BE REMOVED FOR FINAL VERSION"));
 		acutPrintf(_T("\nPlaceInsideCorners: To only place Inside Corner Assets at the corners."));
 		acutPrintf(_T("\nPlaceOutsideCorners: To only place Outside Corner Assets at the corners."));
         acutPrintf(_T("\nPlaceWalls: To only place Walls."));
@@ -360,9 +342,3 @@ ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, ExtractColumn, ExtractColumn, ACRX_C
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, DefineHeight, DefineHeight, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, DefineScale, DefineScale, ACRX_CMD_MODAL, NULL)
 ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceBrackets, PlaceBrackets, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceProps, PlaceProps, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceInsideCorners, PlaceInsideCorners, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PlaceOutsideCorners, PlaceOutsideCorners, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, SpecialCaseCorners, SpecialCaseCorners, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, ListCMDS, ListCMDS, ACRX_CMD_MODAL, NULL)
-//ACED_ARXCOMMAND_ENTRY_AUTO(CBrxApp, BrxApp, PeriSettings, PeriSettings, ACRX_CMD_MODAL, NULL)

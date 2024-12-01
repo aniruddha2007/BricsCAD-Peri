@@ -343,97 +343,6 @@ AcDbObjectId PlaceProps::loadAsset(const wchar_t* blockName) {
     return assetId;
 }
 
-// Function to place an asset
-//void PlaceProps::placeAsset(const AcGePoint3d& position, const wchar_t* blockName, double rotation, double scale) {
-//    AcDbDatabase* pDb = acdbHostApplicationServices()->workingDatabase();
-//    AcDbBlockTable* pBlockTable;
-//    AcDbBlockTableRecord* pModelSpace;
-//
-//    if (pDb->getBlockTable(pBlockTable, AcDb::kForRead) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get block table."));
-//        return;
-//    }
-//    if (pBlockTable->getAt(ACDB_MODEL_SPACE, pModelSpace, AcDb::kForWrite) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to get model space."));
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    AcDbObjectId assetId = loadAsset(blockName);
-//    if (assetId == AcDbObjectId::kNull) {
-//        acutPrintf(_T("\nFailed to load asset."));
-//        pModelSpace->close();
-//        pBlockTable->close();
-//        return;
-//    }
-//
-//    AcDbBlockReference* pBlockRef = new AcDbBlockReference();
-//    pBlockRef->setPosition(position);
-//    pBlockRef->setBlockTableRecord(assetId);
-//    pBlockRef->setRotation(rotation);
-//    pBlockRef->setScaleFactors(AcGeScale3d(scale));  // Apply scaling
-//
-//    if (pModelSpace->appendAcDbEntity(pBlockRef) != Acad::eOk) {
-//        acutPrintf(_T("\nFailed to append block reference."));
-//    }
-//    pBlockRef->close();
-//
-//    pModelSpace->close();
-//    pBlockTable->close();
-//}
-
-void listDynamicBlockProperties(AcDbObjectId blockRefId) {
-    // Ensure the ID is valid
-    if (blockRefId.isNull()) {
-        acutPrintf(_T("Invalid block reference ID.\n"));
-        return;
-    }
-
-    // Open the block reference for reading
-    AcDbBlockReference* pBlockRef;
-    if (acdbOpenObject(pBlockRef, blockRefId, AcDb::kForWrite) != Acad::eOk) {
-        acutPrintf(_T("Failed to open block reference.\n"));
-        return;
-    }
-
-    // Create an instance of AcDbDynBlockReference using the block reference
-    AcDbDynBlockReference dynBlockRef(blockRefId);
-
-    // Ensure the block is dynamic before proceeding
-    if (!AcDbDynBlockReference::isDynamicBlock(blockRefId)) {
-        acutPrintf(_T("This is not a dynamic block.\n"));
-        pBlockRef->close();
-        return;
-    }
-
-    // Get the dynamic block properties
-    AcDbDynBlockReferencePropertyArray propArray;
-    dynBlockRef.getBlockProperties(propArray);
-
-    // Check if there are any properties in the array
-    if (propArray.length() == 0) {
-        acutPrintf(_T("No dynamic properties found for the block reference.\n"));
-        pBlockRef->close();
-        return;
-    }
-
-	//set property for dynamic block dynBlockRef and it's array propArray
-
-
-    // Iterate over the dynamic properties and print details
-    for (int i = 0; i < propArray.length(); i++) {
-        AcDbDynBlockReferenceProperty prop = propArray.at(i);
-        acutPrintf(_T("\nProperty: %s"), prop.propertyName().constPtr());
-        acutPrintf(_T("\nDescription: %s"), prop.description().constPtr());
-        acutPrintf(_T("\nValue: %s"), prop.value());
-        acutPrintf(_T("\nUnits Type: %d"), prop.unitsType());
-        acutPrintf(_T("\n"));
-    }
-
-    // Close the block reference
-    pBlockRef->close();
-}
-
 const std::string  PROPS_FILE_NAME = "OneDrive - PERI Group\\Documents\\AP-PeriCAD-Automation-Tools\\[03]Plugin\\props.json";
 
 void PlaceProps::placeProps() {
@@ -494,11 +403,6 @@ void PlaceProps::placeProps() {
     std::wstring id;
 
     for (const auto& panel : BlockInfoProps) {
-        //acutPrintf(_T("\n name %s"), panel.blockName);
-        //acutPrintf(_T("\n rotation %f"), panel.rotation);
-        //acutPrintf(_T("\n position x %f"), panel.position.x);
-        //acutPrintf(_T("\n position y %f"), panel.position.y);
-        //acutPrintf(_T("\n position z %f"), panel.position.z);
         if (i == 0) {
             start = panel.position;
             rotation = panel.rotation;
@@ -828,20 +732,8 @@ void PlaceProps::placeProps() {
     // Construct the full path for the JSON file
     //construct props path
     std::string jsonFilePath = "C:\\Users\\" + usernameW + "\\" + PROPS_FILE_NAME;
-    //acutPrintf(_T("\nJSON file path: %s"), jsonFilePath.c_str());
-    // Write currentDir and username to an external text file for verification
-    /*std::ofstream logFile("C:\\Users\\aniru\\OneDrive\\Desktop\\work\\path_log.txt");
-    if (logFile.is_open()) {
-        logFile << "jsonFilePath: " << jsonFilePath << std::endl;
-        logFile.close();
-        acutPrintf(_T("\nPath and username written to 'path_log.txt' for verification."));
-    }
-    else {
-        acutPrintf(_T("\nFailed to write to 'path_log.txt'."));
-    }*/
 
     std::ifstream jsonFile(jsonFilePath);
-	//std::ifstream jsonFile("C:\\Users\\anir\\OneDrive\\Desktop\\work\\props.json");
     std::string jsonData;
 
     if (jsonFile.is_open()) {
@@ -908,17 +800,6 @@ void PlaceProps::placeProps() {
             Distance1 = std::to_wstring(tableData.Distance1);
             Distance2 = std::to_wstring(tableData.Distance2);
 
-
-            //print all the values
-            //acutPrintf(_T("\nBase Plate Offset: %d"), basePlateOffset);
-            //acutPrintf(_T("\nBrace Connector Offset Bottom: %d"), braceConnectorOffsetBottom);
-            //acutPrintf(_T("\nBrace Connector Offset Top: %d"), braceConnectorOffsetTop);
-            //acutPrintf(_T("\nProp Angle: %f"), propAngle);
-            //acutPrintf(_T("\nKicker Angle: %f"), kickerAngle);
-            //acutPrintf(_T("\nProp Width: %d"), propWidth);
-            //acutPrintf(_T("\nDistance: %ls"), Distance.c_str());
-            //acutPrintf(_T("\nDistance1: %ls"), Distance1.c_str());
-            //acutPrintf(_T("\nDistance2: %ls"), Distance2.c_str());
             break;
         }
     }

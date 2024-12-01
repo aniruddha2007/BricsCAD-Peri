@@ -19,7 +19,6 @@
     <ClCompile Include="AssetPlacer\InsideCornerAssetPlacer.cpp" />
     <ClCompile Include="AssetPlacer\OutsideCornerAssetPlacer.cpp" />
     <ClCompile Include="AssetPlacer\SharedConfigs.cpp" />
-    <ClCompile Include="AssetPlacer\SpecialCaseCorners.cpp" />
     <ClCompile Include="Blocks\BlockLoader.cpp" />
     <ClCompile Include="AssetPlacer\CornerAssetPlacer.cpp" />
     <ClCompile Include="Columns\ExtractColumn.cpp" />
@@ -50,7 +49,6 @@
     <ClInclude Include="AssetPlacer\InsideCorner.h" />
     <ClInclude Include="AssetPlacer\OutsideCorner.h" />
     <ClInclude Include="AssetPlacer\SharedConfigs.h" />
-    <ClInclude Include="AssetPlacer\SpecialCaseCorners.h" />
     <ClInclude Include="Blocks\BlockLoader.h" />
     <ClInclude Include="AssetPlacer\CornerAssetPlacer.h" />
     <ClInclude Include="Columns\ExtractColumn.h" />
